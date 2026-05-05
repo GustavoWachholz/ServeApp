@@ -1,0 +1,300 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Ministérios - Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .ministerios-table-container {
+            background-color: var(--bg-card);
+            border-radius: 12px;
+            border: 1px solid var(--border-color);
+            overflow: hidden;
+            margin-top: 1rem;
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+            text-align: left;
+        }
+
+        th {
+            padding: 1.2rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        td {
+            padding: 1.2rem 1.5rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        tr:last-child td {
+            border-bottom: none;
+        }
+
+        tr:hover td {
+            background-color: rgba(124, 124, 138, 0.05);
+        }
+
+        .actions-cell {
+            display: flex;
+            gap: 0.8rem;
+        }
+
+        .btn-icon {
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.1rem;
+            transition: color 0.2s;
+        }
+
+        .btn-icon:hover {
+            color: var(--primary-color);
+        }
+
+        /* View Mode specific */
+        .view-data-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .view-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .view-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .sub-table-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .sub-table {
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .sub-table td {
+            padding: 0.8rem 0;
+            font-size: 0.85rem;
+        }
+        
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/img/logo.png" alt="Serve" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="https://ui-avatars.com/api/?name=User&background=004b87&color=fff" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                    <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                    <li class="active"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header"><span>Aparência</span></div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+                <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
+                <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>GESTÃO DE MINISTÉRIOS</h2>
+                    <button class="btn-primary" id="btn-new-ministerio">
+                        <i class="fas fa-plus"></i> Novo Ministério
+                    </button>
+                </div>
+
+                <div class="ministerios-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Ministério</th>
+                                <th>Líder</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ministerios-list">
+                            <!-- Dinâmico -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de Ministério -->
+    <div id="ministerio-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Detalhes do Ministério</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+
+            <!-- MODO VISUALIZAÇÃO -->
+            <div id="view-mode">
+                <div class="view-data-group">
+                    <div class="view-label">Ministério</div>
+                    <div class="view-value" id="view-nome">-</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="view-data-group">
+                        <div class="view-label">Líder</div>
+                        <div class="view-value" id="view-lider" style="font-size: 1rem;">-</div>
+                    </div>
+                    <div class="view-data-group">
+                        <div class="view-label">Co-Líder</div>
+                        <div class="view-value" id="view-colider" style="font-size: 1rem;">-</div>
+                    </div>
+                </div>
+
+                <div class="sub-table-title">Voluntários deste Ministério</div>
+                <table class="sub-table">
+                    <thead>
+                        <tr>
+                            <th style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">Nome</th>
+                            <th style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); text-align: right;">Vezes Escalado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="view-membros-list">
+                        <!-- Dinâmico -->
+                    </tbody>
+                </table>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-danger" id="btn-delete-ministerio">Excluir</button>
+                    <div class="footer-right">
+                        <button type="button" class="btn-secondary cancel-modal">Fechar</button>
+                        <button type="button" class="btn-primary" id="btn-switch-to-edit">Editar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODO EDIÇÃO -->
+            <form id="ministerio-form" style="display: none;">
+                <input type="hidden" id="ministerio-id">
+                
+                <div class="form-group">
+                    <label for="nome">Nome do Ministério</label>
+                    <input type="text" id="nome" required placeholder="Ex: Louvor">
+                </div>
+
+                <div class="form-group">
+                    <label for="liderId">Líder</label>
+                    <select id="liderId">
+                        <option value="">Nenhum</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="coliderId">Co-Líder</label>
+                    <select id="coliderId">
+                        <option value="">Nenhum</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-danger" id="btn-form-delete" style="display: none;">Excluir</button>
+                    <div class="footer-right">
+                        <button type="button" class="btn-secondary" id="btn-back-to-view">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="confirm-modal" class="modal" style="backdrop-filter: blur(4px);">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div style="margin-bottom: 1.5rem;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: #ef4444;"></i>
+            </div>
+            <h2 style="color: var(--text-color); margin-bottom: 1rem;">Confirmar Exclusão</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+                Tem certeza que deseja excluir o ministério <strong id="confirm-item-name" style="color: var(--text-color);"></strong>? <br>
+                Esta ação é irreversível.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button type="button" class="btn-secondary" id="btn-confirm-cancel" style="flex: 1;">Não, manter</button>
+                <button type="button" class="btn-danger" id="btn-confirm-delete" style="flex: 1;">Sim, excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/ministerios.js"></script>
+</body>
+</html>

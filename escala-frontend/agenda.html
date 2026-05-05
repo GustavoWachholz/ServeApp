@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda - Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- FullCalendar CDN -->
+    <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        .equipe-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            gap: 1.2rem;
+        }
+        
+        /* Estilos do novo sistema de busca e tags */
+        .ministerio-box {
+            background: var(--bg-main);
+            padding: 1rem;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+        }
+
+        .ministerio-box h4 {
+            margin-bottom: 0.8rem;
+            font-size: 0.9rem;
+            color: var(--primary-color);
+            text-transform: uppercase;
+        }
+
+        .voluntarios-selecionados {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-bottom: 0.8rem;
+            min-height: 30px;
+        }
+
+        .voluntario-tag {
+            background: var(--primary-color);
+            color: white;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.8rem;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .voluntario-tag .btn-remove {
+            background: none;
+            border: none;
+            color: white;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 1rem;
+            padding: 0 2px;
+            line-height: 1;
+        }
+
+        .voluntario-tag .btn-remove:hover {
+            color: #ef4444;
+        }
+
+        .input-busca {
+            width: 100%;
+            padding: 0.5rem;
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            background: var(--bg-sidebar);
+            color: var(--text-color);
+            font-size: 0.85rem;
+        }
+
+        .resultados-busca {
+            background: var(--bg-sidebar) !important;
+            border-color: var(--border-color) !important;
+            color: var(--text-color);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+        }
+
+        .resultados-busca li {
+            padding: 8px 12px;
+            border-bottom: 1px solid var(--border-color);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 0.85rem;
+        }
+
+        .resultados-busca li:last-child {
+            border-bottom: none;
+        }
+
+        .btn-add {
+            background: #10b981;
+            color: white;
+            border: none;
+            padding: 2px 6px;
+            border-radius: 4px;
+            cursor: pointer;
+        }
+
+        .btn-add:hover {
+            background: #059669;
+        }
+
+        /* Wizard Steps */
+        #step-2-equipe {
+            display: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/img/logo.png" alt="Serve" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="https://ui-avatars.com/api/?name=User&background=004b87&color=fff" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                    <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                    <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Menu Flutuante de Configurações -->
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header">
+                        <span>Aparência</span>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                </button>
+                <button id="logout-btn" class="sidebar-btn">
+                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <div class="section-header" style="margin-bottom: 1.5rem;">
+                <h2>AGENDA E ESCALAS</h2>
+                <button class="btn-primary" id="btn-nova-escala">
+                    <i class="fas fa-plus"></i> Nova Escala
+                </button>
+            </div>
+
+            <div id="calendar-container"></div>
+        </main>
+    </div>
+
+    <!-- Modal de Escala -->
+    <div id="escala-modal" class="modal">
+        <div class="modal-content" style="max-width: 900px;">
+            <div class="modal-header">
+                <h2 id="modal-title">+ Nova Escala</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+            <form id="escala-form">
+                <input type="hidden" id="event-id">
+                
+                <!-- STEP 1: DADOS BÁSICOS -->
+                <div id="step-1-dados">
+                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
+                        <div class="form-group">
+                            <label for="event-title">Título / Evento</label>
+                            <input type="text" id="event-title" required placeholder="Ex: Culto de Celebração">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="event-start">Data e Hora</label>
+                            <input type="datetime-local" id="event-start" required>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="event-color">Cor</label>
+                            <input type="color" id="event-color" value="#004b87" style="height: 45px; padding: 5px;">
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <button type="button" id="delete-event-btn" class="btn-danger" style="display: none;">Excluir</button>
+                        <div class="footer-right">
+                            <button type="button" class="btn-secondary cancel-modal">Cancelar</button>
+                            <button type="button" class="btn-primary" id="btn-next-step">Avançar <i class="fas fa-arrow-right"></i></button>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- STEP 2: EQUIPE -->
+                <div id="step-2-equipe">
+                    <h3 style="margin-bottom: 1rem; font-size: 1.1rem; color: var(--primary-color); border-bottom: 1px solid var(--border-color); padding-bottom: 0.5rem;">
+                        <i class="fas fa-users"></i> Montagem da Equipe
+                    </h3>
+
+                    <div class="equipe-grid">
+                        <div class="ministerio-box" data-funcao="Recepção">
+                            <h4>Recepção</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Integração">
+                            <h4>Integração</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Conferência Dízimo">
+                            <h4>Conferência Dízimo</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Louvor">
+                            <h4>Louvor</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Mesa">
+                            <h4>Mesa</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Mídia">
+                            <h4>Mídia</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Intercessão/Abertura">
+                            <h4>Intercessão/Abertura</h4>
+                            <div class="voluntarios-selecionados"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="modal-footer">
+                        <div class="footer-left">
+                            <button type="button" class="btn-secondary" id="btn-prev-step"><i class="fas fa-arrow-left"></i> Voltar</button>
+                        </div>
+                        <div class="footer-right">
+                            <button type="button" class="btn-secondary cancel-modal">Cancelar</button>
+                            <button type="submit" class="btn-primary">Salvar Escala</button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/agenda.js"></script>
+</body>
+</html>

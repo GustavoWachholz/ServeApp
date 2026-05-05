@@ -1,0 +1,67 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Serve</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    <main class="login-container">
+        <!-- Lado Esquerdo: Branding -->
+        <section class="branding-side">
+            <div class="branding-content">
+                <img src="assets/img/logo.png" alt="Logo Serve" style="max-width: 250px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <p style="color: #333333; font-size: 1.2rem; font-weight: 500; margin-top: 15px; text-align: center; max-width: 80%;">
+                    Uma geração que adora, ama e <strong style="color: #004b87;">Serve</strong><strong style="color: #E69F00;">.</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- Lado Direito: Formulário -->
+        <section class="form-side">
+            <div class="form-content">
+                <header>
+                    <h2>Bem-vindo de volta</h2>
+                    <p>Entre com suas credenciais para acessar o sistema.</p>
+                </header>
+
+                <form id="login-form">
+                    <div class="input-group">
+                        <label for="email">E-mail</label>
+                        <input type="email" id="email" name="email" placeholder="exemplo@email.com" required>
+                    </div>
+
+                    <div class="input-group">
+                        <label for="password">Senha</label>
+                        <input type="password" id="password" name="password" placeholder="••••••••" required>
+                    </div>
+
+                    <div class="form-options">
+                        <a href="#" class="forgot-link">Esqueceu a senha?</a>
+                    </div>
+
+                    <button type="submit" class="btn-submit">Entrar</button>
+
+                    <div class="divider">
+                        <span>ou continue com</span>
+                    </div>
+
+                    <div class="social-login">
+                        <button type="button" class="btn-google">
+                            <img src="https://www.gstatic.com/firebasejs/ui/2.0.0/images/auth/google.svg" alt="Google">
+                            Google
+                        </button>
+                    </div>
+                </form>
+
+                <footer>
+                    <p>Não tem uma conta? <a href="#">Solicite acesso</a></p>
+                </footer>
+            </div>
+        </section>
+    </main>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

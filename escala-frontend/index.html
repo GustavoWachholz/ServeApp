@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-logo">
+                <img src="assets/img/logo.png" alt="Serve" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="https://ui-avatars.com/api/?name=User&background=004b87&color=fff" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active"><a href="#"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                    <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                    <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Menu Flutuante de Configurações -->
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header">
+                        <span>Aparência</span>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                </button>
+                <button id="logout-btn" class="sidebar-btn">
+                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <div class="dashboard-grid">
+                <!-- Próximos Compromissos -->
+                <section class="dashboard-section">
+                    <div class="section-header">
+                        <h2>PRÓXIMOS COMPROMISSOS</h2>
+                        <a href="agenda.html" class="see-all">Ver todos ></a>
+                    </div>
+                    <div id="container-proximos-compromissos" class="cards-container"></div>
+                </section>
+
+                <!-- Quadro de Avisos -->
+                <section class="dashboard-section">
+                    <div class="section-header">
+                        <h2>QUADRO DE AVISOS</h2>
+                        <a href="#" class="see-all">Ver todos ></a>
+                    </div>
+                    <div id="container-avisos" class="cards-container"></div>
+                </section>
+
+                <!-- Minhas Escalas -->
+                <section class="dashboard-section">
+                    <div class="section-header">
+                        <h2>MINHAS ESCALAS</h2>
+                        <a href="agenda.html" class="see-all">Ver todas ></a>
+                    </div>
+                    <div id="container-escalas" class="cards-container"></div>
+                </section>
+
+                <!-- Aniversariantes -->
+                <section class="dashboard-section">
+                    <div class="section-header">
+                        <h2>ANIVERSARIANTES</h2>
+                        <a href="#" class="see-all">Ver todos ></a>
+                    </div>
+                    <div id="container-aniversariantes" class="cards-container"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/dashboard.js"></script>
+</body>
+</html>

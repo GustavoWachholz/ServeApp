@@ -14,6 +14,7 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @Service
@@ -57,6 +58,9 @@ public class EscalaService {
 
     @Transactional
     public EscalaDTO criarComAtribuicoes(EscalaDTO dto) {
+        if (dto.getAtribuicoes() != null) {
+            validarRegraDeAtribuicoes(dto.getAtribuicoes());
+        }
         Escala escala = new Escala();
         updateEscalaFromDTO(escala, dto);
         Escala salva = escalaRepository.save(escala);
@@ -65,6 +69,9 @@ public class EscalaService {
 
     @Transactional
     public EscalaDTO atualizarComAtribuicoes(Long id, EscalaDTO dto) {
+        if (dto.getAtribuicoes() != null) {
+            validarRegraDeAtribuicoes(dto.getAtribuicoes());
+        }
         Escala escala = escalaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
 
@@ -74,25 +81,57 @@ public class EscalaService {
         return convertToEscalaDTO(atualizada);
     }
 
-    private void updateEscalaFromDTO(Escala escala, EscalaDTO dto) {
-        escala.setTitulo(dto.titulo());
-        escala.setDataEscala(dto.dataEscala());
-        escala.setCor(dto.cor());
-        escala.setStatus(dto.status() != null ? dto.status() : "AGENDADO");
+    private void validarRegraDeAtribuicoes(List<AtribuicaoDTO> atribuicoes) {
+        if (atribuicoes == null || atribuicoes.isEmpty()) {
+            return;
+        }
 
-        // Clear existing and add new ones
-        escala.getAtribuicoes().clear();
-        if (dto.atribuicoes() != null) {
-            for (AtribuicaoDTO aDto : dto.atribuicoes()) {
-                EscalaAtribuicao atribuicao = new EscalaAtribuicao();
-                atribuicao.setEscala(escala);
-                atribuicao.setFuncao(aDto.funcao());
+        Map<Long, List<AtribuicaoDTO>> porVoluntario = atribuicoes.stream()
+                .collect(Collectors.groupingBy(AtribuicaoDTO::getVoluntarioId));
+
+        for (Map.Entry<Long, List<AtribuicaoDTO>> entry : porVoluntario.entrySet()) {
+            List<AtribuicaoDTO> funcoesDoVoluntario = entry.getValue();
+            if (funcoesDoVoluntario.size() > 1) {
+                long funcoesPrincipais = funcoesDoVoluntario.stream()
+                        .filter(f -> f.getFuncao() != null && 
+                                     !"Intercessão/Abertura".equals(f.getFuncao()) &&
+                                     !"Conferência Dízimo".equals(f.getFuncao()))
+                        .count();
+                if (funcoesPrincipais > 1) {
+                    String nomeVoluntario = funcoesDoVoluntario.get(0).getVoluntarioNome();
+                    if (nomeVoluntario == null || nomeVoluntario.trim().isEmpty()) {
+                        Voluntario v = voluntarioRepository.findById(entry.getKey()).orElse(null);
+                        nomeVoluntario = (v != null) ? v.getNome() : String.valueOf(entry.getKey());
+                    }
+                    throw new IllegalArgumentException("O voluntário " + nomeVoluntario + " já possui um ministério principal nesta escala e não pode assumir outro simultaneamente. As exceções permitidas são apenas Intercessão/Abertura e Conferência Dízimo.");
+                }
+            }
+        }
+    }
+
+    private void updateEscalaFromDTO(Escala escala, EscalaDTO dto) {
+        escala.setTitulo(dto.getTitulo());
+        escala.setDataEscala(dto.getDataEscala());
+        escala.setCor(dto.getCor());
+        escala.setStatus(dto.getStatus() != null ? dto.getStatus() : "AGENDADO");
+        escala.setClassificacao(dto.getClassificacao());
+
+        // Limpa a coleção atual gerada pelo Hibernate
+        if (escala.getAtribuicoes() != null) {
+            escala.getAtribuicoes().clear();
+        }
+        
+        if (dto.getAtribuicoes() != null && !dto.getAtribuicoes().isEmpty()) {
+            for (AtribuicaoDTO aDto : dto.getAtribuicoes()) {
+                EscalaAtribuicao novaAtrib = new EscalaAtribuicao();
+                novaAtrib.setFuncao(aDto.getFuncao());
                 
-                Voluntario voluntario = voluntarioRepository.findById(aDto.voluntarioId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado: " + aDto.voluntarioId()));
-                atribuicao.setVoluntario(voluntario);
+                Voluntario voluntario = voluntarioRepository.findById(aDto.getVoluntarioId())
+                        .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado: " + aDto.getVoluntarioId()));
+                novaAtrib.setVoluntario(voluntario);
                 
-                escala.getAtribuicoes().add(atribuicao);
+                novaAtrib.setEscala(escala); // <-- OBRIGATÓRIO (Vínculo bidirecional)
+                escala.getAtribuicoes().add(novaAtrib);
             }
         }
     }
@@ -175,6 +214,7 @@ public class EscalaService {
                 escala.getDataEscala(),
                 escala.getCor(),
                 escala.getStatus(),
+                escala.getClassificacao(),
                 atribuicoes
         );
     }

@@ -23,6 +23,8 @@ public class Escala {
 
     private String status;
 
+    private String classificacao;
+
     @OneToMany(mappedBy = "escala", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<EscalaAtribuicao> atribuicoes = new ArrayList<>();
 
@@ -70,6 +72,14 @@ public class Escala {
 
     public void setStatus(String status) {
         this.status = status;
+    }
+
+    public String getClassificacao() {
+        return classificacao;
+    }
+
+    public void setClassificacao(String classificacao) {
+        this.classificacao = classificacao;
     }
 
     public List<EscalaVoluntario> getVoluntarios() {

@@ -242,6 +242,14 @@
                     </h3>
 
                     <div class="equipe-grid">
+                        <div class="ministerio-box" data-funcao="Abertura">
+                            <h4>Abertura</h4>
+                            <div class="voluntarios-list"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
                         <div class="ministerio-box" data-funcao="Recepção">
                             <h4>Recepção</h4>
                             <div class="voluntarios-list"></div>
@@ -252,14 +260,6 @@
                         </div>
                         <div class="ministerio-box" data-funcao="Integração">
                             <h4>Integração</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Conferência Dízimo">
-                            <h4>Conferência Dízimo</h4>
                             <div class="voluntarios-list"></div>
                             <div class="busca-container" style="position: relative;">
                                 <input type="text" class="input-busca" placeholder="Buscar voluntário...">
@@ -290,8 +290,24 @@
                                 <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
                             </div>
                         </div>
-                        <div class="ministerio-box" data-funcao="Intercessão/Abertura">
-                            <h4>Intercessão/Abertura</h4>
+                        <div class="ministerio-box" data-funcao="Intercessão">
+                            <h4>Intercessão</h4>
+                            <div class="voluntarios-list"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Oferta/Dízimo">
+                            <h4>Oferta/Dízimo</h4>
+                            <div class="voluntarios-list"></div>
+                            <div class="busca-container" style="position: relative;">
+                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
+                            </div>
+                        </div>
+                        <div class="ministerio-box" data-funcao="Conferência Dízimo">
+                            <h4>Conferência Dízimo</h4>
                             <div class="voluntarios-list"></div>
                             <div class="busca-container" style="position: relative;">
                                 <input type="text" class="input-busca" placeholder="Buscar voluntário...">
@@ -315,26 +331,26 @@
         </div>
     </div>
 
-    <div id="export-container" style="position: absolute; left: -9999px; top: 0; width: 1200px; height: 800px; background-image: url('assets/img/template-beone.jpg'); background-size: cover; background-position: center; font-family: 'Montserrat', sans-serif;">
+    <div id="export-container" style="position: absolute; left: -9999px; top: 0; width: 1200px; height: 800px; background-size: cover; background-position: center; font-family: 'Montserrat', sans-serif;">
         <!-- Título/Data da Escala -->
         <div id="export-data" style="position: absolute; top: 22%; width: 100%; text-align: center; color: #E69F00; font-size: 20px; font-weight: bold; letter-spacing: 2px;"></div>
         
         <!-- Grid de Colunas -->
-        <div style="display: grid; grid-template-columns: repeat(7, 1fr); position: absolute; top: 38%; left: 2%; right: 2%; bottom: 10%;">
+        <div style="display: grid; grid-template-columns: repeat(9, 1fr); position: absolute; top: 33%; left: 2%; right: 2%; bottom: 8%;">
+            <div class="export-col" data-col="Abertura" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
             <div class="export-col" data-col="Recepção" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
             <div class="export-col" data-col="Integração" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Conferência Dízimo" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
             <div class="export-col" data-col="Louvor" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
             <div class="export-col" data-col="Mesa" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
             <div class="export-col" data-col="Mídia" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Intercessão/Abertura" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
+            <div class="export-col" data-col="Intercessão" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
+            <div class="export-col" data-col="Oferta/Dízimo" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
+            <div class="export-col" data-col="Conferência Dízimo" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
         </div>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="js/agenda.js"></script>
-</body>
-</html>
-src="js/agenda.js"></script>
+    <script src="js/image-template.js"></script>
+    <script type="module" src="js/agenda.js"></script>
 </body>
 </html>

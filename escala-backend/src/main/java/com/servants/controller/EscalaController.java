@@ -23,8 +23,8 @@ public class EscalaController {
     }
 
     @GetMapping
-    public List<EventoAgendaDTO> listarTodasParaAgenda() {
-        return escalaService.listarTodasParaAgenda();
+    public List<EscalaDTO> listarTodas() {
+        return escalaService.listarTodas();
     }
 
     @GetMapping("/{id}")

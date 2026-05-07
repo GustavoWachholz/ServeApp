@@ -36,9 +36,9 @@ public class EscalaService {
     }
 
     @Transactional(readOnly = true)
-    public List<EventoAgendaDTO> listarTodasParaAgenda() {
+    public List<EscalaDTO> listarTodas() {
         return escalaRepository.findAll().stream()
-                .map(this::convertToAgendaDTO)
+                .map(this::convertToEscalaDTO)
                 .collect(Collectors.toList());
     }
 
@@ -94,7 +94,9 @@ public class EscalaService {
             if (funcoesDoVoluntario.size() > 1) {
                 long funcoesPrincipais = funcoesDoVoluntario.stream()
                         .filter(f -> f.getFuncao() != null && 
-                                     !"Intercessão/Abertura".equals(f.getFuncao()) &&
+                                     !"Abertura".equals(f.getFuncao()) &&
+                                     !"Intercessão".equals(f.getFuncao()) &&
+                                     !"Oferta/Dízimo".equals(f.getFuncao()) &&
                                      !"Conferência Dízimo".equals(f.getFuncao()))
                         .count();
                 if (funcoesPrincipais > 1) {
@@ -103,7 +105,7 @@ public class EscalaService {
                         Voluntario v = voluntarioRepository.findById(entry.getKey()).orElse(null);
                         nomeVoluntario = (v != null) ? v.getNome() : String.valueOf(entry.getKey());
                     }
-                    throw new IllegalArgumentException("O voluntário " + nomeVoluntario + " já possui um ministério principal nesta escala e não pode assumir outro simultaneamente. As exceções permitidas são apenas Intercessão/Abertura e Conferência Dízimo.");
+                    throw new IllegalArgumentException("O voluntário " + nomeVoluntario + " já possui um ministério principal nesta escala. As únicas funções que podem ser acumuladas são: Abertura, Intercessão, Oferta/Dízimo e Conferência Dízimo.");
                 }
             }
         }
@@ -204,19 +206,28 @@ public class EscalaService {
     }
 
     private EscalaDTO convertToEscalaDTO(Escala escala) {
-        List<AtribuicaoDTO> atribuicoes = escala.getAtribuicoes().stream()
-                .map(this::convertToAtribuicaoDTO)
-                .collect(Collectors.toList());
+        EscalaDTO dto = new EscalaDTO();
+        dto.setId(escala.getId());
+        dto.setTitulo(escala.getTitulo());
+        dto.setDataEscala(escala.getDataEscala());
+        dto.setCor(escala.getCor());
+        dto.setStatus(escala.getStatus());
+        dto.setClassificacao(escala.getClassificacao());
 
-        return new EscalaDTO(
-                escala.getId(),
-                escala.getTitulo(),
-                escala.getDataEscala(),
-                escala.getCor(),
-                escala.getStatus(),
-                escala.getClassificacao(),
-                atribuicoes
-        );
+        if (escala.getAtribuicoes() != null && !escala.getAtribuicoes().isEmpty()) {
+            List<AtribuicaoDTO> atribsDTO = escala.getAtribuicoes().stream().map(a -> {
+                AtribuicaoDTO aDto = new AtribuicaoDTO();
+                aDto.setVoluntarioId(a.getVoluntario().getId());
+                aDto.setVoluntarioNome(a.getVoluntario().getNome());
+                aDto.setFuncao(a.getFuncao());
+                return aDto;
+            }).collect(Collectors.toList());
+            dto.setAtribuicoes(atribsDTO);
+        } else {
+            dto.setAtribuicoes(new ArrayList<>());
+        }
+
+        return dto;
     }
 
     private AtribuicaoDTO convertToAtribuicaoDTO(EscalaAtribuicao ea) {

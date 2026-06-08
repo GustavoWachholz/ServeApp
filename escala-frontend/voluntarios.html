@@ -80,7 +80,7 @@
         /* Checkbox groups */
         .checkbox-group {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(140px, 1fr));
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
             gap: 0.8rem;
             margin-top: 0.5rem;
         }
@@ -112,6 +112,162 @@
             font-size: 1rem;
             font-weight: 500;
         }
+
+        /* ── Toolbar de busca e ordenação ── */
+        .toolbar {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+            flex-wrap: wrap;
+        }
+
+        .search-wrapper {
+            position: relative;
+            flex: 1;
+            min-width: 200px;
+        }
+
+        .search-wrapper .search-icon {
+            position: absolute;
+            left: 0.85rem;
+            top: 50%;
+            transform: translateY(-50%);
+            color: var(--text-muted);
+            font-size: 0.85rem;
+            pointer-events: none;
+        }
+
+        .search-wrapper input {
+            width: 100%;
+            padding: 0.65rem 2.4rem 0.65rem 2.4rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background-color: var(--bg-card);
+            color: var(--text-color);
+            font-size: 0.875rem;
+            transition: border-color 0.2s, box-shadow 0.2s;
+        }
+
+        .search-wrapper input:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,75,135,0.1);
+        }
+
+        .btn-clear-search {
+            position: absolute;
+            right: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            font-size: 0.8rem;
+            line-height: 1;
+            border-radius: 50%;
+            transition: color 0.2s;
+        }
+
+        .btn-clear-search:hover { color: var(--text-color); }
+
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .sort-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        .btn-sort {
+            padding: 0.55rem 0.95rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-muted);
+            font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.2s;
+            white-space: nowrap;
+        }
+
+        .btn-sort:hover {
+            border-color: var(--primary-color);
+            color: var(--primary-color);
+        }
+
+        .btn-sort.active {
+            background-color: var(--primary-color);
+            border-color: var(--primary-color);
+            color: #fff;
+        }
+
+        .toolbar-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .volunteers-count {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Destaque do texto encontrado pela busca */
+        mark {
+            background-color: rgba(230,159,0,0.25);
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        /* ── Chips de classificação ── */
+        .classif-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+        }
+
+        .classif-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1.5px solid;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .classif-chip input[type="checkbox"] {
+            display: none;
+        }
+
+        .classif-chip:not(.checked) {
+            opacity: 0.4;
+            filter: grayscale(0.35);
+        }
+
+        .classif-chip.checked {
+            opacity: 1;
+        }
     </style>
 </head>
 <body>
@@ -137,6 +293,7 @@
                     <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
                     <li class="active"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
                     <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -183,6 +340,29 @@
                     <button class="btn-primary" id="btn-new-volunteer">
                         <i class="fas fa-plus"></i> Novo Voluntário
                     </button>
+                </div>
+
+                <!-- Toolbar: pesquisa + ordenação -->
+                <div class="toolbar">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Pesquisar por nome, e-mail ou ministério…" autocomplete="off">
+                        <button id="btn-clear-search" class="btn-clear-search" title="Limpar pesquisa">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <div class="sort-group">
+                        <span class="sort-label">Ordenar:</span>
+                        <button id="sort-cadastro" class="btn-sort active" data-sort="cadastro">
+                            <i class="fas fa-clock" style="margin-right:0.3rem;font-size:0.75rem;"></i>Cadastro
+                        </button>
+                        <button id="sort-alpha" class="btn-sort" data-sort="alpha">
+                            <i class="fas fa-sort-alpha-down" style="margin-right:0.3rem;font-size:0.75rem;"></i>A → Z
+                        </button>
+                    </div>
+                </div>
+                <div class="toolbar-footer">
+                    <span class="volunteers-count" id="volunteers-count"></span>
                 </div>
 
                 <div class="volunteers-table-container">
@@ -236,6 +416,10 @@
                         <!-- Tags dinâmicas -->
                     </div>
                 </div>
+                <div class="view-data-group">
+                    <div class="view-label">Classificações</div>
+                    <div id="view-classificacoes" class="classif-grid">-</div>
+                </div>
                 <div class="modal-footer">
                     <button type="button" class="btn-danger" id="btn-delete-volunteer">Excluir</button>
                     <div class="footer-right">
@@ -274,6 +458,16 @@
                     <div class="checkbox-group" id="ministerios-checkbox-container">
                         <!-- Dinâmico via API -->
                     </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Classificações</label>
+                    <div class="classif-grid" id="classif-checkboxes-vol">
+                        <!-- gerado por voluntarios.js -->
+                    </div>
+                    <small style="color:var(--text-muted);font-size:0.73rem;margin-top:0.4rem;display:block;">
+                        Selecione os tipos de culto/evento em que este voluntário pode atuar.
+                    </small>
                 </div>
 
                 <div class="modal-footer">

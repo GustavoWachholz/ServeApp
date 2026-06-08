@@ -10,7 +10,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/voluntarios")
-@CrossOrigin("*")
 public class VoluntarioController {
 
     private final VoluntarioService voluntarioService;
@@ -22,6 +21,11 @@ public class VoluntarioController {
     @GetMapping
     public List<VoluntarioDTO> listarTodos() {
         return voluntarioService.listarTodos();
+    }
+
+    @GetMapping("/{id}")
+    public ResponseEntity<VoluntarioDTO> buscarPorId(@PathVariable Long id) {
+        return ResponseEntity.ok(voluntarioService.buscarPorId(id));
     }
 
     @PostMapping

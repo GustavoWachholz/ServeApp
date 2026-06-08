@@ -1,13 +1,13 @@
 package com.servants.controller;
 
 import com.servants.dto.LoginRequest;
+import com.servants.dto.UsuarioResponseDTO;
 import com.servants.service.UsuarioService;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 @RestController
 @RequestMapping("/api/auth")
-@CrossOrigin("*")
 public class AuthController {
 
     private final UsuarioService usuarioService;
@@ -17,9 +17,9 @@ public class AuthController {
     }
 
     @PostMapping("/login")
-    public ResponseEntity<?> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<UsuarioResponseDTO> login(@RequestBody LoginRequest loginRequest) {
         return usuarioService.realizarLogin(loginRequest)
-                .map(ResponseEntity::ok)
+                .map(u -> ResponseEntity.ok(new UsuarioResponseDTO(u.getId(), u.getNome(), u.getEmail(), u.getTema(), u.getCorPrimaria())))
                 .orElse(ResponseEntity.status(401).build());
     }
 }

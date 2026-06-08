@@ -5,9 +5,9 @@ import java.util.List;
 public record DashboardResponse(
     String nomeUsuario,
     List<String> ministerios,
-    List<String> avisos,
+    List<AvisoDTO> avisos,
     List<String> minhasEscalas,
-    List<String> aniversariantes,
+    List<AniversarianteDTO> aniversariantes,
     String tema,
     String corPrimaria
 ) {

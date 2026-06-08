@@ -30,6 +30,7 @@ public class DataInitializer implements CommandLineRunner {
     public void run(String... args) throws Exception {
         if (usuarioRepository.findByEmail("admin@admin.com").isEmpty()) {
             Usuario admin = new Usuario("admin@admin.com", "123456");
+            admin.setNome("Administrador");
             admin.setTema("light");
             admin.setCorPrimaria("#004b87");
             usuarioRepository.save(admin);

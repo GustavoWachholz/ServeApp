@@ -14,8 +14,14 @@
     <style>
         .equipe-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
             gap: 1.2rem;
+        }
+
+        @media (max-width: 600px) {
+            .equipe-grid {
+                grid-template-columns: 1fr;  /* coluna única em mobile */
+            }
         }
         
         /* Estilos do novo sistema de busca e tags */
@@ -139,6 +145,7 @@
                     <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
                     <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
                     <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -202,7 +209,7 @@
                 
                 <!-- STEP 1: DADOS BÁSICOS -->
                 <div id="step-1-dados">
-                    <div style="display: grid; grid-template-columns: 2fr 1fr 1fr; gap: 1rem;">
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(160px, 1fr)); gap: 1rem;">
                         <div class="form-group">
                             <label for="escala-titulo">Título / Evento</label>
                             <input type="text" id="escala-titulo" required placeholder="Ex: Culto de Celebração">
@@ -217,10 +224,11 @@
                             <label for="escala-classificacao">Classificação</label>
                             <select id="escala-classificacao" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-sidebar); color: var(--text-color);">
                                 <option value="" disabled selected>Selecione...</option>
-                                <option value="Culto Atitude" data-cor="#E69F00">Culto Atitude</option>
-                                <option value="Culto BeOne" data-cor="#004b87">Culto BeOne</option>
-                                <option value="Culto Kids" data-cor="#8BC34A">Culto Kids</option>
-                                <option value="Eventos" data-cor="#E53935">Eventos</option>
+                                <option value="Culto Atitude" data-cor="#1d4ed8">Culto Atitude</option>
+                                <option value="Culto BeOne"   data-cor="#7c3aed">Culto BeOne</option>
+                                <option value="Culto Kids"    data-cor="#059669">Culto Kids</option>
+                                <option value="Eventos"       data-cor="#dc2626">Eventos</option>
+                                <option value="Base"          data-cor="#78716c">Base</option>
                             </select>
                         </div>
                     </div>
@@ -241,79 +249,11 @@
                         <i class="fas fa-users"></i> Montagem da Equipe
                     </h3>
 
-                    <div class="equipe-grid">
-                        <div class="ministerio-box" data-funcao="Abertura">
-                            <h4>Abertura</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Recepção">
-                            <h4>Recepção</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Integração">
-                            <h4>Integração</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Louvor">
-                            <h4>Louvor</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Mesa">
-                            <h4>Mesa</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Mídia">
-                            <h4>Mídia</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Intercessão">
-                            <h4>Intercessão</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Oferta/Dízimo">
-                            <h4>Oferta/Dízimo</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
-                        <div class="ministerio-box" data-funcao="Conferência Dízimo">
-                            <h4>Conferência Dízimo</h4>
-                            <div class="voluntarios-list"></div>
-                            <div class="busca-container" style="position: relative;">
-                                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
-                                <ul class="resultados-busca" style="display: none; position: absolute; z-index: 10; width: 100%; max-height: 150px; overflow-y: auto; list-style: none; padding: 0; margin: 0; border: 1px solid #ccc; background: #fff;"></ul>
-                            </div>
-                        </div>
+                    <!-- Boxes gerados dinamicamente por agenda.ts baseado na ConfiguracaoEscala -->
+                    <div id="equipe-grid" class="equipe-grid">
+                        <p id="equipe-loading" style="color: var(--text-muted); font-style: italic; grid-column: 1/-1; text-align:center; padding: 2rem 0;">
+                            <i class="fas fa-spinner fa-spin"></i> Carregando ministérios...
+                        </p>
                     </div>
 
                     <div class="modal-footer">
@@ -331,26 +271,19 @@
         </div>
     </div>
 
-    <div id="export-container" style="position: absolute; left: -9999px; top: 0; width: 1200px; height: 800px; background-size: cover; background-position: center; font-family: 'Montserrat', sans-serif;">
-        <!-- Título/Data da Escala -->
-        <div id="export-data" style="position: absolute; top: 22%; width: 100%; text-align: center; color: #E69F00; font-size: 20px; font-weight: bold; letter-spacing: 2px;"></div>
-        
-        <!-- Grid de Colunas -->
-        <div style="display: grid; grid-template-columns: repeat(9, 1fr); position: absolute; top: 33%; left: 2%; right: 2%; bottom: 8%;">
-            <div class="export-col" data-col="Abertura" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Recepção" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Integração" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Louvor" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Mesa" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Mídia" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Intercessão" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Oferta/Dízimo" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
-            <div class="export-col" data-col="Conferência Dízimo" style="display: flex; flex-direction: column; align-items: center; gap: 20px; padding-top: 10px; color: #FFFFFF; font-size: 14px; font-weight: bold; text-align: center;"></div>
+    <!-- Export container: tabela gerada pelo programa (sem template de imagem) -->
+    <div id="export-container" style="position:absolute;left:-9999px;top:0;width:1200px;background:#ffffff;font-family:'Inter','Helvetica Neue',Arial,sans-serif;">
+        <!-- Cabeçalho colorido — preenchido via JS -->
+        <div id="export-header" style="padding:32px 40px 20px;text-align:center;color:#fff;background:#004b87;">
+            <div id="export-org"   style="font-size:28px;font-weight:900;letter-spacing:4px;text-transform:uppercase;margin-bottom:4px;"></div>
+            <div id="export-setor" style="font-size:15px;font-weight:600;letter-spacing:2px;opacity:0.85;margin-bottom:10px;"></div>
+            <div id="export-data"  style="font-size:14px;font-weight:500;opacity:0.7;"></div>
         </div>
+        <!-- Tabela de escalados — thead e tbody preenchidos via JS -->
+        <table id="export-table" style="width:100%;border-collapse:collapse;border-spacing:0;"></table>
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
-    <script src="js/image-template.js"></script>
     <script type="module" src="js/agenda.js"></script>
 </body>
 </html>

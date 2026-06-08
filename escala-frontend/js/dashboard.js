@@ -3,7 +3,7 @@
  */
 
 const DASHBOARD_API_URL = 'http://localhost:8080/api/dashboard';
-const CONFIG_API_URL = 'http://localhost:8080/api/configuracoes/1';
+const CONFIG_API_URL = `http://localhost:8080/api/configuracoes/${localStorage.getItem('userId') || 1}`;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard Serve inicializado.');
@@ -65,8 +65,8 @@ async function carregarProximosCompromissos() {
 
         // Filtra, ordena e pega os 5 primeiros
         const proximos = eventos
-            .filter(e => new Date(e.start || e.dataInicio) >= agora)
-            .sort((a, b) => new Date(a.start || a.dataInicio) - new Date(b.start || b.dataInicio))
+            .filter(e => new Date(e.dataEscala) >= agora)
+            .sort((a, b) => new Date(a.dataEscala) - new Date(b.dataEscala))
             .slice(0, 5);
 
         if (proximos.length === 0) {
@@ -83,7 +83,7 @@ async function carregarProximosCompromissos() {
                 card.style.borderLeft = `5px solid ${item.color}`;
             }
 
-            const dataObj = new Date(item.start || item.dataInicio);
+            const dataObj = new Date(item.dataEscala);
             const dataFormatada = dataObj.toLocaleString('pt-BR', {
                 day: '2-digit',
                 month: '2-digit',
@@ -151,9 +151,11 @@ function renderSection(containerId, list, cardCreator) {
 function createAvisoCard(item) {
     const div = document.createElement('div');
     div.className = 'card card-aviso';
+    const titulo = typeof item === 'string' ? item : (item.titulo || '');
+    const conteudo = typeof item === 'string' ? '' : (item.conteudo || '');
     div.innerHTML = `
-        <h4>${item.titulo}</h4>
-        <p>${item.conteudo}</p>
+        <h4>${titulo}</h4>
+        ${conteudo ? `<p>${conteudo}</p>` : ''}
     `;
     return div;
 }
@@ -171,12 +173,14 @@ function createEscalaCard(item) {
 function createBirthdayCard(item) {
     const div = document.createElement('div');
     div.className = 'card';
+    const nome = typeof item === 'string' ? item.split(' - ')[0] : (item.nome || item);
+    const data = typeof item === 'string' ? item.split(' - ')[1] || '' : (item.data || '');
     div.innerHTML = `
         <div style="display: flex; align-items: center; gap: 0.8rem;">
             <i class="fas fa-cake-candles" style="color: var(--primary-color)"></i>
             <div>
-                <h4>${item.nome}</h4>
-                <p>${item.data}</p>
+                <h4>${nome}</h4>
+                <p>${data}</p>
             </div>
         </div>
     `;

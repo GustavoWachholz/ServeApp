@@ -33,7 +33,9 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 // 4. Tratamento da resposta
                 if (response.ok) {
-                    // Status 200 - Sucesso
+                    const usuario = await response.json();
+                    localStorage.setItem('userId', usuario.id);
+                    localStorage.setItem('userName', usuario.nome || usuario.email);
                     console.log('Login realizado com sucesso! Redirecionando...');
                     window.location.href = 'index.html';
                 } else if (response.status === 401) {

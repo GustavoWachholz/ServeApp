@@ -49,13 +49,6 @@ public class EscalaService {
         return convertToEscalaDTO(escala);
     }
 
-    @Transactional(readOnly = true)
-    public EscalaDetalheDTO buscarPorId(Long id) {
-        Escala escala = escalaRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
-        return convertToDetalheDTO(escala);
-    }
-
     @Transactional
     public EscalaDTO criarComAtribuicoes(EscalaDTO dto) {
         if (dto.getAtribuicoes() != null) {
@@ -235,21 +228,6 @@ public class EscalaService {
                 ea.getVoluntario().getId(),
                 ea.getVoluntario().getNome(),
                 ea.getFuncao()
-        );
-    }
-
-    private EscalaDetalheDTO convertToDetalheDTO(Escala escala) {
-        List<EscalaVoluntarioDTO> voluntarios = escala.getVoluntarios().stream()
-                .map(this::convertToEscalaVoluntarioDTO)
-                .collect(Collectors.toList());
-
-        return new EscalaDetalheDTO(
-                escala.getId(),
-                escala.getTitulo(),
-                escala.getDataEscala().format(DateTimeFormatter.ISO_LOCAL_DATE_TIME),
-                escala.getCor(),
-                escala.getStatus(),
-                voluntarios
         );
     }
 

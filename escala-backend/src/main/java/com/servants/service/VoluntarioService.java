@@ -20,6 +20,13 @@ public class VoluntarioService {
     }
 
     @Transactional(readOnly = true)
+    public VoluntarioDTO buscarPorId(Long id) {
+        Voluntario voluntario = voluntarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado com ID: " + id));
+        return convertToDTO(voluntario);
+    }
+
+    @Transactional(readOnly = true)
     public List<VoluntarioDTO> listarTodos() {
         return voluntarioRepository.findAll().stream()
                 .map(this::convertToDTO)
@@ -43,6 +50,7 @@ public class VoluntarioService {
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
         voluntario.setMinisterios(dto.ministerios());
+        voluntario.setClassificacoes(dto.classificacoes());
 
         Voluntario atualizado = voluntarioRepository.save(voluntario);
         return convertToDTO(atualizado);
@@ -63,7 +71,8 @@ public class VoluntarioService {
                 voluntario.getTelefone(),
                 voluntario.getEmail(),
                 voluntario.getDataNascimento(),
-                voluntario.getMinisterios()
+                voluntario.getMinisterios(),
+                voluntario.getClassificacoes()
         );
     }
 
@@ -75,6 +84,7 @@ public class VoluntarioService {
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
         voluntario.setMinisterios(dto.ministerios());
+        voluntario.setClassificacoes(dto.classificacoes());
         return voluntario;
     }
 }

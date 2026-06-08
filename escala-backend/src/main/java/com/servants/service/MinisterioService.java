@@ -54,6 +54,9 @@ public class MinisterioService {
         return new MinisterioDetalheDTO(
                 ministerio.getId(),
                 ministerio.getNome(),
+                ministerio.getTipo(),
+                ministerio.isExclusivoNaEscala(),
+                ministerio.getClassificacoes(),
                 ministerio.getLider() != null ? ministerio.getLider().getId() : null,
                 ministerio.getLider() != null ? ministerio.getLider().getNome() : null,
                 ministerio.getCoLider() != null ? ministerio.getCoLider().getId() : null,
@@ -75,6 +78,9 @@ public class MinisterioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
 
         ministerio.setNome(dto.nome());
+        ministerio.setTipo(dto.tipo() != null ? dto.tipo() : "ESPECIFICO");
+        ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
+        ministerio.setClassificacoes(dto.classificacoes());
         ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
         ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
 
@@ -94,6 +100,9 @@ public class MinisterioService {
         return new MinisterioDTO(
                 ministerio.getId(),
                 ministerio.getNome(),
+                ministerio.getTipo(),
+                ministerio.isExclusivoNaEscala(),
+                ministerio.getClassificacoes(),
                 ministerio.getLider() != null ? ministerio.getLider().getId() : null,
                 ministerio.getLider() != null ? ministerio.getLider().getNome() : null,
                 ministerio.getCoLider() != null ? ministerio.getCoLider().getId() : null,
@@ -105,6 +114,9 @@ public class MinisterioService {
         Ministerio ministerio = new Ministerio();
         ministerio.setId(dto.id());
         ministerio.setNome(dto.nome());
+        ministerio.setTipo(dto.tipo() != null ? dto.tipo() : "ESPECIFICO");
+        ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
+        ministerio.setClassificacoes(dto.classificacoes());
         ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
         ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
         return ministerio;

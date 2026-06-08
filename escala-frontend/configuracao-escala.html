@@ -1,0 +1,289 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Configuração de Escala - Serve</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <style>
+        /* ── Abas de classificação ── */
+        .tabs-nav {
+            display: flex;
+            gap: 0.4rem;
+            flex-wrap: wrap;
+            border-bottom: 2px solid var(--border-color);
+            margin-bottom: 1.5rem;
+        }
+
+        .tab-btn {
+            padding: 0.55rem 1.2rem;
+            border: none;
+            border-bottom: 3px solid transparent;
+            background: none;
+            color: var(--text-muted);
+            font-size: 0.875rem;
+            font-weight: 600;
+            cursor: pointer;
+            border-radius: 6px 6px 0 0;
+            transition: all 0.15s;
+            margin-bottom: -2px;
+        }
+
+        .tab-btn:hover { color: var(--primary-color); background: var(--bg-card); }
+
+        .tab-btn.active {
+            color: var(--primary-color);
+            border-bottom-color: var(--primary-color);
+            background: var(--bg-card);
+        }
+
+        .tab-panel { display: none; }
+        .tab-panel.active { display: block; }
+
+        /* ── Cartão de configuração ── */
+        .config-card {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            margin-bottom: 1.5rem;
+        }
+
+        .config-card-title {
+            font-size: 0.8rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06rem;
+            color: var(--text-muted);
+            margin-bottom: 1rem;
+        }
+
+        /* ── Preview da cor ── */
+        .color-field-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+
+        .color-preview {
+            width: 36px;
+            height: 36px;
+            border-radius: 8px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        /* ── Grade de ministérios ── */
+        .min-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
+            gap: 0.6rem;
+            margin-top: 0.75rem;
+        }
+
+        .min-check-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.55rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.15s;
+            background: var(--bg-main);
+            font-size: 0.85rem;
+        }
+
+        .min-check-item:hover {
+            border-color: var(--primary-color);
+            background: var(--bg-card);
+        }
+
+        .min-check-item input[type="checkbox"] {
+            width: auto;
+            cursor: pointer;
+        }
+
+        .min-check-item.selected {
+            border-color: var(--primary-color);
+            background: rgba(0,75,135,0.07);
+        }
+
+        /* Badge tipo ministério */
+        .tipo-badge {
+            font-size: 0.65rem;
+            padding: 1px 5px;
+            border-radius: 10px;
+            font-weight: 600;
+            margin-left: auto;
+        }
+
+        /* ── Ordem das colunas ── */
+        .order-list {
+            display: flex;
+            flex-direction: column;
+            gap: 0.4rem;
+            margin-top: 0.75rem;
+        }
+
+        .order-item {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+            padding: 0.5rem 0.75rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            font-size: 0.875rem;
+        }
+
+        .order-item .grip {
+            color: var(--text-muted);
+            cursor: grab;
+        }
+
+        .order-item .order-num {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            min-width: 18px;
+            text-align: center;
+        }
+
+        /* ── Preview da imagem ── */
+        .export-preview {
+            border-radius: 10px;
+            overflow: hidden;
+            border: 1px solid var(--border-color);
+            font-family: 'Inter', sans-serif;
+        }
+
+        .export-preview-header {
+            padding: 20px 24px 14px;
+            text-align: center;
+            color: #fff;
+        }
+
+        .export-preview-header .org  { font-size: 1.1rem; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
+        .export-preview-header .setor { font-size: 0.8rem; font-weight: 600; opacity: 0.85; margin-top: 3px; letter-spacing: 1.5px; }
+        .export-preview-header .data  { font-size: 0.72rem; opacity: 0.7; margin-top: 6px; }
+
+        .export-preview-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        .export-preview-table th {
+            padding: 8px 6px;
+            text-align: center;
+            font-size: 0.65rem;
+            font-weight: 700;
+            letter-spacing: 0.5px;
+            text-transform: uppercase;
+            color: #fff;
+        }
+
+        .export-preview-table td {
+            padding: 6px 4px;
+            text-align: center;
+            font-size: 0.72rem;
+            border: 1px solid #e5e7eb;
+            color: #374151;
+        }
+
+        /* ── Botão salvar ── */
+        .save-bar {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            gap: 1rem;
+            padding-top: 1rem;
+        }
+
+        .save-status {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .save-status.success { color: #059669; }
+        .save-status.error   { color: #ef4444; }
+    </style>
+</head>
+<body>
+<div class="app-container">
+    <!-- Sidebar -->
+    <aside class="sidebar">
+        <div class="sidebar-logo">
+            <img src="assets/img/logo.png" alt="Serve" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+        </div>
+        <div class="user-profile">
+            <div class="avatar-wrapper">
+                <img src="https://ui-avatars.com/api/?name=User&background=004b87&color=fff" alt="Avatar" id="user-avatar">
+            </div>
+            <div class="user-info">
+                <h3><span id="user-name-display">Carregando...</span></h3>
+                <span class="user-role">Administrador</span>
+            </div>
+        </div>
+
+        <nav class="sidebar-nav">
+            <ul>
+                <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                <li class="active"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+            </ul>
+        </nav>
+
+        <div class="sidebar-footer">
+            <div id="settings-menu" class="settings-popover">
+                <div class="popover-header"><span>Aparência</span></div>
+                <div class="settings-group">
+                    <div class="setting-item">
+                        <label for="theme-toggle">Modo Escuro</label>
+                        <label class="switch">
+                            <input type="checkbox" id="theme-toggle">
+                            <span class="slider"></span>
+                        </label>
+                    </div>
+                    <div class="setting-item">
+                        <label for="color-picker">Cor Principal</label>
+                        <input type="color" id="color-picker" value="#004b87">
+                    </div>
+                </div>
+            </div>
+            <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
+            <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+        </div>
+    </aside>
+
+    <!-- Main Content -->
+    <main class="main-content">
+        <header class="main-header">
+            <h1 class="logo-title"><span>Serve</span></h1>
+        </header>
+
+        <section class="dashboard-section">
+            <div class="section-header" style="margin-bottom:0.5rem;">
+                <h2>CONFIGURAÇÃO DE ESCALAS</h2>
+            </div>
+            <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;">
+                Defina o nome da organização, o setor, a cor e os ministérios exibidos como colunas na imagem exportada para cada classificação de culto.
+            </p>
+
+            <!-- Abas de classificação -->
+            <div class="tabs-nav" id="tabs-nav"></div>
+
+            <!-- Painéis por classificação (gerados dinamicamente) -->
+            <div id="tabs-content"></div>
+        </section>
+    </main>
+</div>
+
+<script src="js/configuracao-escala.js"></script>
+</body>
+</html>

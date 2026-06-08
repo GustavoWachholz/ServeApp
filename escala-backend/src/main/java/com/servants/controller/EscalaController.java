@@ -1,7 +1,6 @@
 package com.servants.controller;
 
 import com.servants.dto.EscalaDTO;
-import com.servants.dto.EscalaDetalheDTO;
 import com.servants.dto.EscalaVoluntarioDTO;
 import com.servants.dto.EventoAgendaDTO;
 import com.servants.service.EscalaService;
@@ -13,7 +12,6 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/escalas")
-@CrossOrigin("*")
 public class EscalaController {
 
     private final EscalaService escalaService;

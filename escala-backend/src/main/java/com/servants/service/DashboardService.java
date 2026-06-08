@@ -1,5 +1,7 @@
 package com.servants.service;
 
+import com.servants.dto.AniversarianteDTO;
+import com.servants.dto.AvisoDTO;
 import com.servants.dto.DashboardResponse;
 import com.servants.model.Ministerio;
 import com.servants.model.Usuario;
@@ -35,7 +37,7 @@ public class DashboardService {
     public DashboardResponse getDashboardData() {
         Usuario admin = usuarioRepository.findById(1L).orElse(new Usuario());
 
-        String nomeUsuario = admin.getEmail() != null ? admin.getEmail() : "Convidado";
+        String nomeUsuario = admin.getNome() != null ? admin.getNome() : (admin.getEmail() != null ? admin.getEmail() : "Convidado");
         String tema = admin.getTema();
         String corPrimaria = admin.getCorPrimaria();
 
@@ -44,15 +46,15 @@ public class DashboardService {
                 .map(Ministerio::getNome)
                 .collect(Collectors.toList());
 
-        List<String> avisos = new ArrayList<>();
+        List<AvisoDTO> avisos = new ArrayList<>();
         List<String> minhasEscalas = new ArrayList<>();
 
         int mesAtual = LocalDate.now().getMonthValue();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM", new Locale("pt", "BR"));
         
-        List<String> aniversariantes = voluntarioRepository.findAll().stream()
+        List<AniversarianteDTO> aniversariantes = voluntarioRepository.findAll().stream()
                 .filter(v -> v.getDataNascimento() != null && v.getDataNascimento().getMonthValue() == mesAtual)
-                .map(v -> v.getNome() + " - " + v.getDataNascimento().format(formatter))
+                .map(v -> new AniversarianteDTO(v.getNome(), v.getDataNascimento().format(formatter)))
                 .collect(Collectors.toList());
         
         return new DashboardResponse(

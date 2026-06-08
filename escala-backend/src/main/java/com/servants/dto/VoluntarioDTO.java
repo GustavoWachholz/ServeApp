@@ -9,6 +9,7 @@ public record VoluntarioDTO(
     String telefone,
     String email,
     LocalDate dataNascimento,
-    List<String> ministerios
+    List<String> ministerios,
+    List<String> classificacoes
 ) {
 }

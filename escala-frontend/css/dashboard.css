@@ -32,7 +32,7 @@ body.dark-mode {
 body {
     background-color: var(--bg-main);
     color: var(--text-color);
-    overflow: hidden;
+    overflow: hidden;           /* Mantido: layout sidebar+main não rola o body */
     transition: background-color 0.3s;
 }
 
@@ -402,11 +402,13 @@ input:checked + .slider:before { transform: translateX(20px); }
     inset: 0;
     background-color: rgba(0, 0, 0, 0.5);
     display: none;
-    align-items: center;
+    align-items: flex-start;    /* flex-start + margin:auto no filho = centraliza quando cabe,
+                                   e o overlay rola quando não cabe */
     justify-content: center;
     z-index: 2000;
-    padding: 1rem;
+    padding: 1.5rem 1rem;       /* respiro vertical topo/base */
     backdrop-filter: blur(2px);
+    overflow-y: auto;           /* permite rolagem quando o modal ultrapassa a tela */
 }
 
 .modal.show-modal {
@@ -421,6 +423,20 @@ input:checked + .slider:before { transform: translateX(20px); }
     padding: 2rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color);
+    margin: auto;               /* distribui espaço disponível: centraliza quando cabe,
+                                   colapsa para 0 quando o conteúdo é maior que a tela */
+}
+
+/* Modal responsivo em telas estreitas */
+@media (max-width: 600px) {
+    .modal {
+        padding: 0.75rem;       /* menos padding lateral em mobile */
+    }
+
+    .modal-content {
+        padding: 1.25rem;
+        border-radius: 8px;
+    }
 }
 
 .modal-header {

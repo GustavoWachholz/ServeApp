@@ -6,6 +6,14 @@ const MINISTERIOS_API_URL = 'http://localhost:8080/api/ministerios';
 const VOLUNTARIOS_API_URL = 'http://localhost:8080/api/voluntarios';
 const CONFIG_API_URL = 'http://localhost:8080/api/dashboard';
 
+const CLASSIFICACOES = [
+    { key: 'ATITUDE', label: 'Atitude',  cor: '#1d4ed8' },
+    { key: 'BEONE',   label: 'BeOne',    cor: '#7c3aed' },
+    { key: 'KIDS',    label: 'Kids',     cor: '#059669' },
+    { key: 'EVENTOS', label: 'Eventos',  cor: '#dc2626' },
+    { key: 'BASE',    label: 'Base',     cor: '#78716c' },
+];
+
 let currentMinisterio = null;
 let voluntariosGlobal = [];
 
@@ -14,9 +22,64 @@ document.addEventListener('DOMContentLoaded', async () => {
     initFloatingSettings();
     initModalEvents();
     fetchConfig();
-    await fetchVoluntarios(); 
+    renderClassifChips('classif-checkboxes-min', []);
+    await fetchVoluntarios();
     fetchMinisterios();
 });
+
+/**
+ * Renderiza os chips de classificação em um container.
+ * @param {string} containerId  - id do elemento <div>
+ * @param {string[]} selecionadas - chaves já selecionadas
+ */
+function renderClassifChips(containerId, selecionadas) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    container.innerHTML = CLASSIFICACOES.map(cl => {
+        const checked = selecionadas.includes(cl.key);
+        return `
+        <label class="classif-chip ${checked ? 'checked' : ''}"
+               style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;"
+               onclick="toggleClassifChip(this)">
+            <input type="checkbox" name="classif-${containerId}" value="${cl.key}" ${checked ? 'checked' : ''}>
+            ${cl.label}
+        </label>`;
+    }).join('');
+}
+
+function toggleClassifChip(label) {
+    const cb = label.querySelector('input[type="checkbox"]');
+    // O clique no label já alterna o checkbox — só sincronizamos a classe
+    setTimeout(() => label.classList.toggle('checked', cb.checked), 0);
+}
+
+/**
+ * Retorna a lista de chaves selecionadas nos chips de um container.
+ */
+function getClassificacoesSelecionadas(containerId) {
+    return Array.from(document.querySelectorAll(`input[name="classif-${containerId}"]:checked`))
+                .map(cb => cb.value);
+}
+
+/**
+ * Renderiza chips somente para leitura (modo visualização).
+ */
+function renderClassifView(containerId, selecionadas) {
+    const container = document.getElementById(containerId);
+    if (!container) return;
+    if (!selecionadas || selecionadas.length === 0) {
+        container.innerHTML = '<span style="color:var(--text-muted);font-size:0.85rem;">Nenhuma</span>';
+        return;
+    }
+    container.innerHTML = selecionadas.map(key => {
+        const cl = CLASSIFICACOES.find(c => c.key === key);
+        if (!cl) return '';
+        return `<span class="classif-chip checked"
+                      style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;cursor:default;">
+                    ${cl.label}
+                </span>`;
+    }).join('');
+}
 
 /**
  * Resolve o nome de um líder ou co-líder de forma resiliente
@@ -50,10 +113,8 @@ async function fetchVoluntarios() {
             populateLiderSelects(voluntariosGlobal);
         }
     } catch (e) {
-        voluntariosGlobal = [
-            { id: 1, nome: 'Ana Souza' }, { id: 2, nome: 'Carlos Rocha' },
-            { id: 3, nome: 'Mariana Lima' }, { id: 4, nome: 'Pedro Alvares' }
-        ];
+        console.warn('Não foi possível carregar voluntários. Selects de líder ficarão vazios.');
+        voluntariosGlobal = [];
         populateLiderSelects(voluntariosGlobal);
     }
 }
@@ -84,9 +145,14 @@ function renderMinisteriosTable(ministerios) {
     if (!list) return;
     list.innerHTML = '';
     ministerios.forEach(m => {
+        const tipoLabel = m.tipo === 'GERAL' ? 'Geral' : 'Específico';
+        const tipoCor   = m.tipo === 'GERAL' ? '#059669' : '#004b87';
+        const badgeStyle = `display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.72rem;
+            font-weight:600;background:${tipoCor}20;color:${tipoCor};border:1px solid ${tipoCor}50;`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td style="font-weight: 600;">${m.nome}</td>
+            <td><span style="${badgeStyle}">${tipoLabel}</span></td>
             <td>${resolveName(m, 'lider') || 'Sem Líder'}</td>
             <td class="actions-cell">
                 <button class="btn-icon btn-view" data-id="${m.id || m._id}" title="Ver Detalhes"><i class="fas fa-eye"></i></button>
@@ -162,24 +228,35 @@ function initModalEvents() {
         if (!currentMinisterio) return;
         const id = currentMinisterio.id || currentMinisterio._id;
         try {
-            await fetch(`${MINISTERIOS_API_URL}/${id}`, { method: 'DELETE' });
+            const response = await fetch(`${MINISTERIOS_API_URL}/${id}`, { method: 'DELETE' });
+            if (!response.ok) {
+                alert('Erro ao excluir ministério. Tente novamente.');
+                return;
+            }
             confirmModal.classList.remove('show-modal');
             modal.classList.remove('show-modal');
             fetchMinisterios();
         } catch (e) {
-            console.log('Mock: Deletado');
-            confirmModal.classList.remove('show-modal');
-            modal.classList.remove('show-modal');
+            alert('Falha na conexão ao tentar excluir.');
         }
     };
+
+    // Toggle de "exclusivo" atualiza o label em tempo real
+    document.getElementById('exclusivoNaEscala').addEventListener('change', function() {
+        document.getElementById('exclusivo-label').textContent = this.checked ? 'Sim' : 'Não';
+    });
 
     form.onsubmit = async (e) => {
         e.preventDefault();
         const id = document.getElementById('ministerio-id').value;
+        const tipoSelecionado = document.querySelector('input[name="tipo"]:checked')?.value || 'ESPECIFICO';
         const formData = {
             nome: document.getElementById('nome').value,
-            liderId: document.getElementById('liderId').value,
-            coliderId: document.getElementById('coliderId').value
+            tipo: tipoSelecionado,
+            exclusivoNaEscala: document.getElementById('exclusivoNaEscala').checked,
+            classificacoes: getClassificacoesSelecionadas('classif-checkboxes-min'),
+            liderId: document.getElementById('liderId').value || null,
+            coliderId: document.getElementById('coliderId').value || null
         };
         try {
             await fetch(id ? `${MINISTERIOS_API_URL}/${id}` : MINISTERIOS_API_URL, {
@@ -210,17 +287,21 @@ function showEditMode(title) {
 async function viewMinisterio(id) {
     try {
         const response = await fetch(`${MINISTERIOS_API_URL}/${id}`);
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         const m = await response.json();
         renderViewMode(m);
     } catch (e) {
-        const m = mockMinisterios.find(x => x.id == id);
-        renderViewMode(m);
+        console.error('Erro ao carregar ministério:', e);
+        alert('Não foi possível carregar os dados do ministério.');
     }
 }
 
 function renderViewMode(m) {
     currentMinisterio = m;
     document.getElementById('view-nome').textContent = m.nome;
+    document.getElementById('view-tipo').textContent = m.tipo === 'GERAL' ? 'Geral' : 'Específico';
+    document.getElementById('view-exclusivo').textContent = m.exclusivoNaEscala ? 'Sim' : 'Não';
+    renderClassifView('view-classificacoes', m.classificacoes || []);
     document.getElementById('view-lider').textContent = resolveName(m, 'lider') || 'Nenhum';
     document.getElementById('view-colider').textContent = resolveName(m, 'colider') || 'Nenhum';
     const list = document.getElementById('view-membros-list');
@@ -241,34 +322,51 @@ function renderViewMode(m) {
 async function editMinisterio(id) {
     try {
         const response = await fetch(`${MINISTERIOS_API_URL}/${id}`);
+        if (!response.ok) throw new Error(`Status ${response.status}`);
         const m = await response.json();
         currentMinisterio = m;
         fillForm(m);
+        showEditMode('Editar Ministério');
+        document.getElementById('btn-form-delete').style.display = 'block';
+        document.getElementById('ministerio-modal').classList.add('show-modal');
     } catch (e) {
-        const m = mockMinisterios.find(x => (x.id == id || x._id == id));
-        currentMinisterio = m;
-        fillForm(m);
+        console.error('Erro ao carregar ministério para edição:', e);
+        alert('Não foi possível carregar os dados do ministério.');
     }
-    showEditMode('Editar Ministério');
-    document.getElementById('btn-form-delete').style.display = 'block';
-    document.getElementById('ministerio-modal').classList.add('show-modal');
 }
 
 function fillForm(m) {
     document.getElementById('ministerio-id').value = m.id || m._id;
     document.getElementById('nome').value = m.nome;
-    
+
+    // Tipo
+    const tipo = m.tipo || 'ESPECIFICO';
+    document.getElementById('tipo-especifico').checked = tipo === 'ESPECIFICO';
+    document.getElementById('tipo-geral').checked      = tipo === 'GERAL';
+
+    // Exclusivo na escala
+    const excToggle = document.getElementById('exclusivoNaEscala');
+    excToggle.checked = m.exclusivoNaEscala !== false; // default true
+    document.getElementById('exclusivo-label').textContent = excToggle.checked ? 'Sim' : 'Não';
+
+    // Classificações
+    renderClassifChips('classif-checkboxes-min', m.classificacoes || []);
+
     // Tenta obter o ID do líder de várias formas
-    const lidId = m.liderId || (m.lider ? (m.lider.id || m.lider._id) : '');
-    const colidId = m.coliderId || (m.colider ? (m.colider.id || m.colider._id) : '');
-    
-    document.getElementById('liderId').value = lidId || '';
+    const lidId   = m.liderId   || (m.lider   ? (m.lider.id   || m.lider._id)   : '');
+    const colidId = m.coliderId || (m.colider  ? (m.colider.id || m.colider._id) : '');
+    document.getElementById('liderId').value   = lidId   || '';
     document.getElementById('coliderId').value = colidId || '';
 }
 
 function resetForm() {
     document.getElementById('ministerio-id').value = '';
     document.getElementById('ministerio-form').reset();
+    // Restaura defaults após reset()
+    document.getElementById('tipo-especifico').checked = true;
+    document.getElementById('exclusivoNaEscala').checked = true;
+    document.getElementById('exclusivo-label').textContent = 'Sim';
+    renderClassifChips('classif-checkboxes-min', []);
     currentMinisterio = null;
 }
 

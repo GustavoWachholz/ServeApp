@@ -10,9 +10,24 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
+const CONFIG_ESCALA_API_URL = 'http://localhost:8080/api/configuracao-escala';
+/** Mapa de valor do select para a chave usada na API de configuração */
+const CLASSIFICACAO_MAP = {
+    'Culto Atitude': 'ATITUDE',
+    'Culto BeOne': 'BEONE',
+    'Culto Kids': 'KIDS',
+    'Eventos': 'EVENTOS',
+    'Base': 'BASE',
+};
+function toClassificacaoKey(value) {
+    return CLASSIFICACAO_MAP[value] || value.toUpperCase().replace(/\s+/g, '_');
+}
 let calendar;
 let listaVoluntarios = [];
-let escalaAtualId = null; // Variável global para controle de edição
+let escalaAtualId = null;
+let configAtual = null; // Configuração da escala ativa
+let atribuicoesParaCarregar = []; // Atribuições pré-carregadas ao editar evento
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Agenda inicializada (Autocomplete Mode).');
     initFloatingSettings();
@@ -67,75 +82,72 @@ function obterVoluntariosJaEscalados() {
     return escalados;
 }
 /**
- * Inicializa a lógica de busca e adição de voluntários
+ * Inicializa o autocomplete usando event delegation no document.
+ * Deve ser chamado UMA VEZ no DOMContentLoaded — funciona com grids dinâmicos.
  */
 function initAutocomplete() {
-    const containers = document.querySelectorAll('.busca-container');
-    containers.forEach(container => {
-        const input = container.querySelector('.input-busca');
+    // ── Busca em tempo real ──
+    document.addEventListener('input', (e) => {
+        const target = e.target;
+        if (!target.classList.contains('input-busca'))
+            return;
+        const container = target.closest('.busca-container');
         const listaResultados = container.querySelector('.resultados-busca');
         const ministerioBox = container.closest('.ministerio-box');
-        const selecionadosDiv = ministerioBox.querySelector('.voluntarios-list');
-        // Busca em tempo real
-        input.addEventListener('input', (e) => {
-            const target = e.target;
-            const termo = target.value.toLowerCase().trim();
-            if (!termo) {
-                listaResultados.style.display = 'none';
-                return;
-            }
-            const funcaoAtual = ministerioBox.getAttribute('data-funcao') || '';
-            const jaEscalados = obterVoluntariosJaEscalados();
-            const excecoes = ["Abertura", "Intercessão", "Oferta/Dízimo", "Conferência Dízimo"];
-            const filtrados = listaVoluntarios.filter(v => {
-                const idNum = v.id || v._id;
-                const id = idNum ? idNum.toString() : '';
-                const matchesSearch = v.nome.toLowerCase().includes(termo);
-                if (!matchesSearch)
-                    return false;
-                const funcoesDoVoluntario = jaEscalados[id] || [];
-                const isFuncaoAtualExcecao = excecoes.includes(funcaoAtual);
-                // a) Ele NÃO pode estar escalado nesta mesma função exata que está sendo buscada agora.
-                if (funcoesDoVoluntario.includes(funcaoAtual))
-                    return false;
-                // b) Se a função ATUAL da busca for um "Ministério Principal" (NÃO for exceção)
-                if (!isFuncaoAtualExcecao) {
-                    // o voluntário só aparece se ele AINDA NÃO ESTIVER em nenhum outro "Ministério Principal"
-                    const jaTemMinisterioPrincipal = funcoesDoVoluntario.some(f => !excecoes.includes(f));
-                    if (jaTemMinisterioPrincipal)
-                        return false;
-                }
-                return true;
-            });
-            renderizarResultados(listaResultados, filtrados);
-        });
-        // Adicionar voluntário (Delegação de evento)
-        listaResultados.addEventListener('click', (e) => {
-            const target = e.target;
-            const btn = target.closest('.btn-add');
-            if (btn) {
-                const id = btn.getAttribute('data-id') || '';
-                const nome = btn.getAttribute('data-nome') || '';
-                adicionarTagVoluntario(selecionadosDiv, id, nome);
-                input.value = '';
-                listaResultados.style.display = 'none';
-            }
-        });
-    });
-    // Remover voluntário (Delegação de evento global para tags)
-    document.addEventListener('click', (e) => {
-        const target = e.target;
-        const btnRemove = target.closest('.btn-remove');
-        if (btnRemove) {
-            const tag = btnRemove.closest('.voluntario-tag');
-            if (tag)
-                tag.remove();
+        const funcaoAtual = ministerioBox.getAttribute('data-funcao') || '';
+        const tipoMinisterio = ministerioBox.getAttribute('data-tipo') || 'ESPECIFICO';
+        const exclusivo = ministerioBox.getAttribute('data-exclusivo') !== 'false';
+        const termo = target.value.toLowerCase().trim();
+        if (!termo) {
+            listaResultados.style.display = 'none';
+            return;
         }
+        const jaEscalados = obterVoluntariosJaEscalados();
+        const filtrados = listaVoluntarios.filter(v => {
+            var _a, _b, _c;
+            const id = ((_b = (_a = v.id) !== null && _a !== void 0 ? _a : v._id) !== null && _b !== void 0 ? _b : '').toString();
+            if (!v.nome.toLowerCase().includes(termo))
+                return false;
+            // Só voluntários vinculados ao ministério específico
+            if (tipoMinisterio === 'ESPECIFICO') {
+                if (!((_c = v.ministerios) === null || _c === void 0 ? void 0 : _c.includes(funcaoAtual)))
+                    return false;
+            }
+            const funcoesDoVoluntario = jaEscalados[id] || [];
+            // Não pode estar na mesma função duas vezes
+            if (funcoesDoVoluntario.includes(funcaoAtual))
+                return false;
+            // Se o ministério atual é exclusivo, o voluntário não pode estar em outro exclusivo
+            if (exclusivo) {
+                const jaTemExclusivo = funcoesDoVoluntario.some(f => {
+                    const b = document.querySelector(`.ministerio-box[data-funcao="${f}"]`);
+                    return b && b.getAttribute('data-exclusivo') !== 'false';
+                });
+                if (jaTemExclusivo)
+                    return false;
+            }
+            return true;
+        });
+        renderizarResultados(listaResultados, filtrados);
     });
-    // Fechar listas ao clicar fora
+    // ── Adicionar voluntário ──
     document.addEventListener('click', (e) => {
         const target = e.target;
-        if (!target.closest('.busca-container')) {
+        const btn = target.closest('.btn-add');
+        if (!btn || !btn.closest('.resultados-busca'))
+            return;
+        const container = btn.closest('.busca-container');
+        const ministerioBox = container.closest('.ministerio-box');
+        const selecionadosDiv = ministerioBox.querySelector('.voluntarios-list');
+        const input = container.querySelector('.input-busca');
+        const resultados = container.querySelector('.resultados-busca');
+        adicionarTagVoluntario(selecionadosDiv, btn.getAttribute('data-id') || '', btn.getAttribute('data-nome') || '');
+        input.value = '';
+        resultados.style.display = 'none';
+    });
+    // ── Fechar listas ao clicar fora ──
+    document.addEventListener('click', (e) => {
+        if (!e.target.closest('.busca-container')) {
             document.querySelectorAll('.resultados-busca').forEach(ul => {
                 ul.style.display = 'none';
             });
@@ -174,6 +186,60 @@ function adicionarTagVoluntario(container, id, nome) {
     container.appendChild(tag);
 }
 /**
+ * Busca a configuração da escala para uma classificação.
+ * Retorna o objeto de configuração ou null em caso de falha.
+ */
+function carregarConfigEscala(classificacao) {
+    return __awaiter(this, void 0, void 0, function* () {
+        const key = toClassificacaoKey(classificacao);
+        try {
+            const resp = yield fetch(`${CONFIG_ESCALA_API_URL}/${key}`);
+            if (!resp.ok)
+                throw new Error(`HTTP ${resp.status}`);
+            const config = yield resp.json();
+            configAtual = config;
+            return config;
+        }
+        catch (e) {
+            console.warn(`Configuração de escala não encontrada para "${key}":`, e);
+            configAtual = null;
+            return null;
+        }
+    });
+}
+/**
+ * Gera dinamicamente os boxes de ministério no equipe-grid.
+ * Deve ser chamado após carregarConfigEscala.
+ */
+function gerarGridMinisterios(ministerios) {
+    const grid = document.getElementById('equipe-grid');
+    grid.innerHTML = '';
+    if (!ministerios || ministerios.length === 0) {
+        grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);
+            padding:2rem;font-style:italic;">Nenhum ministério configurado para esta classificação.
+            <a href="configuracao-escala.html">Configure aqui</a>.</p>`;
+        return;
+    }
+    ministerios.forEach((m) => {
+        const box = document.createElement('div');
+        box.className = 'ministerio-box';
+        box.setAttribute('data-funcao', m.nome);
+        box.setAttribute('data-tipo', m.tipo || 'ESPECIFICO');
+        box.setAttribute('data-exclusivo', String(m.exclusivoNaEscala !== false));
+        box.innerHTML = `
+            <h4>${m.nome}</h4>
+            <div class="voluntarios-list"></div>
+            <div class="busca-container" style="position: relative;">
+                <input type="text" class="input-busca" placeholder="Buscar voluntário...">
+                <ul class="resultados-busca" style="display:none;position:absolute;z-index:10;
+                    width:100%;max-height:150px;overflow-y:auto;list-style:none;padding:0;margin:0;
+                    border:1px solid #ccc;background:#fff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);"></ul>
+            </div>
+        `;
+        grid.appendChild(box);
+    });
+}
+/**
  * Inicializa os controles do Modal e Navegação por Passos
  */
 function initModalControls() {
@@ -186,14 +252,29 @@ function initModalControls() {
     const inputTitulo = document.getElementById('escala-titulo');
     const inputData = document.getElementById('escala-data');
     const selectClass = document.getElementById('escala-classificacao');
-    btnIrEscala.onclick = () => {
-        if (inputTitulo.reportValidity() &&
-            inputData.reportValidity() &&
-            selectClass.reportValidity()) {
-            step1.style.display = 'none';
-            step2.style.display = 'block';
-        }
-    };
+    btnIrEscala.onclick = () => __awaiter(this, void 0, void 0, function* () {
+        if (!inputTitulo.reportValidity() ||
+            !inputData.reportValidity() ||
+            !selectClass.reportValidity())
+            return;
+        btnIrEscala.disabled = true;
+        btnIrEscala.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        const config = yield carregarConfigEscala(selectClass.value);
+        gerarGridMinisterios((config === null || config === void 0 ? void 0 : config.ministerios) || []);
+        // Preenche atribuições pré-carregadas (edição de evento existente)
+        atribuicoesParaCarregar.forEach(atrib => {
+            const box = document.querySelector(`.ministerio-box[data-funcao="${atrib.funcao}"]`);
+            if (box) {
+                const lista = box.querySelector('.voluntarios-list');
+                adicionarTagVoluntario(lista, atrib.voluntarioId.toString(), atrib.voluntarioNome || `Voluntário ${atrib.voluntarioId}`);
+            }
+        });
+        atribuicoesParaCarregar = [];
+        btnIrEscala.disabled = false;
+        btnIrEscala.innerHTML = 'Escalar Equipe <i class="fas fa-arrow-right"></i>';
+        step1.style.display = 'none';
+        step2.style.display = 'block';
+    });
     btnPrev.onclick = () => {
         step2.style.display = 'none';
         step1.style.display = 'block';
@@ -202,108 +283,85 @@ function initModalControls() {
     const btnSalvarAgenda = document.getElementById('btn-salvar-agenda');
     btnSalvarAgenda.onclick = () => salvarEscala(false);
     const btnSalvarEquipe = document.getElementById('btn-salvar-equipe');
-    btnSalvarEquipe.onclick = () => __awaiter(this, void 0, void 0, function* () {
-        var _a;
-        // 1. Coleta dados do Step 1
-        const titulo = inputTitulo.value;
-        const dataEscala = inputData.value;
-        const corSelecionada = ((_a = selectClass.options[selectClass.selectedIndex]) === null || _a === void 0 ? void 0 : _a.getAttribute('data-cor')) || '#004b87';
-        if (!inputTitulo.reportValidity() ||
-            !inputData.reportValidity() ||
-            !selectClass.reportValidity())
-            return;
-        // 2. Coleta dados do Step 2 (Varredura Robusta)
-        const atribuicoesSelecionadas = [];
-        document.querySelectorAll('.ministerio-box').forEach(box => {
-            const funcao = box.getAttribute('data-funcao');
-            if (!funcao)
-                return;
-            // Busca apenas tags dentro da lista de selecionados (voluntarios-list)
-            box.querySelectorAll('.voluntarios-list .voluntario-tag').forEach(tag => {
-                const volId = tag.getAttribute('data-id');
-                if (volId) {
-                    atribuicoesSelecionadas.push({
-                        voluntarioId: parseInt(volId),
-                        funcao: funcao
-                    });
-                }
-            });
-        });
-        // 3. Monta o Payload
-        const payload = {
-            titulo: titulo,
-            dataEscala: dataEscala,
-            classificacao: selectClass.value,
-            cor: corSelecionada,
-            atribuicoes: atribuicoesSelecionadas
-        };
-        if (escalaAtualId)
-            payload.id = escalaAtualId;
-        // 4. Dispara a requisição
-        const url = escalaAtualId ? `http://localhost:8080/api/escalas/${escalaAtualId}` : 'http://localhost:8080/api/escalas';
-        const method = escalaAtualId ? 'PUT' : 'POST';
-        console.log("Enviando Payload:", payload);
-        try {
-            const response = yield fetch(url, {
-                method: method,
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(payload)
-            });
-            if (response.ok) {
-                alert('Equipe salva com sucesso!');
-                calendar.refetchEvents();
-                modal.classList.remove('show-modal');
-            }
-            else {
-                const errorText = yield response.text();
-                alert(`Erro ao salvar: ${errorText}`);
-            }
-        }
-        catch (err) {
-            console.error(err);
-            alert("Erro ao conectar com o servidor.");
-        }
-    });
+    btnSalvarEquipe.onclick = () => salvarEscala(true);
     const btnFinalizarEscala = document.getElementById('btn-finalizar-escala');
     btnFinalizarEscala.onclick = function () {
         return __awaiter(this, void 0, void 0, function* () {
             const btn = btnFinalizarEscala;
             const originalText = btn.innerHTML;
-            btn.innerHTML = "Gerando Imagem...";
+            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
             btn.disabled = true;
             const exportContainer = document.getElementById('export-container');
-            const exportData = document.getElementById('export-data');
+            const exportHeader = document.getElementById('export-header');
+            const exportOrg = document.getElementById('export-org');
+            const exportSetor = document.getElementById('export-setor');
+            const exportDataEl = document.getElementById('export-data');
+            const exportTable = document.getElementById('export-table');
             try {
-                exportContainer.style.backgroundImage = `url(${TEMPLATE_BASE64})`;
-                // b) Preencha a Data/Título
-                const titulo = inputTitulo.value.toUpperCase();
+                const titulo = inputTitulo.value;
                 const dataRaw = inputData.value;
-                const dataObj = new Date(dataRaw);
-                const dataFormatada = dataObj.toLocaleDateString('pt-BR');
-                exportData.innerText = `${titulo} - ${dataFormatada}`;
-                // c) Limpe todas as divs '.export-col'
-                document.querySelectorAll('.export-col').forEach(col => col.innerHTML = '');
-                // d) Percorra todos os blocos de ministério do Step 2
+                const dataObj = new Date(dataRaw + (dataRaw.includes('T') ? '' : 'T00:00:00'));
+                const dataFmt = dataObj.toLocaleDateString('pt-BR');
+                const cor = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.cor) || '#004b87';
+                const nomeOrg = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.nomeOrganizacao) || '';
+                const nomeSetor = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.nomeSetor) || selectClass.value;
+                const ministerios = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.ministerios) || [];
+                // ── Preenche o cabeçalho ──
+                exportHeader.style.background = cor;
+                exportOrg.textContent = nomeOrg.toUpperCase();
+                exportSetor.textContent = nomeSetor.toUpperCase();
+                exportDataEl.textContent = `${titulo.toUpperCase()} · ${dataFmt}`;
+                // ── Coleta voluntários por ministério ──
+                const volsPorMin = {};
                 document.querySelectorAll('.ministerio-box').forEach(box => {
-                    const funcao = box.getAttribute('data-funcao');
-                    if (!funcao)
-                        return;
-                    const exportCol = document.querySelector(`.export-col[data-col="${funcao}"]`);
-                    if (exportCol) {
-                        box.querySelectorAll('.voluntario-tag').forEach(tag => {
-                            // e) obtenha o NOME dele (removendo o "×" do botão de remover)
-                            const nome = tag.innerText.replace('×', '').trim();
-                            // f) append de um div com o nome do voluntário
-                            const divNome = document.createElement('div');
-                            divNome.innerText = nome;
-                            exportCol.appendChild(divNome);
-                        });
-                    }
+                    const funcao = box.getAttribute('data-funcao') || '';
+                    volsPorMin[funcao] = [];
+                    box.querySelectorAll('.voluntario-tag').forEach(tag => {
+                        const nome = tag.innerText.replace('×', '').trim();
+                        if (nome)
+                            volsPorMin[funcao].push(nome);
+                    });
                 });
-                // g) html2canvas
+                // Usa os ministérios configurados; fallback para os boxes do grid
+                const cols = ministerios.length > 0
+                    ? ministerios.map((m) => m.nome)
+                    : Array.from(document.querySelectorAll('.ministerio-box')).map(b => b.getAttribute('data-funcao') || '');
+                const maxRows = Math.max(1, ...cols.map(c => (volsPorMin[c] || []).length));
+                // ── Gera a cor escurecida para o header da tabela ──
+                function hexDarken(hex, pct) {
+                    const n = parseInt(hex.replace('#', ''), 16);
+                    const adj = (c) => Math.max(0, Math.round(c - c * pct));
+                    const r = adj((n >> 16) & 0xff);
+                    const g = adj((n >> 8) & 0xff);
+                    const b = adj(n & 0xff);
+                    return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
+                }
+                const thBg = hexDarken(cor, 0.25);
+                // ── Monta thead ──
+                const thStyle = `background:${thBg};color:#fff;padding:12px 10px;text-align:center;`
+                    + `font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;`
+                    + `border:1px solid rgba(255,255,255,0.2);`;
+                const theadHTML = `<thead><tr>${cols.map(c => `<th style="${thStyle}">${c}</th>`).join('')}</tr></thead>`;
+                // ── Monta tbody ──
+                let tbodyHTML = '<tbody>';
+                for (let i = 0; i < maxRows; i++) {
+                    const bg = i % 2 === 0 ? '#ffffff' : '#f3f4f6';
+                    const tdStyle = `padding:10px 8px;text-align:center;font-size:13px;`
+                        + `background:${bg};border:1px solid #e5e7eb;color:#111827;`;
+                    tbodyHTML += `<tr>${cols.map(c => `<td style="${tdStyle}">${(volsPorMin[c] || [])[i] || ''}</td>`).join('')}</tr>`;
+                }
+                tbodyHTML += '</tbody>';
+                exportTable.innerHTML = theadHTML + tbodyHTML;
+                // ── Captura ──
+                yield new Promise(r => setTimeout(r, 80)); // deixa o browser pintar
+                const totalHeight = exportContainer.scrollHeight;
                 const canvas = yield html2canvas(exportContainer, {
                     scale: 2,
-                    useCORS: true
+                    useCORS: true,
+                    allowTaint: true,
+                    logging: false,
+                    width: exportContainer.scrollWidth,
+                    height: totalHeight
                 });
                 const link = document.createElement('a');
                 link.download = `Escala_${dataRaw.split('T')[0]}.png`;
@@ -312,7 +370,7 @@ function initModalControls() {
             }
             catch (err) {
                 console.error('Erro ao gerar imagem:', err);
-                alert("Erro ao gerar imagem.");
+                alert('Erro ao gerar imagem. Verifique o console para mais detalhes.');
             }
             finally {
                 btn.innerHTML = originalText;
@@ -411,13 +469,9 @@ function salvarEscala() {
             });
             if (response.ok) {
                 calendar.refetchEvents();
+                document.getElementById('escala-modal').classList.remove('show-modal');
                 if (incluirEquipe) {
-                    alert('Equipe salva!');
-                    document.getElementById('step-2-equipe').style.display = 'none';
-                    document.getElementById('step-1-dados').style.display = 'block';
-                }
-                else {
-                    document.getElementById('escala-modal').classList.remove('show-modal');
+                    alert('Equipe salva com sucesso!');
                 }
             }
             else {
@@ -447,23 +501,31 @@ function initCalendar() {
             right: 'dayGridMonth,timeGridWeek,listWeek'
         },
         events: function (fetchInfo, successCallback, failureCallback) {
+            // Garanta o uso da URL absoluta do backend
             fetch('http://localhost:8080/api/escalas')
-                .then(response => response.json())
+                .then(response => {
+                if (!response.ok) {
+                    throw new Error('Falha ao buscar escalas do backend');
+                }
+                return response.json();
+            })
                 .then((data) => {
-                const mappedEvents = data.map(escala => ({
-                    id: escala.id,
+                // Mapeia os dados do backend para o formato do FullCalendar
+                const eventosMapeados = data.map(escala => ({
+                    id: String(escala.id),
                     title: (!escala.atribuicoes || escala.atribuicoes.length === 0) ? "⏳ " + escala.titulo : escala.titulo,
                     start: escala.dataEscala,
-                    backgroundColor: escala.cor,
+                    backgroundColor: escala.cor || '#004b87',
                     extendedProps: {
                         classificacao: escala.classificacao,
                         atribuicoes: escala.atribuicoes
                     }
                 }));
-                successCallback(mappedEvents);
+                console.log("Eventos carregados com sucesso:", eventosMapeados);
+                successCallback(eventosMapeados);
             })
                 .catch(error => {
-                console.error('Erro ao buscar escalas:', error);
+                console.error("Erro no carregamento do calendário:", error);
                 failureCallback(error);
             });
         },
@@ -489,29 +551,8 @@ function initCalendar() {
             const extendedProps = event.extendedProps;
             document.getElementById('escala-classificacao').value = extendedProps.classificacao || '';
             document.getElementById('delete-event-btn').style.display = 'block';
-            // 2. Limpe as caixinhas de voluntários do Step 2
-            document.querySelectorAll('.voluntarios-list').forEach(div => div.innerHTML = '');
-            // 3. Recrie os "crachás" (badges) visuais
-            const atribuicoes = extendedProps.atribuicoes || [];
-            atribuicoes.forEach(atrib => {
-                // Encontra a caixa do ministério correto
-                const ministerioBox = document.querySelector(`.ministerio-box[data-funcao="${atrib.funcao}"]`);
-                if (ministerioBox) {
-                    const listaVisual = ministerioBox.querySelector('.voluntarios-list');
-                    const badge = document.createElement('span');
-                    badge.className = 'voluntario-tag badge bg-primary me-1 mb-1 p-2 d-inline-flex align-items-center';
-                    badge.setAttribute('data-id', atrib.voluntarioId.toString());
-                    badge.innerHTML = `
-                        ${atrib.voluntarioNome || 'Voluntário ' + atrib.voluntarioId} 
-                        <button type="button" class="btn-close btn-close-white ms-2" style="font-size: 0.5rem; background: none; border: none; color: white; cursor: pointer;" aria-label="Remover">&times;</button>
-                    `;
-                    const closeBtn = badge.querySelector('.btn-close');
-                    closeBtn.addEventListener('click', function () {
-                        badge.remove();
-                    });
-                    listaVisual.appendChild(badge);
-                }
-            });
+            // 2. Armazena as atribuições para preencher o grid quando Step 2 for aberto
+            atribuicoesParaCarregar = extendedProps.atribuicoes || [];
             modal.classList.add('show-modal');
         }
     });
@@ -519,13 +560,18 @@ function initCalendar() {
 }
 function resetModal() {
     escalaAtualId = null;
+    configAtual = null;
+    atribuicoesParaCarregar = [];
     document.getElementById('escala-form').reset();
     document.getElementById('escala-id').value = '';
     document.getElementById('escala-classificacao').value = '';
-    document.querySelectorAll('.voluntarios-list').forEach(div => div.innerHTML = '');
-    document.querySelectorAll('.resultados-busca').forEach(ul => {
-        ul.style.display = 'none';
-    });
+    // Limpa o grid dinâmico
+    const grid = document.getElementById('equipe-grid');
+    if (grid) {
+        grid.innerHTML = `<p id="equipe-loading" style="color:var(--text-muted);font-style:italic;
+            grid-column:1/-1;text-align:center;padding:2rem 0;">Selecione a classificação e clique em
+            <em>Escalar Equipe</em> para montar o grid.</p>`;
+    }
     document.getElementById('step-1-dados').style.display = 'block';
     document.getElementById('step-2-equipe').style.display = 'none';
 }
@@ -584,7 +630,7 @@ function saveSettings() {
             corPrimaria: colorPicker.value
         };
         try {
-            yield fetch('http://localhost:8080/api/configuracoes/1', {
+            yield fetch(`http://localhost:8080/api/configuracoes/${localStorage.getItem('userId') || 1}`, {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(config)

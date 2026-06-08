@@ -28,6 +28,15 @@ public class Voluntario {
     @Column(name = "ministerio")
     private List<String> ministerios = new ArrayList<>();
 
+    /**
+     * Classificações de culto/evento nas quais este voluntário pode atuar
+     * (ex: ATITUDE, BEONE, KIDS, EVENTOS, BASE).
+     */
+    @ElementCollection
+    @CollectionTable(name = "voluntario_classificacoes", joinColumns = @JoinColumn(name = "voluntario_id"))
+    @Column(name = "classificacao")
+    private List<String> classificacoes = new ArrayList<>();
+
     public Voluntario() {
     }
 
@@ -77,6 +86,14 @@ public class Voluntario {
 
     public void setMinisterios(List<String> ministerios) {
         this.ministerios = ministerios;
+    }
+
+    public List<String> getClassificacoes() {
+        return classificacoes;
+    }
+
+    public void setClassificacoes(List<String> classificacoes) {
+        this.classificacoes = classificacoes != null ? classificacoes : new ArrayList<>();
     }
 
     @Override

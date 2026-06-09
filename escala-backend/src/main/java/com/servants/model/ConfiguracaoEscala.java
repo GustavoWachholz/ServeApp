@@ -16,9 +16,16 @@ public class ConfiguracaoEscala {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Classificação do culto/evento. Valor único por linha. Ex.: "ATITUDE", "BEONE". */
+    /** Classificação do culto/evento. Chave única gerada a partir do nome. Ex.: "ATITUDE", "CULTO_GERAL". */
     @Column(nullable = false, unique = true)
     private String classificacao;
+
+    /** Nome de exibição cadastrado pelo usuário. Ex.: "Atitude", "Culto Geral". */
+    @Column(nullable = false)
+    private String nome;
+
+    /** Título usado no calendário e na imagem exportada. Ex.: "Culto Atitude". */
+    private String titulo;
 
     /** Nome da organização — aparece como título principal na imagem. Ex.: "Igreja Batista Atitude". */
     @Column(name = "nome_organizacao")
@@ -51,6 +58,12 @@ public class ConfiguracaoEscala {
 
     public String getClassificacao() { return classificacao; }
     public void setClassificacao(String classificacao) { this.classificacao = classificacao; }
+
+    public String getNome() { return nome; }
+    public void setNome(String nome) { this.nome = nome; }
+
+    public String getTitulo() { return titulo; }
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
     public String getNomeOrganizacao() { return nomeOrganizacao; }
     public void setNomeOrganizacao(String nomeOrganizacao) { this.nomeOrganizacao = nomeOrganizacao; }

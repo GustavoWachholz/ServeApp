@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuicao, Long> {
+    void deleteByVoluntarioId(Long voluntarioId);
 }

@@ -12,30 +12,37 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
 const CONFIG_ESCALA_API_URL = 'http://localhost:8080/api/configuracao-escala';
-/** Mapa de valor do select para a chave usada na API de configuração */
-const CLASSIFICACAO_MAP = {
-    'Culto Atitude': 'ATITUDE',
-    'Culto BeOne': 'BEONE',
-    'Culto Kids': 'KIDS',
-    'Eventos': 'EVENTOS',
-    'Base': 'BASE',
-};
-function toClassificacaoKey(value) {
-    return CLASSIFICACAO_MAP[value] || value.toUpperCase().replace(/\s+/g, '_');
-}
+let classificacoesDisponiveis = [];
 let calendar;
 let listaVoluntarios = [];
 let escalaAtualId = null;
 let configAtual = null; // Configuração da escala ativa
 let atribuicoesParaCarregar = []; // Atribuições pré-carregadas ao editar evento
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', () => __awaiter(void 0, void 0, void 0, function* () {
     console.log('Agenda inicializada (Autocomplete Mode).');
-    initFloatingSettings();
+    classificacoesDisponiveis = yield ClassificacoesCache.carregarClassificacoes();
+    popularSelectClassificacao();
     initModalControls();
     carregarVoluntariosParaEscala();
-    fetchConfigAndInitCalendar();
+    initCalendar();
     initAutocomplete();
-});
+}));
+/**
+ * Popula o <select id="escala-classificacao"> com as classificações dinâmicas do backend.
+ */
+function popularSelectClassificacao() {
+    const sel = document.getElementById('escala-classificacao');
+    if (!sel)
+        return;
+    sel.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+    classificacoesDisponiveis.forEach(cl => {
+        const opt = document.createElement('option');
+        opt.value = cl.key;
+        opt.textContent = cl.label;
+        opt.setAttribute('data-cor', cl.cor);
+        sel.appendChild(opt);
+    });
+}
 /**
  * Busca a lista de voluntários para o autocomplete
  */
@@ -162,7 +169,7 @@ function initAutocomplete() {
 function renderizarResultados(ul, lista, ocultosExclusividade = 0) {
     let html;
     if (lista.length === 0) {
-        html = '<li style="color:#666;font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
+        html = '<li style="color:var(--text-muted);font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
     }
     else {
         html = lista.map(v => `
@@ -175,7 +182,7 @@ function renderizarResultados(ul, lista, ocultosExclusividade = 0) {
     if (ocultosExclusividade > 0) {
         const plural = ocultosExclusividade > 1;
         html += `<li style="color:#f59e0b;font-size:0.78rem;padding:0.4rem 0.6rem;
-                     border-top:1px solid #eee;font-style:italic;list-style:none;cursor:default;">
+                     border-top:1px solid var(--border-color);font-style:italic;list-style:none;cursor:default;">
             <i class="fas fa-lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
             ${ocultosExclusividade} voluntário${plural ? 's' : ''} oculto${plural ? 's' : ''} por exclusividade
         </li>`;
@@ -206,7 +213,7 @@ function adicionarTagVoluntario(container, id, nome) {
  */
 function carregarConfigEscala(classificacao) {
     return __awaiter(this, void 0, void 0, function* () {
-        const key = toClassificacaoKey(classificacao);
+        const key = classificacao.toUpperCase();
         try {
             const resp = yield fetch(`${CONFIG_ESCALA_API_URL}/${key}`);
             if (!resp.ok)
@@ -248,7 +255,7 @@ function gerarGridMinisterios(ministerios) {
                 <input type="text" class="input-busca" placeholder="Buscar voluntário...">
                 <ul class="resultados-busca" style="display:none;position:absolute;z-index:10;
                     width:100%;max-height:150px;overflow-y:auto;list-style:none;padding:0;margin:0;
-                    border:1px solid #ccc;background:#fff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);"></ul>
+                    border-radius:4px;"></ul>
             </div>
         `;
         grid.appendChild(box);
@@ -303,6 +310,17 @@ function initModalControls() {
     btnFinalizarEscala.onclick = function () {
         return __awaiter(this, void 0, void 0, function* () {
             const btn = btnFinalizarEscala;
+            // Verifica se há ministérios sem nenhum voluntário
+            const boxesSemVoluntario = Array.from(document.querySelectorAll('.ministerio-box'))
+                .filter(box => box.querySelectorAll('.voluntario-tag').length === 0);
+            if (boxesSemVoluntario.length > 0) {
+                const nomes = boxesSemVoluntario
+                    .map(b => b.getAttribute('data-funcao') || '—')
+                    .join(', ');
+                const confirmar = window.confirm(`Os seguintes ministérios ainda não têm voluntários escalados:\n\n${nomes}\n\nDeseja imprimir a escala mesmo assim?`);
+                if (!confirmar)
+                    return;
+            }
             const originalText = btn.innerHTML;
             btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
             btn.disabled = true;
@@ -449,19 +467,22 @@ function salvarEscala() {
             return;
         const id = inputId.value;
         const atribuicoes = [];
+        let todasPreenchidas = true;
         if (incluirEquipe) {
-            document.querySelectorAll('.ministerio-box .voluntarios-list').forEach(list => {
-                const box = list.closest('.ministerio-box');
+            document.querySelectorAll('.ministerio-box').forEach(box => {
                 const funcao = box.getAttribute('data-funcao') || '';
-                list.querySelectorAll('.voluntario-tag').forEach(tag => {
-                    const volId = tag.getAttribute('data-id');
-                    if (volId) {
-                        atribuicoes.push({
-                            voluntarioId: parseInt(volId),
-                            funcao: funcao
-                        });
-                    }
-                });
+                const lista = box.querySelector('.voluntarios-list');
+                const tags = lista ? lista.querySelectorAll('.voluntario-tag') : [];
+                if (tags.length === 0) {
+                    todasPreenchidas = false;
+                }
+                else {
+                    tags.forEach(tag => {
+                        const volId = tag.getAttribute('data-id');
+                        if (volId)
+                            atribuicoes.push({ voluntarioId: parseInt(volId), funcao });
+                    });
+                }
             });
         }
         const corSelecionada = ((_a = selectClass.options[selectClass.selectedIndex]) === null || _a === void 0 ? void 0 : _a.getAttribute('data-cor')) || '#004b87';
@@ -470,6 +491,7 @@ function salvarEscala() {
             dataEscala: inputData.value,
             classificacao: selectClass.value,
             cor: corSelecionada,
+            status: incluirEquipe ? (todasPreenchidas ? 'COMPLETO' : 'INCOMPLETO') : undefined,
             atribuicoes: atribuicoes
         };
         if (id)
@@ -505,6 +527,7 @@ function salvarEscala() {
  * Inicialização do FullCalendar
  */
 function initCalendar() {
+    var _a, _b, _c, _d;
     const calendarEl = document.getElementById('calendar-container');
     const modal = document.getElementById('escala-modal');
     calendar = new FullCalendar.Calendar(calendarEl, {
@@ -528,11 +551,12 @@ function initCalendar() {
                 // Mapeia os dados do backend para o formato do FullCalendar
                 const eventosMapeados = data.map(escala => ({
                     id: String(escala.id),
-                    title: (!escala.atribuicoes || escala.atribuicoes.length === 0) ? "⏳ " + escala.titulo : escala.titulo,
+                    title: (escala.status !== 'COMPLETO') ? "⏳ " + escala.titulo : escala.titulo,
                     start: escala.dataEscala,
                     backgroundColor: escala.cor || '#004b87',
                     extendedProps: {
                         classificacao: escala.classificacao,
+                        status: escala.status,
                         atribuicoes: escala.atribuicoes
                     }
                 }));
@@ -544,8 +568,8 @@ function initCalendar() {
                 failureCallback(error);
             });
         },
-        editable: true,
-        selectable: true,
+        editable: (_b = (_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()) !== null && _b !== void 0 ? _b : false,
+        selectable: (_d = (_c = window.Auth) === null || _c === void 0 ? void 0 : _c.isAdmin()) !== null && _d !== void 0 ? _d : false,
         dateClick: function (info) {
             var _a;
             if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()))
@@ -596,98 +620,6 @@ function resetModal() {
     document.getElementById('step-1-dados').style.display = 'block';
     document.getElementById('step-2-equipe').style.display = 'none';
 }
-/**
- * Funções de Configuração e Sidebar (Reutilizadas)
- */
-function initFloatingSettings() {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const themeToggle = document.getElementById('theme-toggle');
-    const colorPicker = document.getElementById('color-picker');
-    const logoutBtn = document.getElementById('logout-btn');
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('show-menu');
-        });
-    }
-    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
-    document.addEventListener('click', (e) => {
-        const target = e.target;
-        if (settingsMenu && !settingsMenu.contains(target) && target !== settingsBtn) {
-            settingsMenu.classList.remove('show-menu');
-        }
-    });
-    if (themeToggle) {
-        themeToggle.addEventListener('change', () => {
-            applyTheme(themeToggle.checked ? 'dark' : 'light');
-            saveSettings();
-        });
-    }
-    if (colorPicker) {
-        colorPicker.addEventListener('change', () => {
-            applyColor(colorPicker.value);
-            saveSettings();
-        });
-    }
-}
-function applyTheme(theme) {
-    document.body.classList.toggle('dark-mode', theme === 'dark');
-}
-function applyColor(color) {
-    document.documentElement.style.setProperty('--primary-color', color);
-}
-function saveSettings() {
-    return __awaiter(this, void 0, void 0, function* () {
-        const themeToggle = document.getElementById('theme-toggle');
-        const colorPicker = document.getElementById('color-picker');
-        const config = {
-            tema: themeToggle.checked ? 'dark' : 'light',
-            corPrimaria: colorPicker.value
-        };
-        try {
-            yield fetch(`http://localhost:8080/api/configuracoes/${localStorage.getItem('userId') || 1}`, {
-                method: 'PUT',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(config)
-            });
-        }
-        catch (e) {
-            console.error('Erro ao salvar config:', e);
-        }
-    });
-}
-function fetchConfigAndInitCalendar() {
-    return __awaiter(this, void 0, void 0, function* () {
-        try {
-            const response = yield fetch('http://localhost:8080/api/dashboard');
-            if (response.ok) {
-                const data = yield response.json();
-                if (data.tema) {
-                    applyTheme(data.tema);
-                    const themeToggle = document.getElementById('theme-toggle');
-                    if (themeToggle)
-                        themeToggle.checked = (data.tema === 'dark');
-                }
-                if (data.corPrimaria) {
-                    applyColor(data.corPrimaria);
-                    const cp = document.getElementById('color-picker');
-                    if (cp)
-                        cp.value = data.corPrimaria;
-                }
-                if (data.nomeUsuario) {
-                    const userDisplay = document.getElementById('user-name-display');
-                    if (userDisplay)
-                        userDisplay.textContent = data.nomeUsuario;
-                }
-            }
-        }
-        catch (e) {
-            const userDisplay = document.getElementById('user-name-display');
-            if (userDisplay)
-                userDisplay.textContent = 'Usuário Mock';
-        }
-        initCalendar();
-    });
-}
 export {};
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).

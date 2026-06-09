@@ -4,24 +4,16 @@
 
 const MINISTERIOS_API_URL = 'http://localhost:8080/api/ministerios';
 const VOLUNTARIOS_API_URL = 'http://localhost:8080/api/voluntarios';
-const CONFIG_API_URL = 'http://localhost:8080/api/dashboard';
 
-const CLASSIFICACOES = [
-    { key: 'ATITUDE', label: 'Atitude',  cor: '#1d4ed8' },
-    { key: 'BEONE',   label: 'BeOne',    cor: '#7c3aed' },
-    { key: 'KIDS',    label: 'Kids',     cor: '#059669' },
-    { key: 'EVENTOS', label: 'Eventos',  cor: '#dc2626' },
-    { key: 'BASE',    label: 'Base',     cor: '#78716c' },
-];
+let classificacoesDisponiveis = []; // carregado dinamicamente do backend
 
 let currentMinisterio = null;
 let voluntariosGlobal = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Ministérios inicializado.');
-    initFloatingSettings();
+    classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
     initModalEvents();
-    fetchConfig();
     renderClassifChips('classif-checkboxes-min', []);
     await fetchVoluntarios();
     fetchMinisterios();
@@ -35,7 +27,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 function renderClassifChips(containerId, selecionadas) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = CLASSIFICACOES.map(cl => {
+    container.innerHTML = classificacoesDisponiveis.map(cl => {
         const checked = selecionadas.includes(cl.key);
         return `
         <label class="classif-chip ${checked ? 'checked' : ''}"
@@ -72,8 +64,8 @@ function renderClassifView(containerId, selecionadas) {
         return;
     }
     container.innerHTML = selecionadas.map(key => {
-        const cl = CLASSIFICACOES.find(c => c.key === key);
-        if (!cl) return '';
+        const cl = classificacoesDisponiveis.find(c => c.key === key);
+        if (!cl) return `<span class="classif-chip checked" style="cursor:default;">${key}</span>`;
         return `<span class="classif-chip checked"
                       style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;cursor:default;">
                     ${cl.label}
@@ -370,47 +362,8 @@ function resetForm() {
     currentMinisterio = null;
 }
 
-function initFloatingSettings() {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    if (settingsBtn) {
-        settingsBtn.onclick = (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('show-menu');
-        };
-    }
-
-    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
-
-    document.onclick = (e) => {
-        if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {
-            settingsMenu.classList.remove('show-menu');
-        }
-    };
-}
-
-async function fetchConfig() {
-    try {
-        const response = await fetch(CONFIG_API_URL);
-        const data = await response.json();
-        if (data.tema) {
-            document.body.classList.toggle('dark-mode', data.tema === 'dark');
-            const toggle = document.getElementById('theme-toggle');
-            if (toggle) toggle.checked = (data.tema === 'dark');
-        }
-        if (data.corPrimaria) document.documentElement.style.setProperty('--primary-color', data.corPrimaria);
-        
-        const userNameDisplay = document.getElementById('user-name-display');
-        if (userNameDisplay && data.nomeUsuario) {
-            userNameDisplay.textContent = data.nomeUsuario;
-        }
-    } catch (e) { 
-        const userNameDisplay = document.getElementById('user-name-display');
-        if (userNameDisplay) userNameDisplay.textContent = 'Usuário Mock'; 
-    }
-}
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).
 
 let mockMinisterios = [
     { id: 1, nome: 'Louvor', liderId: 1, nomeLider: 'Ana Souza', coliderId: 3, nomeColider: 'Mariana Lima', membros: [{nome: 'Ana Souza', vezesEscalado: 12}, {nome: 'João Silva', vezesEscalado: 8}] },

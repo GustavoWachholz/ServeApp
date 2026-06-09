@@ -6,4 +6,5 @@ import org.springframework.stereotype.Repository;
 
 @Repository
 public interface EscalaRepository extends JpaRepository<Escala, Long> {
+    boolean existsByClassificacao(String classificacao);
 }

@@ -3,58 +3,144 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Configuração de Escala - Serve</title>
+    <title>Classificações - Serve</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.exigirAdmin();</script>
+    <script>Auth.restaurarTema(); Auth.exigirAdmin();</script>
     <style>
-        /* ── Abas de classificação ── */
-        .tabs-nav {
+        /* ── Lista de classificações ── */
+        .classif-list {
             display: flex;
-            gap: 0.4rem;
-            flex-wrap: wrap;
-            border-bottom: 2px solid var(--border-color);
-            margin-bottom: 1.5rem;
+            flex-direction: column;
+            gap: 0.75rem;
         }
 
-        .tab-btn {
-            padding: 0.55rem 1.2rem;
-            border: none;
-            border-bottom: 3px solid transparent;
-            background: none;
-            color: var(--text-muted);
-            font-size: 0.875rem;
-            font-weight: 600;
-            cursor: pointer;
-            border-radius: 6px 6px 0 0;
-            transition: all 0.15s;
-            margin-bottom: -2px;
-        }
-
-        .tab-btn:hover { color: var(--primary-color); background: var(--bg-card); }
-
-        .tab-btn.active {
-            color: var(--primary-color);
-            border-bottom-color: var(--primary-color);
-            background: var(--bg-card);
-        }
-
-        .tab-panel { display: none; }
-        .tab-panel.active { display: block; }
-
-        /* ── Cartão de configuração ── */
-        .config-card {
+        .classif-item {
+            display: flex;
+            align-items: center;
+            gap: 1rem;
             background: var(--bg-card);
             border: 1px solid var(--border-color);
             border-radius: 12px;
-            padding: 1.5rem;
-            margin-bottom: 1.5rem;
+            padding: 1rem 1.25rem;
         }
 
-        .config-card-title {
+        .classif-color-dot {
+            width: 18px;
+            height: 18px;
+            border-radius: 50%;
+            flex-shrink: 0;
+            border: 2px solid rgba(255,255,255,0.3);
+        }
+
+        .classif-info { flex: 1; min-width: 0; }
+        .classif-nome  { font-weight: 600; font-size: 0.95rem; color: var(--text-color); }
+        .classif-titulo { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+        .classif-key {
+            font-family: monospace;
+            font-size: 0.7rem;
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 4px;
+            padding: 1px 6px;
+            color: var(--text-muted);
+            margin-top: 4px;
+            display: inline-block;
+        }
+
+        .classif-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
+
+        .btn-icon {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.4rem 0.8rem;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            background: var(--bg-main);
+            color: var(--text-color);
             font-size: 0.8rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.15s;
+        }
+        .btn-icon:hover { border-color: var(--primary-color); color: var(--primary-color); background: var(--bg-card); }
+        .btn-icon.danger:hover { border-color: #ef4444; color: #ef4444; }
+
+        .empty-state {
+            text-align: center;
+            padding: 3rem 1.5rem;
+            color: var(--text-muted);
+        }
+        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.4; display: block; }
+        .empty-state p { font-size: 0.9rem; margin-bottom: 1.25rem; }
+
+        /* ── Modais ── */
+        .modal-overlay {
+            display: none;
+            position: fixed; inset: 0;
+            background: rgba(0,0,0,0.5);
+            z-index: 1000;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 1rem;
+            overflow-y: auto;
+        }
+        .modal-overlay.show-modal { display: flex; }
+
+        .modal-box {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 14px;
+            width: 100%;
+            max-width: 540px;
+            padding: 1.75rem;
+            position: relative;
+        }
+        .modal-box.modal-wide { max-width: 760px; }
+
+        .modal-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            margin-bottom: 1.25rem;
+            color: var(--text-color);
+        }
+
+        .modal-footer {
+            display: flex;
+            justify-content: flex-end;
+            gap: 0.75rem;
+            margin-top: 1.5rem;
+            padding-top: 1rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        /* ── Cor no modal de criar ── */
+        .color-field-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .color-preview-sm {
+            width: 32px; height: 32px;
+            border-radius: 7px;
+            border: 1px solid var(--border-color);
+            flex-shrink: 0;
+            transition: background 0.2s;
+        }
+
+        /* ── Config card (dentro do modal de editar) ── */
+        .config-card {
+            background: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 10px;
+            padding: 1.25rem;
+            margin-bottom: 1.25rem;
+        }
+        .config-card-title {
+            font-size: 0.75rem;
             font-weight: 700;
             text-transform: uppercase;
             letter-spacing: 0.06rem;
@@ -62,153 +148,68 @@
             margin-bottom: 1rem;
         }
 
-        /* ── Preview da cor ── */
-        .color-field-wrapper {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-        }
-
-        .color-preview {
-            width: 36px;
-            height: 36px;
-            border-radius: 8px;
-            border: 1px solid var(--border-color);
-            flex-shrink: 0;
-            transition: background 0.2s;
-        }
-
         /* ── Grade de ministérios ── */
         .min-grid {
             display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(160px, 1fr));
-            gap: 0.6rem;
-            margin-top: 0.75rem;
+            grid-template-columns: repeat(auto-fill, minmax(155px, 1fr));
+            gap: 0.5rem;
+            margin-top: 0.5rem;
         }
-
         .min-check-item {
             display: flex;
             align-items: center;
-            gap: 0.5rem;
-            padding: 0.55rem 0.75rem;
+            gap: 0.45rem;
+            padding: 0.5rem 0.7rem;
             border: 1px solid var(--border-color);
-            border-radius: 8px;
+            border-radius: 7px;
             cursor: pointer;
             transition: all 0.15s;
-            background: var(--bg-main);
-            font-size: 0.85rem;
-        }
-
-        .min-check-item:hover {
-            border-color: var(--primary-color);
             background: var(--bg-card);
+            font-size: 0.82rem;
         }
-
-        .min-check-item input[type="checkbox"] {
-            width: auto;
-            cursor: pointer;
-        }
-
+        .min-check-item:hover { border-color: var(--primary-color); }
+        .min-check-item input[type="checkbox"] { width: auto; cursor: pointer; }
         .min-check-item.selected {
             border-color: var(--primary-color);
             background: rgba(0,75,135,0.07);
         }
-
-        /* Badge tipo ministério */
         .tipo-badge {
-            font-size: 0.65rem;
+            font-size: 0.62rem;
             padding: 1px 5px;
             border-radius: 10px;
             font-weight: 600;
             margin-left: auto;
+            white-space: nowrap;
         }
 
-        /* ── Ordem das colunas ── */
-        .order-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.4rem;
-            margin-top: 0.75rem;
-        }
-
-        .order-item {
-            display: flex;
-            align-items: center;
-            gap: 0.75rem;
-            padding: 0.5rem 0.75rem;
-            background: var(--bg-main);
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            font-size: 0.875rem;
-        }
-
-        .order-item .grip {
-            color: var(--text-muted);
-            cursor: grab;
-        }
-
-        .order-item .order-num {
-            font-size: 0.75rem;
-            color: var(--text-muted);
-            min-width: 18px;
-            text-align: center;
-        }
-
-        /* ── Preview da imagem ── */
+        /* ── Preview da imagem (modal editar) ── */
+        /* A preview simula a imagem exportada, que é sempre no tema claro */
         .export-preview {
             border-radius: 10px;
             overflow: hidden;
             border: 1px solid var(--border-color);
-            font-family: 'Inter', sans-serif;
+            background: #ffffff;
         }
-
         .export-preview-header {
-            padding: 20px 24px 14px;
+            padding: 16px 20px 12px;
             text-align: center;
             color: #fff;
         }
-
-        .export-preview-header .org  { font-size: 1.1rem; font-weight: 900; letter-spacing: 3px; text-transform: uppercase; }
-        .export-preview-header .setor { font-size: 0.8rem; font-weight: 600; opacity: 0.85; margin-top: 3px; letter-spacing: 1.5px; }
-        .export-preview-header .data  { font-size: 0.72rem; opacity: 0.7; margin-top: 6px; }
-
-        .export-preview-table {
-            width: 100%;
-            border-collapse: collapse;
-        }
-
+        .export-preview-header .org   { font-size: 1rem; font-weight: 900; letter-spacing: 2.5px; text-transform: uppercase; }
+        .export-preview-header .setor { font-size: 0.75rem; font-weight: 600; opacity: 0.85; margin-top: 2px; letter-spacing: 1.5px; }
+        .export-preview-header .data  { font-size: 0.68rem; opacity: 0.7; margin-top: 5px; }
+        .export-preview-table { width: 100%; border-collapse: collapse; }
         .export-preview-table th {
-            padding: 8px 6px;
-            text-align: center;
-            font-size: 0.65rem;
-            font-weight: 700;
-            letter-spacing: 0.5px;
-            text-transform: uppercase;
-            color: #fff;
+            padding: 7px 5px; text-align: center; font-size: 0.62rem; font-weight: 700;
+            letter-spacing: 0.5px; text-transform: uppercase; color: #fff;
         }
-
         .export-preview-table td {
-            padding: 6px 4px;
-            text-align: center;
-            font-size: 0.72rem;
-            border: 1px solid #e5e7eb;
-            color: #374151;
+            padding: 5px 4px; text-align: center; font-size: 0.7rem;
+            border: 1px solid #e5e7eb; color: #374151;
         }
 
-        /* ── Botão salvar ── */
-        .save-bar {
-            display: flex;
-            align-items: center;
-            justify-content: flex-end;
-            gap: 1rem;
-            padding-top: 1rem;
-        }
-
-        .save-status {
-            font-size: 0.8rem;
-            color: var(--text-muted);
-        }
-
+        /* Status de salvar */
+        .save-status { font-size: 0.8rem; color: var(--text-muted); }
         .save-status.success { color: #059669; }
         .save-status.error   { color: #ef4444; }
     </style>
@@ -236,7 +237,7 @@
                 <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
                 <li class="nav-admin-only"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
                 <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                <li class="nav-admin-only active"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                <li class="nav-admin-only active"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
                 <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
             </ul>
         </nav>
@@ -270,22 +271,146 @@
         </header>
 
         <section class="dashboard-section">
-            <div class="section-header" style="margin-bottom:0.5rem;">
-                <h2>CONFIGURAÇÃO DE ESCALAS</h2>
+            <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
+                <div>
+                    <h2>CLASSIFICAÇÕES</h2>
+                    <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.25rem;">
+                        Gerencie os tipos de culto/evento e configure como cada um é exibido na escala.
+                    </p>
+                </div>
+                <button class="btn-primary" onclick="abrirModalCriar()">
+                    <i class="fas fa-plus"></i> Nova Classificação
+                </button>
             </div>
-            <p style="color:var(--text-muted);font-size:0.875rem;margin-bottom:1.5rem;">
-                Defina o nome da organização, o setor, a cor e os ministérios exibidos como colunas na imagem exportada para cada classificação de culto.
-            </p>
 
-            <!-- Abas de classificação -->
-            <div class="tabs-nav" id="tabs-nav"></div>
-
-            <!-- Painéis por classificação (gerados dinamicamente) -->
-            <div id="tabs-content"></div>
+            <div class="classif-list" id="classif-list">
+                <div class="empty-state">
+                    <i class="fas fa-tags"></i>
+                    <p>Carregando classificações...</p>
+                </div>
+            </div>
         </section>
     </main>
 </div>
 
+<!-- ══════════════════════════════ Modal: Nova Classificação ════ -->
+<div class="modal-overlay" id="modal-criar">
+    <div class="modal-box">
+        <div class="modal-title"><i class="fas fa-plus" style="margin-right:.4rem;"></i>Nova Classificação</div>
+
+        <div class="form-group">
+            <label for="criar-nome">Nome <small style="color:var(--text-muted);font-weight:400">(ex: Atitude, BeOne, Kids)</small></label>
+            <input type="text" id="criar-nome" placeholder="Nome da classificação" maxlength="60">
+        </div>
+        <div class="form-group">
+            <label for="criar-titulo">Título <small style="color:var(--text-muted);font-weight:400">(aparece na escala)</small></label>
+            <input type="text" id="criar-titulo" placeholder="Ex: Culto Atitude" maxlength="80">
+        </div>
+        <div class="form-group">
+            <label for="criar-cor">Cor Principal</label>
+            <div class="color-field-wrapper">
+                <span class="color-preview-sm" id="criar-cor-preview" style="background:#004b87;"></span>
+                <input type="color" id="criar-cor" value="#004b87"
+                    style="width:56px;height:32px;padding:2px;border-radius:6px;border:1px solid var(--border-color);cursor:pointer;"
+                    oninput="document.getElementById('criar-cor-preview').style.background=this.value;document.getElementById('criar-cor-hex').value=this.value;">
+                <input type="text" id="criar-cor-hex" value="#004b87" maxlength="7"
+                    style="width:100px;font-family:monospace;font-size:0.875rem;"
+                    placeholder="#004b87"
+                    oninput="if(/^#[0-9a-fA-F]{6}$/.test(this.value)){document.getElementById('criar-cor').value=this.value;document.getElementById('criar-cor-preview').style.background=this.value;}">
+            </div>
+        </div>
+
+        <div id="criar-status" class="save-status" style="margin-top:.5rem;"></div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="fecharModalCriar()">Cancelar</button>
+            <button class="btn-primary" id="criar-btn-salvar" onclick="salvarNovaClassificacao()">
+                <i class="fas fa-save"></i> Criar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════ Modal: Editar Classificação ══ -->
+<div class="modal-overlay" id="modal-editar">
+    <div class="modal-box modal-wide">
+        <div class="modal-title" id="editar-titulo-modal"><i class="fas fa-edit" style="margin-right:.4rem;"></i>Editar Classificação</div>
+
+        <!-- Identidade -->
+        <div class="config-card">
+            <div class="config-card-title">Identidade</div>
+            <div class="form-group">
+                <label for="editar-nome">Nome da Classificação</label>
+                <input type="text" id="editar-nome" placeholder="Ex: Atitude" maxlength="60">
+            </div>
+            <div class="form-group">
+                <label for="editar-titulo-input">Título (usado na escala)</label>
+                <input type="text" id="editar-titulo-input" placeholder="Ex: Culto Atitude" maxlength="80">
+            </div>
+            <div class="form-group">
+                <label for="editar-org">Nome da Organização <small style="font-weight:400;color:var(--text-muted)">(título principal da imagem)</small></label>
+                <input type="text" id="editar-org" placeholder="Ex: Igreja Batista Atitude">
+            </div>
+            <div class="form-group">
+                <label for="editar-setor">Nome do Setor <small style="font-weight:400;color:var(--text-muted)">(subtítulo da imagem)</small></label>
+                <input type="text" id="editar-setor" placeholder="Ex: CULTO ATITUDE">
+            </div>
+            <div class="form-group">
+                <label for="editar-cor">Cor Principal</label>
+                <div class="color-field-wrapper">
+                    <span class="color-preview-sm" id="editar-cor-preview" style="background:#004b87;"></span>
+                    <input type="color" id="editar-cor" value="#004b87"
+                        style="width:56px;height:32px;padding:2px;border-radius:6px;border:1px solid var(--border-color);cursor:pointer;">
+                    <input type="text" id="editar-cor-hex" value="#004b87" maxlength="7"
+                        style="width:100px;font-family:monospace;font-size:0.875rem;"
+                        placeholder="#004b87">
+                </div>
+            </div>
+        </div>
+
+        <!-- Ministérios -->
+        <div class="config-card">
+            <div class="config-card-title">Ministérios exibidos como colunas</div>
+            <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
+                Selecione quais ministérios aparecem como colunas na imagem exportada para este tipo de culto.
+            </p>
+            <div class="min-grid" id="editar-min-grid"></div>
+        </div>
+
+        <!-- Preview -->
+        <div class="config-card">
+            <div class="config-card-title">Pré-visualização</div>
+            <div class="export-preview" id="editar-preview"></div>
+        </div>
+
+        <div id="editar-status" class="save-status" style="margin-bottom:.75rem;"></div>
+
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="fecharModalEditar()">Cancelar</button>
+            <button class="btn-primary" id="editar-btn-salvar" onclick="salvarEdicao()">
+                <i class="fas fa-save"></i> Salvar
+            </button>
+        </div>
+    </div>
+</div>
+
+<!-- ══════════════════════════════ Modal: Confirmar Exclusão ════ -->
+<div class="modal-overlay" id="modal-confirmar-excluir">
+    <div class="modal-box" style="max-width:420px;">
+        <div class="modal-title" style="color:#ef4444;">
+            <i class="fas fa-exclamation-triangle" style="margin-right:.4rem;"></i>Excluir Classificação
+        </div>
+        <p id="confirmar-excluir-texto" style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0;"></p>
+        <div class="modal-footer">
+            <button class="btn-secondary" onclick="fecharModalExcluir()">Cancelar</button>
+            <button class="btn-danger" id="btn-confirmar-excluir" onclick="executarExclusao()">
+                <i class="fas fa-trash"></i> Excluir
+            </button>
+        </div>
+    </div>
+</div>
+
+<script src="js/classificacoes-cache.js"></script>
 <script src="js/configuracao-escala.js"></script>
 </body>
 </html>

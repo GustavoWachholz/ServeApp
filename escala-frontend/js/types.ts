@@ -10,5 +10,6 @@ export interface EscalaDTO {
   dataEscala: string;
   classificacao: string;
   cor: string;
+  status?: string;
   atribuicoes: AtribuicaoDTO[];
 }

@@ -10,7 +10,7 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.exigirAdmin();</script>
+    <script>Auth.restaurarTema(); Auth.exigirAdmin();</script>
     <style>
         .ministerios-table-container {
             background-color: var(--bg-card);
@@ -176,7 +176,7 @@
                     <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
                     <li class="nav-admin-only"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
                     <li class="nav-admin-only active"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li class="nav-admin-only"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                    <li class="nav-admin-only"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -389,6 +389,7 @@
         </div>
     </div>
 
+    <script src="js/classificacoes-cache.js"></script>
     <script src="js/ministerios.js"></script>
 </body>
 </html>

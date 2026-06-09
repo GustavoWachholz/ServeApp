@@ -9,4 +9,5 @@ import org.springframework.stereotype.Repository;
 @Repository
 public interface EscalaVoluntarioRepository extends JpaRepository<EscalaVoluntario, Long> {
     long countByVoluntarioAndMinisterio(Voluntario voluntario, Ministerio ministerio);
+    void deleteByVoluntarioId(Long voluntarioId);
 }

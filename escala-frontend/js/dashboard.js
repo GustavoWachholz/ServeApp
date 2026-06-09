@@ -3,11 +3,9 @@
  */
 
 const DASHBOARD_API_URL = 'http://localhost:8080/api/dashboard';
-const CONFIG_API_URL = `http://localhost:8080/api/configuracoes/${(JSON.parse(sessionStorage.getItem('serve_session') || '{}').id) || 1}`;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard Serve inicializado.');
-    initFloatingSettings();
     fetchDashboardData();
     carregarProximosCompromissos();
 });
@@ -28,11 +26,7 @@ async function fetchDashboardData() {
             userNameDisplay.textContent = data.nomeUsuario || "Administrador";
         }
 
-        // 2. Aplica configurações de tema e cor (se vierem no dashboard ou config)
-        if (data.tema) applyTheme(data.tema);
-        if (data.corPrimaria) applyColor(data.corPrimaria);
-
-        // 3. Renderiza as seções (Removido departamentos conforme solicitação)
+        // 2. Renderiza as seções (Removido departamentos conforme solicitação)
         renderSection('container-avisos', data.avisos, createAvisoCard);
         renderSection('container-escalas', data.minhasEscalas, createEscalaCard);
         renderSection('container-aniversariantes', data.aniversariantes, createBirthdayCard);
@@ -169,66 +163,5 @@ function renderEmptyStates() {
     });
 }
 
-/**
- * Lógica de Configurações e Aparência
- */
-function initFloatingSettings() {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const themeToggle = document.getElementById('theme-toggle');
-    const colorPicker = document.getElementById('color-picker');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    if (settingsBtn) {
-        settingsBtn.onclick = (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('show-menu');
-        };
-    }
-
-    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
-
-    document.onclick = (e) => {
-        if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {
-            settingsMenu.classList.remove('show-menu');
-        }
-    };
-
-    if (themeToggle) {
-        themeToggle.onchange = () => {
-            const theme = themeToggle.checked ? 'dark' : 'light';
-            applyTheme(theme);
-            saveSettings(theme, colorPicker.value);
-        };
-    }
-
-    if (colorPicker) {
-        colorPicker.onchange = () => {
-            applyColor(colorPicker.value);
-            const theme = themeToggle.checked ? 'dark' : 'light';
-            saveSettings(theme, colorPicker.value);
-        };
-    }
-}
-
-function applyTheme(theme) {
-    document.body.classList.toggle('dark-mode', theme === 'dark');
-    const toggle = document.getElementById('theme-toggle');
-    if (toggle) toggle.checked = (theme === 'dark');
-}
-
-function applyColor(color) {
-    document.documentElement.style.setProperty('--primary-color', color);
-    const picker = document.getElementById('color-picker');
-    if (picker) picker.value = color;
-}
-
-async function saveSettings(tema, cor) {
-    try {
-        await fetch(CONFIG_API_URL, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ tema, corPrimaria: cor })
-        });
-    } catch (e) { console.error('Erro ao salvar preferências:', e); }
-}
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).

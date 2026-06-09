@@ -12,7 +12,7 @@
     --border-color: #e5e7eb;
 }
 
-body.dark-mode {
+:root.dark-mode {
     --bg-main: #121214;
     --bg-sidebar: #1e1e21;
     --bg-card: #29292e;
@@ -126,7 +126,7 @@ body {
     padding-left: calc(1rem + 0.4rem);
 }
 
-body.dark-mode .sidebar-nav li.active a {
+.dark-mode .sidebar-nav li.active a {
     background-color: rgba(0, 75, 135, 0.2);
 }
 
@@ -241,6 +241,9 @@ input[type="color"] {
 }
 input:checked + .slider { background-color: var(--primary-color); }
 input:checked + .slider:before { transform: translateX(20px); }
+
+:root.dark-mode .slider { background-color: #4b4b55; }
+:root.dark-mode input:checked + .slider { background-color: var(--primary-color); }
 
 /* Highlights */
 .card-escala { border-left: 4px solid var(--primary-color); }
@@ -490,6 +493,24 @@ input:checked + .slider:before { transform: translateX(20px); }
     box-shadow: 0 0 0 3px rgba(0, 75, 135, 0.1);
 }
 
+/* ── Dark mode: inputs e selects ── */
+:root.dark-mode .form-group input,
+:root.dark-mode .form-group select {
+    background-color: var(--bg-main);
+    color: var(--text-color);
+}
+
+:root.dark-mode .form-group input:focus,
+:root.dark-mode .form-group select:focus {
+    background-color: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 0 0 3px rgba(0, 75, 135, 0.25);
+}
+
+:root.dark-mode .form-group input::placeholder,
+:root.dark-mode .form-group select::placeholder {
+    color: var(--text-muted);
+}
+
 .modal-footer {
     display: flex;
     justify-content: space-between;
@@ -531,6 +552,11 @@ input:checked + .slider:before { transform: translateX(20px); }
 
 .btn-secondary:hover {
     background-color: #f3f4f6;
+    color: var(--text-color);
+}
+
+:root.dark-mode .btn-secondary:hover {
+    background-color: rgba(255, 255, 255, 0.08);
     color: var(--text-color);
 }
 

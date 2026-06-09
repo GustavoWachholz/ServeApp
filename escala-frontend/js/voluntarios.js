@@ -4,36 +4,28 @@
 
 const API_URL = 'http://localhost:8080/api/voluntarios';
 const MINISTERIOS_URL = 'http://localhost:8080/api/ministerios';
-const CONFIG_URL = 'http://localhost:8080/api/dashboard';
 
-const CLASSIFICACOES = [
-    { key: 'ATITUDE', label: 'Atitude',  cor: '#1d4ed8' },
-    { key: 'BEONE',   label: 'BeOne',    cor: '#7c3aed' },
-    { key: 'KIDS',    label: 'Kids',     cor: '#059669' },
-    { key: 'EVENTOS', label: 'Eventos',  cor: '#dc2626' },
-    { key: 'BASE',    label: 'Base',     cor: '#78716c' },
-];
+let classificacoesDisponiveis = []; // carregado dinamicamente do backend
 
 let currentVolunteer = null;
 let voluntariosCache = [];   // lista completa em memória
 let ordemAtual = 'cadastro'; // 'cadastro' | 'alpha'
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Voluntários (API Mode) inicializado.');
+    classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
     carregarVoluntarios();
     carregarOpcoesMinisterios();
     renderClassifChips('classif-checkboxes-vol', []);
     initModalEvents();
-    initFloatingSettings();
     initToolbar();
-    fetchConfig();
 });
 
 /* ─────────────── Chips de classificação ─────────────── */
 function renderClassifChips(containerId, selecionadas) {
     const container = document.getElementById(containerId);
     if (!container) return;
-    container.innerHTML = CLASSIFICACOES.map(cl => {
+    container.innerHTML = classificacoesDisponiveis.map(cl => {
         const checked = selecionadas.includes(cl.key);
         return `
         <label class="classif-chip ${checked ? 'checked' : ''}"
@@ -63,8 +55,8 @@ function renderClassifView(containerId, selecionadas) {
         return;
     }
     container.innerHTML = selecionadas.map(key => {
-        const cl = CLASSIFICACOES.find(c => c.key === key);
-        if (!cl) return '';
+        const cl = classificacoesDisponiveis.find(c => c.key === key);
+        if (!cl) return `<span class="classif-chip checked" style="cursor:default;">${key}</span>`;
         return `<span class="classif-chip checked"
                       style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;cursor:default;">
                     ${cl.label}
@@ -335,8 +327,8 @@ function initModalEvents() {
     }
 
     btnBack.onclick = () => {
-        if (document.getElementById('volunteer-id').value) showViewMode();
-        else modal.classList.remove('show-modal');
+        modal.classList.remove('show-modal');
+        resetForm();
     };
 
     const abrirConfirmacao = () => {
@@ -354,14 +346,30 @@ function initModalEvents() {
     btnConfirmDelete.onclick = async () => {
         if (!currentVolunteer) return;
         const id = currentVolunteer.id || currentVolunteer._id;
+        const btnConfirm = document.getElementById('btn-confirm-delete');
+        const textoOriginal = btnConfirm.textContent;
+        btnConfirm.disabled = true;
+        btnConfirm.textContent = 'Excluindo…';
         try {
             const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
             if (response.ok) {
                 confirmModal.classList.remove('show-modal');
                 modal.classList.remove('show-modal');
+                resetForm();
                 carregarVoluntarios();
+            } else {
+                let msg = 'Erro ao excluir voluntário.';
+                try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
+                alert(msg);
+                btnConfirm.disabled = false;
+                btnConfirm.textContent = textoOriginal;
             }
-        } catch (e) { console.error('Erro ao deletar:', e); }
+        } catch (e) {
+            console.error('Erro ao deletar:', e);
+            alert('Falha na conexão. Verifique se o servidor está rodando.');
+            btnConfirm.disabled = false;
+            btnConfirm.textContent = textoOriginal;
+        }
     };
 
     if (form) {
@@ -396,6 +404,16 @@ function initModalEvents() {
             }
         };
     }
+}
+
+/**
+ * Converte data no formato ISO (YYYY-MM-DD) para dd/mm/aaaa.
+ */
+function formatarData(iso) {
+    if (!iso) return '-';
+    const parts = String(iso).split('-');
+    if (parts.length !== 3) return iso;
+    return `${parts[2]}/${parts[1]}/${parts[0]}`;
 }
 
 /**
@@ -434,7 +452,7 @@ async function buscarEPresentar(id, mode) {
             document.getElementById('view-name').textContent = currentVolunteer.nome || '-';
             document.getElementById('view-email').textContent = currentVolunteer.email || '-';
             document.getElementById('view-phone').textContent = currentVolunteer.telefone || '-';
-            document.getElementById('view-birthdate').textContent = currentVolunteer.dataNascimento || '-';
+            document.getElementById('view-birthdate').textContent = formatarData(currentVolunteer.dataNascimento);
             const minDiv = document.getElementById('view-ministries');
             minDiv.innerHTML = (currentVolunteer.ministerios || []).map(m => `<span class="ministry-tag">${m}</span>`).join('');
             renderClassifView('view-classificacoes', currentVolunteer.classificacoes || []);
@@ -486,46 +504,5 @@ function resetForm() {
     currentVolunteer = null;
 }
 
-function initFloatingSettings() {
-    const settingsBtn = document.getElementById('settings-btn');
-    const settingsMenu = document.getElementById('settings-menu');
-    const themeToggle = document.getElementById('theme-toggle');
-    const colorPicker = document.getElementById('color-picker');
-    const logoutBtn = document.getElementById('logout-btn');
-
-    if (settingsBtn) {
-        settingsBtn.onclick = (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('show-menu');
-        };
-    }
-
-    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
-
-    document.onclick = (e) => {
-        if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {
-            settingsMenu.classList.remove('show-menu');
-        }
-    };
-
-    if (themeToggle) themeToggle.onchange = () => document.body.classList.toggle('dark-mode', themeToggle.checked);
-    if (colorPicker) colorPicker.onchange = () => document.documentElement.style.setProperty('--primary-color', colorPicker.value);
-}
-
-async function fetchConfig() {
-    try {
-        const response = await fetch(CONFIG_URL);
-        const data = await response.json();
-        if (data.tema) {
-            document.body.classList.toggle('dark-mode', data.tema === 'dark');
-            const toggle = document.getElementById('theme-toggle');
-            if (toggle) toggle.checked = (data.tema === 'dark');
-        }
-        if (data.corPrimaria) document.documentElement.style.setProperty('--primary-color', data.corPrimaria);
-        const nameEl = document.getElementById('user-name-display');
-        if (nameEl && data.user) nameEl.textContent = data.user.nome;
-    } catch (e) {
-        const nameEl = document.getElementById('user-name-display');
-        if (nameEl) nameEl.textContent = 'Usuário Mock';
-    }
-}
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).

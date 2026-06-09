@@ -7,6 +7,7 @@ import { EscalaDTO, AtribuicaoDTO } from './types.js';
 // Declarações globais para bibliotecas externas sem tipos definidos ou carregadas via CDN
 declare const FullCalendar: any;
 declare const html2canvas: any;
+declare const ClassificacoesCache: any;
 
 const ESCALAS_API_URL        = 'http://localhost:8080/api/escalas';
 const CONFIG_ESCALA_API_URL  = 'http://localhost:8080/api/configuracao-escala';
@@ -18,18 +19,7 @@ interface Voluntario {
     ministerios?: string[];
 }
 
-/** Mapa de valor do select para a chave usada na API de configuração */
-const CLASSIFICACAO_MAP: Record<string, string> = {
-    'Culto Atitude': 'ATITUDE',
-    'Culto BeOne':   'BEONE',
-    'Culto Kids':    'KIDS',
-    'Eventos':       'EVENTOS',
-    'Base':          'BASE',
-};
-
-function toClassificacaoKey(value: string): string {
-    return CLASSIFICACAO_MAP[value] || value.toUpperCase().replace(/\s+/g, '_');
-}
+let classificacoesDisponiveis: any[] = [];
 
 let calendar: any;
 let listaVoluntarios: Voluntario[] = [];
@@ -37,14 +27,31 @@ let escalaAtualId: number | null = null;
 let configAtual: any = null;                     // Configuração da escala ativa
 let atribuicoesParaCarregar: AtribuicaoDTO[] = []; // Atribuições pré-carregadas ao editar evento
 
-document.addEventListener('DOMContentLoaded', () => {
+document.addEventListener('DOMContentLoaded', async () => {
     console.log('Agenda inicializada (Autocomplete Mode).');
-    initFloatingSettings();
+    classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
+    popularSelectClassificacao();
     initModalControls();
     carregarVoluntariosParaEscala();
-    fetchConfigAndInitCalendar();
+    initCalendar();
     initAutocomplete();
 });
+
+/**
+ * Popula o <select id="escala-classificacao"> com as classificações dinâmicas do backend.
+ */
+function popularSelectClassificacao(): void {
+    const sel = document.getElementById('escala-classificacao') as HTMLSelectElement;
+    if (!sel) return;
+    sel.innerHTML = '<option value="" disabled selected>Selecione...</option>';
+    classificacoesDisponiveis.forEach(cl => {
+        const opt = document.createElement('option');
+        opt.value = cl.key;
+        opt.textContent = cl.label;
+        opt.setAttribute('data-cor', cl.cor);
+        sel.appendChild(opt);
+    });
+}
 
 /**
  * Busca a lista de voluntários para o autocomplete
@@ -179,7 +186,7 @@ function initAutocomplete() {
 function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[], ocultosExclusividade = 0) {
     let html: string;
     if (lista.length === 0) {
-        html = '<li style="color:#666;font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
+        html = '<li style="color:var(--text-muted);font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
     } else {
         html = lista.map(v => `
             <li>
@@ -192,7 +199,7 @@ function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[], ocultos
     if (ocultosExclusividade > 0) {
         const plural = ocultosExclusividade > 1;
         html += `<li style="color:#f59e0b;font-size:0.78rem;padding:0.4rem 0.6rem;
-                     border-top:1px solid #eee;font-style:italic;list-style:none;cursor:default;">
+                     border-top:1px solid var(--border-color);font-style:italic;list-style:none;cursor:default;">
             <i class="fas fa-lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
             ${ocultosExclusividade} voluntário${plural ? 's' : ''} oculto${plural ? 's' : ''} por exclusividade
         </li>`;
@@ -227,7 +234,7 @@ function adicionarTagVoluntario(container: HTMLDivElement, id: string, nome: str
  * Retorna o objeto de configuração ou null em caso de falha.
  */
 async function carregarConfigEscala(classificacao: string): Promise<any> {
-    const key = toClassificacaoKey(classificacao);
+    const key = classificacao.toUpperCase();
     try {
         const resp = await fetch(`${CONFIG_ESCALA_API_URL}/${key}`);
         if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
@@ -269,7 +276,7 @@ function gerarGridMinisterios(ministerios: any[]): void {
                 <input type="text" class="input-busca" placeholder="Buscar voluntário...">
                 <ul class="resultados-busca" style="display:none;position:absolute;z-index:10;
                     width:100%;max-height:150px;overflow-y:auto;list-style:none;padding:0;margin:0;
-                    border:1px solid #ccc;background:#fff;border-radius:4px;box-shadow:0 2px 8px rgba(0,0,0,.12);"></ul>
+                    border-radius:4px;"></ul>
             </div>
         `;
         grid.appendChild(box);
@@ -336,6 +343,21 @@ function initModalControls() {
     const btnFinalizarEscala = document.getElementById('btn-finalizar-escala') as HTMLButtonElement;
     btnFinalizarEscala.onclick = async function() {
         const btn = btnFinalizarEscala;
+
+        // Verifica se há ministérios sem nenhum voluntário
+        const boxesSemVoluntario = Array.from(document.querySelectorAll('.ministerio-box'))
+            .filter(box => box.querySelectorAll('.voluntario-tag').length === 0);
+
+        if (boxesSemVoluntario.length > 0) {
+            const nomes = boxesSemVoluntario
+                .map(b => b.getAttribute('data-funcao') || '—')
+                .join(', ');
+            const confirmar = window.confirm(
+                `Os seguintes ministérios ainda não têm voluntários escalados:\n\n${nomes}\n\nDeseja imprimir a escala mesmo assim?`
+            );
+            if (!confirmar) return;
+        }
+
         const originalText = btn.innerHTML;
         btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
         btn.disabled = true;
@@ -493,20 +515,22 @@ async function salvarEscala(incluirEquipe = false) {
 
     const id = inputId.value;
     const atribuicoes: AtribuicaoDTO[] = [];
-    
+    let todasPreenchidas = true;
+
     if (incluirEquipe) {
-        document.querySelectorAll('.ministerio-box .voluntarios-list').forEach(list => {
-            const box = list.closest('.ministerio-box') as HTMLElement;
+        document.querySelectorAll('.ministerio-box').forEach(box => {
             const funcao = box.getAttribute('data-funcao') || '';
-            list.querySelectorAll('.voluntario-tag').forEach(tag => {
-                const volId = tag.getAttribute('data-id');
-                if (volId) {
-                    atribuicoes.push({
-                        voluntarioId: parseInt(volId),
-                        funcao: funcao
-                    });
-                }
-            });
+            const lista  = box.querySelector('.voluntarios-list') as HTMLElement;
+            const tags   = lista ? lista.querySelectorAll('.voluntario-tag') : [];
+
+            if (tags.length === 0) {
+                todasPreenchidas = false;
+            } else {
+                tags.forEach(tag => {
+                    const volId = (tag as HTMLElement).getAttribute('data-id');
+                    if (volId) atribuicoes.push({ voluntarioId: parseInt(volId), funcao });
+                });
+            }
         });
     }
 
@@ -517,6 +541,7 @@ async function salvarEscala(incluirEquipe = false) {
         dataEscala: inputData.value,
         classificacao: selectClass.value,
         cor: corSelecionada,
+        status: incluirEquipe ? (todasPreenchidas ? 'COMPLETO' : 'INCOMPLETO') : undefined,
         atribuicoes: atribuicoes
     };
 
@@ -577,11 +602,12 @@ function initCalendar() {
                     // Mapeia os dados do backend para o formato do FullCalendar
                     const eventosMapeados = data.map(escala => ({
                         id: String(escala.id),
-                        title: (!escala.atribuicoes || escala.atribuicoes.length === 0) ? "⏳ " + escala.titulo : escala.titulo,
+                        title: (escala.status !== 'COMPLETO') ? "⏳ " + escala.titulo : escala.titulo,
                         start: escala.dataEscala,
                         backgroundColor: escala.cor || '#004b87',
                         extendedProps: {
                             classificacao: escala.classificacao,
+                            status: escala.status,
                             atribuicoes: escala.atribuicoes
                         }
                     }));
@@ -593,8 +619,8 @@ function initCalendar() {
                     failureCallback(error);
                 });
         },
-        editable: true,
-        selectable: true,
+        editable: (window as any).Auth?.isAdmin() ?? false,
+        selectable: (window as any).Auth?.isAdmin() ?? false,
 
         dateClick: function(info: any) {
             if (!(window as any).Auth?.isAdmin()) return; // somente admin cria escalas
@@ -655,94 +681,5 @@ function resetModal() {
     (document.getElementById('step-2-equipe') as HTMLElement).style.display = 'none';
 }
 
-/**
- * Funções de Configuração e Sidebar (Reutilizadas)
- */
-function initFloatingSettings() {
-    const settingsBtn = document.getElementById('settings-btn') as HTMLElement;
-    const settingsMenu = document.getElementById('settings-menu') as HTMLElement;
-    const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
-    const colorPicker = document.getElementById('color-picker') as HTMLInputElement;
-    const logoutBtn = document.getElementById('logout-btn') as HTMLElement;
-
-    if (settingsBtn) {
-        settingsBtn.addEventListener('click', (e) => {
-            e.stopPropagation();
-            settingsMenu.classList.toggle('show-menu');
-        });
-    }
-
-    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
-
-    document.addEventListener('click', (e) => {
-        const target = e.target as HTMLElement;
-        if (settingsMenu && !settingsMenu.contains(target) && target !== settingsBtn) {
-            settingsMenu.classList.remove('show-menu');
-        }
-    });
-
-    if (themeToggle) {
-        themeToggle.addEventListener('change', () => {
-            applyTheme(themeToggle.checked ? 'dark' : 'light');
-            saveSettings();
-        });
-    }
-
-    if (colorPicker) {
-        colorPicker.addEventListener('change', () => {
-            applyColor(colorPicker.value);
-            saveSettings();
-        });
-    }
-}
-
-function applyTheme(theme: string) {
-    document.body.classList.toggle('dark-mode', theme === 'dark');
-}
-
-function applyColor(color: string) {
-    document.documentElement.style.setProperty('--primary-color', color);
-}
-
-async function saveSettings() {
-    const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
-    const colorPicker = document.getElementById('color-picker') as HTMLInputElement;
-    const config = {
-        tema: themeToggle.checked ? 'dark' : 'light',
-        corPrimaria: colorPicker.value
-    };
-    try {
-        await fetch(`http://localhost:8080/api/configuracoes/${localStorage.getItem('userId') || 1}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(config)
-        });
-    } catch (e) { console.error('Erro ao salvar config:', e); }
-}
-
-async function fetchConfigAndInitCalendar() {
-    try {
-        const response = await fetch('http://localhost:8080/api/dashboard');
-        if (response.ok) {
-            const data = await response.json();
-            if (data.tema) {
-                applyTheme(data.tema);
-                const themeToggle = document.getElementById('theme-toggle') as HTMLInputElement;
-                if (themeToggle) themeToggle.checked = (data.tema === 'dark');
-            }
-            if (data.corPrimaria) {
-                applyColor(data.corPrimaria);
-                const cp = document.getElementById('color-picker') as HTMLInputElement;
-                if (cp) cp.value = data.corPrimaria;
-            }
-            if (data.nomeUsuario) {
-                const userDisplay = document.getElementById('user-name-display') as HTMLElement;
-                if (userDisplay) userDisplay.textContent = data.nomeUsuario;
-            }
-        }
-    } catch (e) {
-        const userDisplay = document.getElementById('user-name-display') as HTMLElement;
-        if (userDisplay) userDisplay.textContent = 'Usuário Mock';
-    }
-    initCalendar();
-}
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).

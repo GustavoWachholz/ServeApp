@@ -12,7 +12,7 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.exigirLogin();</script>
+    <script>Auth.restaurarTema(); Auth.exigirLogin();</script>
     <style>
         .equipe-grid {
             display: grid;
@@ -87,9 +87,9 @@
 
         .resultados-busca {
             background: var(--bg-sidebar) !important;
-            border-color: var(--border-color) !important;
-            color: var(--text-color);
-            box-shadow: 0 4px 12px rgba(0,0,0,0.1);
+            border: 1px solid var(--border-color) !important;
+            color: var(--text-color) !important;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.15);
         }
 
         .resultados-busca li {
@@ -147,7 +147,7 @@
                     <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
                     <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
                     <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                    <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -225,12 +225,7 @@
                         <div class="form-group">
                             <label for="escala-classificacao">Classificação</label>
                             <select id="escala-classificacao" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-sidebar); color: var(--text-color);">
-                                <option value="" disabled selected>Selecione...</option>
-                                <option value="Culto Atitude" data-cor="#1d4ed8">Culto Atitude</option>
-                                <option value="Culto BeOne"   data-cor="#7c3aed">Culto BeOne</option>
-                                <option value="Culto Kids"    data-cor="#059669">Culto Kids</option>
-                                <option value="Eventos"       data-cor="#dc2626">Eventos</option>
-                                <option value="Base"          data-cor="#78716c">Base</option>
+                                <option value="" disabled selected>Carregando...</option>
                             </select>
                         </div>
                     </div>
@@ -265,7 +260,7 @@
                         <div class="footer-right">
                             <button type="button" class="btn-secondary cancel-modal">Cancelar</button>
                             <button type="button" class="btn-primary" id="btn-salvar-equipe">Salvar Alterações</button>
-                            <button type="button" class="btn-success" id="btn-finalizar-escala">Finalizar Escala</button>
+                            <button type="button" class="btn-success" id="btn-finalizar-escala"><i class="fas fa-print"></i> Imprimir Escala</button>
                         </div>
                     </div>
                 </div>
@@ -286,6 +281,7 @@
     </div>
 
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="js/classificacoes-cache.js"></script>
     <script type="module" src="js/agenda.js"></script>
 </body>
 </html>

@@ -307,7 +307,7 @@ function initSidebar() {
         settingsMenu.classList.toggle('show-menu');
     });
 
-    logoutBtn?.addEventListener('click', () => { window.location.href = 'login.html'; });
+    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
 
     document.addEventListener('click', e => {
         if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {

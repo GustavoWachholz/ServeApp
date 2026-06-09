@@ -112,19 +112,24 @@ function initAutocomplete() {
 
         const jaEscalados = obterVoluntariosJaEscalados();
 
-        const filtrados = listaVoluntarios.filter(v => {
+        const filtrados: Voluntario[] = [];
+        let ocultosExclusividade = 0;
+
+        listaVoluntarios.forEach(v => {
             const id = (v.id ?? v._id ?? '').toString();
-            if (!v.nome.toLowerCase().includes(termo)) return false;
+
+            // Filtro de nome
+            if (!v.nome.toLowerCase().includes(termo)) return;
 
             // Só voluntários vinculados ao ministério específico
             if (tipoMinisterio === 'ESPECIFICO') {
-                if (!v.ministerios?.includes(funcaoAtual)) return false;
+                if (!v.ministerios?.includes(funcaoAtual)) return;
             }
 
             const funcoesDoVoluntario = jaEscalados[id] || [];
 
             // Não pode estar na mesma função duas vezes
-            if (funcoesDoVoluntario.includes(funcaoAtual)) return false;
+            if (funcoesDoVoluntario.includes(funcaoAtual)) return;
 
             // Se o ministério atual é exclusivo, o voluntário não pode estar em outro exclusivo
             if (exclusivo) {
@@ -132,13 +137,16 @@ function initAutocomplete() {
                     const b = document.querySelector(`.ministerio-box[data-funcao="${f}"]`);
                     return b && b.getAttribute('data-exclusivo') !== 'false';
                 });
-                if (jaTemExclusivo) return false;
+                if (jaTemExclusivo) {
+                    ocultosExclusividade++;
+                    return;
+                }
             }
 
-            return true;
+            filtrados.push(v);
         });
 
-        renderizarResultados(listaResultados, filtrados);
+        renderizarResultados(listaResultados, filtrados, ocultosExclusividade);
     });
 
     // ── Adicionar voluntário ──
@@ -168,17 +176,29 @@ function initAutocomplete() {
     });
 }
 
-function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[]) {
+function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[], ocultosExclusividade = 0) {
+    let html: string;
     if (lista.length === 0) {
-        ul.innerHTML = '<li style="color: #666; font-style: italic;">Nenhum voluntário encontrado</li>';
+        html = '<li style="color:#666;font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
     } else {
-        ul.innerHTML = lista.map(v => `
+        html = lista.map(v => `
             <li>
                 ${v.nome}
                 <button type="button" class="btn-add" data-id="${v.id || v._id}" data-nome="${v.nome}">+</button>
             </li>
         `).join('');
     }
+
+    if (ocultosExclusividade > 0) {
+        const plural = ocultosExclusividade > 1;
+        html += `<li style="color:#f59e0b;font-size:0.78rem;padding:0.4rem 0.6rem;
+                     border-top:1px solid #eee;font-style:italic;list-style:none;cursor:default;">
+            <i class="fas fa-lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
+            ${ocultosExclusividade} voluntário${plural ? 's' : ''} oculto${plural ? 's' : ''} por exclusividade
+        </li>`;
+    }
+
+    ul.innerHTML = html;
     ul.style.display = 'block';
 }
 
@@ -577,6 +597,7 @@ function initCalendar() {
         selectable: true,
 
         dateClick: function(info: any) {
+            if (!(window as any).Auth?.isAdmin()) return; // somente admin cria escalas
             resetModal();
             (document.getElementById('modal-title') as HTMLElement).textContent = '+ Nova Escala';
             (document.getElementById('escala-data') as HTMLInputElement).value = info.dateStr + 'T09:00';
@@ -584,6 +605,7 @@ function initCalendar() {
         },
 
         eventClick: function(info: any) {
+            if (!(window as any).Auth?.isAdmin()) return; // somente admin edita escalas
             resetModal();
             (document.getElementById('modal-title') as HTMLElement).textContent = 'Editar Escala';
             
@@ -650,12 +672,7 @@ function initFloatingSettings() {
         });
     }
 
-    if (logoutBtn) {
-        logoutBtn.onclick = () => {
-            console.log('Encerrando sessão...');
-            window.location.href = 'login.html';
-        };
-    }
+    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
 
     document.addEventListener('click', (e) => {
         const target = e.target as HTMLElement;

@@ -3,7 +3,7 @@
  */
 
 const DASHBOARD_API_URL = 'http://localhost:8080/api/dashboard';
-const CONFIG_API_URL = `http://localhost:8080/api/configuracoes/${localStorage.getItem('userId') || 1}`;
+const CONFIG_API_URL = `http://localhost:8080/api/configuracoes/${(JSON.parse(sessionStorage.getItem('serve_session') || '{}').id) || 1}`;
 
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Dashboard Serve inicializado.');
@@ -51,16 +51,10 @@ async function carregarProximosCompromissos() {
     if (!container) return;
 
     try {
-        // Busca escalas e voluntários em paralelo para melhor performance
-        const [resEscalas, resVoluntarios] = await Promise.all([
-            fetch('http://localhost:8080/api/escalas'),
-            fetch('http://localhost:8080/api/voluntarios')
-        ]);
-
+        const resEscalas = await fetch('http://localhost:8080/api/escalas');
         if (!resEscalas.ok) throw new Error('Erro ao buscar escalas');
-        
+
         const eventos = await resEscalas.json();
-        const voluntarios = resVoluntarios.ok ? await resVoluntarios.json() : [];
         const agora = new Date();
 
         // Filtra, ordena e pega os 5 primeiros
@@ -78,9 +72,9 @@ async function carregarProximosCompromissos() {
         proximos.forEach(item => {
             const card = document.createElement('div');
             card.className = 'card card-escala';
-            
-            if (item.color) {
-                card.style.borderLeft = `5px solid ${item.color}`;
+
+            if (item.cor) {
+                card.style.borderLeft = `5px solid ${item.cor}`;
             }
 
             const dataObj = new Date(item.dataEscala);
@@ -92,29 +86,9 @@ async function carregarProximosCompromissos() {
                 minute: '2-digit'
             }).replace(',', ' às');
 
-            // Renderiza as atribuições (Equipe)
-            let equipeHtml = '';
-            if (item.atribuicoes && item.atribuicoes.length > 0) {
-                equipeHtml = `
-                    <div style="margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid var(--border-color); font-size: 0.8rem;">
-                        <strong style="display: block; margin-bottom: 0.4rem; color: var(--primary-color);">EQUIPE:</strong>
-                        <div style="display: flex; flex-wrap: wrap; gap: 0.4rem;">
-                            ${item.atribuicoes.map(attr => {
-                                const vol = voluntarios.find(v => (v.id == attr.voluntarioId || v._id == attr.voluntarioId));
-                                const nome = vol ? vol.nome.split(' ')[0] : 'Voluntário';
-                                return `<span style="background: rgba(124,124,138,0.1); padding: 2px 6px; border-radius: 4px;" title="${attr.funcao}: ${vol ? vol.nome : ''}">
-                                    <strong>${attr.funcao}:</strong> ${nome}
-                                </span>`;
-                            }).join('')}
-                        </div>
-                    </div>
-                `;
-            }
-
             card.innerHTML = `
                 <h4>${item.title || item.titulo}</h4>
                 <p><i class="far fa-calendar-check"></i> ${dataFormatada}</p>
-                ${equipeHtml}
             `;
             container.appendChild(card);
         });
@@ -212,12 +186,7 @@ function initFloatingSettings() {
         };
     }
 
-    if (logoutBtn) {
-        logoutBtn.onclick = () => {
-            console.log('Encerrando sessão...');
-            window.location.href = 'login.html';
-        };
-    }
+    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
 
     document.onclick = (e) => {
         if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {

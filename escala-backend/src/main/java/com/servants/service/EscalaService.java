@@ -15,6 +15,8 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -75,31 +77,42 @@ public class EscalaService {
     }
 
     private void validarRegraDeAtribuicoes(List<AtribuicaoDTO> atribuicoes) {
-        if (atribuicoes == null || atribuicoes.isEmpty()) {
-            return;
-        }
+        if (atribuicoes == null || atribuicoes.isEmpty()) return;
 
+        // 1. Busca o flag exclusivoNaEscala de cada ministério citado diretamente no banco
+        Set<String> nomesMinisterios = atribuicoes.stream()
+                .map(AtribuicaoDTO::getFuncao)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+
+        Map<String, Boolean> exclusivoMap = ministerioRepository
+                .findByNomeIn(nomesMinisterios)
+                .stream()
+                .collect(Collectors.toMap(Ministerio::getNome, Ministerio::isExclusivoNaEscala));
+
+        // 2. Por voluntário, conta quantos ministérios exclusivos ele possui nesta escala
         Map<Long, List<AtribuicaoDTO>> porVoluntario = atribuicoes.stream()
                 .collect(Collectors.groupingBy(AtribuicaoDTO::getVoluntarioId));
 
         for (Map.Entry<Long, List<AtribuicaoDTO>> entry : porVoluntario.entrySet()) {
             List<AtribuicaoDTO> funcoesDoVoluntario = entry.getValue();
-            if (funcoesDoVoluntario.size() > 1) {
-                long funcoesPrincipais = funcoesDoVoluntario.stream()
-                        .filter(f -> f.getFuncao() != null && 
-                                     !"Abertura".equals(f.getFuncao()) &&
-                                     !"Intercessão".equals(f.getFuncao()) &&
-                                     !"Oferta/Dízimo".equals(f.getFuncao()) &&
-                                     !"Conferência Dízimo".equals(f.getFuncao()))
-                        .count();
-                if (funcoesPrincipais > 1) {
-                    String nomeVoluntario = funcoesDoVoluntario.get(0).getVoluntarioNome();
-                    if (nomeVoluntario == null || nomeVoluntario.trim().isEmpty()) {
-                        Voluntario v = voluntarioRepository.findById(entry.getKey()).orElse(null);
-                        nomeVoluntario = (v != null) ? v.getNome() : String.valueOf(entry.getKey());
-                    }
-                    throw new IllegalArgumentException("O voluntário " + nomeVoluntario + " já possui um ministério principal nesta escala. As únicas funções que podem ser acumuladas são: Abertura, Intercessão, Oferta/Dízimo e Conferência Dízimo.");
+
+            List<String> exclusivosAtribuidos = funcoesDoVoluntario.stream()
+                    .filter(f -> Boolean.TRUE.equals(exclusivoMap.get(f.getFuncao())))
+                    .map(AtribuicaoDTO::getFuncao)
+                    .collect(Collectors.toList());
+
+            if (exclusivosAtribuidos.size() > 1) {
+                String nome = funcoesDoVoluntario.get(0).getVoluntarioNome();
+                if (nome == null || nome.isBlank()) {
+                    nome = voluntarioRepository.findById(entry.getKey())
+                            .map(Voluntario::getNome)
+                            .orElse(String.valueOf(entry.getKey()));
                 }
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " está escalado em dois ministérios exclusivos: "
+                        + String.join(" e ", exclusivosAtribuidos)
+                        + ". Ministérios exclusivos não podem ser acumulados na mesma escala.");
             }
         }
     }

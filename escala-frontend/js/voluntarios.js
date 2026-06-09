@@ -500,12 +500,7 @@ function initFloatingSettings() {
         };
     }
 
-    if (logoutBtn) {
-        logoutBtn.onclick = () => {
-            console.log('Encerrando sessão...');
-            window.location.href = 'login.html';
-        };
-    }
+    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
 
     document.onclick = (e) => {
         if (settingsMenu && !settingsMenu.contains(e.target) && e.target !== settingsBtn) {

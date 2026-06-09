@@ -23,6 +23,9 @@ public class Usuario {
 
     private String corPrimaria = "#004b87";
 
+    @Column(nullable = false)
+    private String role = "VOLUNTARIO";
+
     public Usuario() {
     }
 
@@ -77,6 +80,14 @@ public class Usuario {
 
     public void setCorPrimaria(String corPrimaria) {
         this.corPrimaria = corPrimaria;
+    }
+
+    public String getRole() {
+        return role;
+    }
+
+    public void setRole(String role) {
+        this.role = role;
     }
 
     @Override

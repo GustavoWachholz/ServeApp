@@ -4,9 +4,12 @@ import com.servants.model.Ministerio;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
+import java.util.List;
 import java.util.Optional;
 
 @Repository
 public interface MinisterioRepository extends JpaRepository<Ministerio, Long> {
     Optional<Ministerio> findByNome(String nome);
+    List<Ministerio> findByNomeIn(Collection<String> nomes);
 }

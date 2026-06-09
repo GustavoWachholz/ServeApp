@@ -12,6 +12,17 @@ body {
     background-color: #18181b;
 }
 
+/* Transição suave entre view-login e view-registro */
+#view-login,
+#view-registro {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
 .login-container {
     display: flex;
     height: 100%;
@@ -46,15 +57,19 @@ body {
     justify-content: center;
     padding: 2rem;
     color: #1f2937;
+    /* Permite scroll quando o formulário de registro é maior que a viewport */
+    overflow-y: auto;
 }
 
 .form-content {
     width: 100%;
     max-width: 400px;
+    /* Garante que o conteúdo não fique colado no topo/bottom ao rolar */
+    padding: 1rem 0;
 }
 
 .form-content header {
-    margin-bottom: 2.5rem;
+    margin-bottom: 1.75rem;
 }
 
 .form-content h2 {
@@ -133,6 +148,11 @@ body {
 
 .btn-submit:hover {
     background-color: #003a69;
+}
+
+.btn-submit:disabled {
+    background-color: #6b94b8;
+    cursor: not-allowed;
 }
 
 .divider {

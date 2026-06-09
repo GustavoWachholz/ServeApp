@@ -9,6 +9,8 @@
     <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script>Auth.exigirAdmin();</script>
     <style>
         /* Estilos específicos para a tabela de voluntários que podem não estar no dashboard.css */
         .volunteers-table-container {
@@ -291,9 +293,9 @@
                 <ul>
                     <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
                     <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                    <li class="active"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
-                    <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                    <li class="nav-admin-only active"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                    <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li class="nav-admin-only"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>

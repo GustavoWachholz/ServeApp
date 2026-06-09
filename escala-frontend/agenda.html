@@ -11,6 +11,8 @@
     <!-- FullCalendar CDN -->
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script>Auth.exigirLogin();</script>
     <style>
         .equipe-grid {
             display: grid;
@@ -143,9 +145,9 @@
                 <ul>
                     <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
                     <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                    <li><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
-                    <li><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
+                    <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
+                    <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
+                    <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-sliders-h"></i> <span>Configuração</span></a></li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -188,7 +190,7 @@
 
             <div class="section-header" style="margin-bottom: 1.5rem;">
                 <h2>AGENDA E ESCALAS</h2>
-                <button class="btn-primary" id="btn-nova-escala">
+                <button class="btn-primary" id="btn-nova-escala" data-admin-only>
                     <i class="fas fa-plus"></i> Nova Escala
                 </button>
             </div>

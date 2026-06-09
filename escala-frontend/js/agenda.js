@@ -103,32 +103,37 @@ function initAutocomplete() {
             return;
         }
         const jaEscalados = obterVoluntariosJaEscalados();
-        const filtrados = listaVoluntarios.filter(v => {
+        const filtrados = [];
+        let ocultosExclusividade = 0;
+        listaVoluntarios.forEach(v => {
             var _a, _b, _c;
             const id = ((_b = (_a = v.id) !== null && _a !== void 0 ? _a : v._id) !== null && _b !== void 0 ? _b : '').toString();
+            // Filtro de nome
             if (!v.nome.toLowerCase().includes(termo))
-                return false;
+                return;
             // Só voluntários vinculados ao ministério específico
             if (tipoMinisterio === 'ESPECIFICO') {
                 if (!((_c = v.ministerios) === null || _c === void 0 ? void 0 : _c.includes(funcaoAtual)))
-                    return false;
+                    return;
             }
             const funcoesDoVoluntario = jaEscalados[id] || [];
             // Não pode estar na mesma função duas vezes
             if (funcoesDoVoluntario.includes(funcaoAtual))
-                return false;
+                return;
             // Se o ministério atual é exclusivo, o voluntário não pode estar em outro exclusivo
             if (exclusivo) {
                 const jaTemExclusivo = funcoesDoVoluntario.some(f => {
                     const b = document.querySelector(`.ministerio-box[data-funcao="${f}"]`);
                     return b && b.getAttribute('data-exclusivo') !== 'false';
                 });
-                if (jaTemExclusivo)
-                    return false;
+                if (jaTemExclusivo) {
+                    ocultosExclusividade++;
+                    return;
+                }
             }
-            return true;
+            filtrados.push(v);
         });
-        renderizarResultados(listaResultados, filtrados);
+        renderizarResultados(listaResultados, filtrados, ocultosExclusividade);
     });
     // ── Adicionar voluntário ──
     document.addEventListener('click', (e) => {
@@ -154,18 +159,28 @@ function initAutocomplete() {
         }
     });
 }
-function renderizarResultados(ul, lista) {
+function renderizarResultados(ul, lista, ocultosExclusividade = 0) {
+    let html;
     if (lista.length === 0) {
-        ul.innerHTML = '<li style="color: #666; font-style: italic;">Nenhum voluntário encontrado</li>';
+        html = '<li style="color:#666;font-style:italic;padding:0.4rem 0.6rem;">Nenhum voluntário disponível</li>';
     }
     else {
-        ul.innerHTML = lista.map(v => `
+        html = lista.map(v => `
             <li>
                 ${v.nome}
                 <button type="button" class="btn-add" data-id="${v.id || v._id}" data-nome="${v.nome}">+</button>
             </li>
         `).join('');
     }
+    if (ocultosExclusividade > 0) {
+        const plural = ocultosExclusividade > 1;
+        html += `<li style="color:#f59e0b;font-size:0.78rem;padding:0.4rem 0.6rem;
+                     border-top:1px solid #eee;font-style:italic;list-style:none;cursor:default;">
+            <i class="fas fa-lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
+            ${ocultosExclusividade} voluntário${plural ? 's' : ''} oculto${plural ? 's' : ''} por exclusividade
+        </li>`;
+    }
+    ul.innerHTML = html;
     ul.style.display = 'block';
 }
 function adicionarTagVoluntario(container, id, nome) {
@@ -532,12 +547,18 @@ function initCalendar() {
         editable: true,
         selectable: true,
         dateClick: function (info) {
+            var _a;
+            if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()))
+                return; // somente admin cria escalas
             resetModal();
             document.getElementById('modal-title').textContent = '+ Nova Escala';
             document.getElementById('escala-data').value = info.dateStr + 'T09:00';
             modal.classList.add('show-modal');
         },
         eventClick: function (info) {
+            var _a;
+            if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()))
+                return; // somente admin edita escalas
             resetModal();
             document.getElementById('modal-title').textContent = 'Editar Escala';
             const event = info.event;
@@ -590,12 +611,7 @@ function initFloatingSettings() {
             settingsMenu.classList.toggle('show-menu');
         });
     }
-    if (logoutBtn) {
-        logoutBtn.onclick = () => {
-            console.log('Encerrando sessão...');
-            window.location.href = 'login.html';
-        };
-    }
+    // Logout gerenciado pelo auth.js (limpa sessão e redireciona)
     document.addEventListener('click', (e) => {
         const target = e.target;
         if (settingsMenu && !settingsMenu.contains(target) && target !== settingsBtn) {

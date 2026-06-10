@@ -10,14 +10,17 @@
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.restaurarTema(); Auth.exigirLogin();</script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirLogin();</script>
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
             <div class="sidebar-logo">
-                <img src="assets/img/logo.png" alt="Serve" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
             </div>
             <div class="user-profile">
                 <div class="avatar-wrapper">
@@ -32,10 +35,15 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li class="active"><a href="#"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                    <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
+                    <li class="nav-group">
+                        <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
+                        <ul class="nav-submenu">
+                            <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                        </ul>
+                    </li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -81,39 +89,38 @@
                 <section class="dashboard-section">
                     <div class="section-header">
                         <h2>PRÓXIMOS COMPROMISSOS</h2>
-                        <a href="agenda.html" class="see-all">Ver todos ></a>
+                        <div style="display:flex;align-items:center;gap:1rem;">
+                            <div class="periodo-toggle" id="periodo-toggle">
+                                <button type="button" class="periodo-btn active" data-periodo="semana">Semana</button>
+                                <button type="button" class="periodo-btn" data-periodo="mes">Mês</button>
+                            </div>
+                            <a href="#" class="see-all" id="ver-todos-compromissos">Ver todos ></a>
+                        </div>
                     </div>
-                    <div id="container-proximos-compromissos" class="cards-container"></div>
-                </section>
-
-                <!-- Quadro de Avisos -->
-                <section class="dashboard-section">
-                    <div class="section-header">
-                        <h2>QUADRO DE AVISOS</h2>
-                        <a href="#" class="see-all">Ver todos ></a>
-                    </div>
-                    <div id="container-avisos" class="cards-container"></div>
-                </section>
-
-                <!-- Minhas Escalas -->
-                <section class="dashboard-section">
-                    <div class="section-header">
-                        <h2>MINHAS ESCALAS</h2>
-                        <a href="agenda.html" class="see-all">Ver todas ></a>
-                    </div>
-                    <div id="container-escalas" class="cards-container"></div>
+                    <div id="container-proximos-compromissos" class="cards-row"></div>
                 </section>
 
                 <!-- Aniversariantes -->
                 <section class="dashboard-section">
                     <div class="section-header">
                         <h2>ANIVERSARIANTES</h2>
-                        <a href="#" class="see-all">Ver todos ></a>
+                        <a href="#" class="see-all" id="ver-todos-aniversariantes">Ver todos ></a>
                     </div>
                     <div id="container-aniversariantes" class="cards-container"></div>
                 </section>
             </div>
         </main>
+    </div>
+
+    <!-- Modal genérico de listagem ("Ver todos") -->
+    <div id="lista-modal" class="modal">
+        <div class="modal-content" style="max-width: 560px;">
+            <div class="modal-header">
+                <h2 id="lista-modal-titulo">Lista</h2>
+                <span class="close-modal" id="lista-modal-close">&times;</span>
+            </div>
+            <div id="lista-modal-body" style="max-height: 60vh; overflow-y: auto;"></div>
+        </div>
     </div>
 
     <script src="js/dashboard.js"></script>

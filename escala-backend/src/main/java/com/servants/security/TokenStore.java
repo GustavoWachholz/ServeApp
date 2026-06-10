@@ -16,19 +16,35 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class TokenStore {
 
-    /** Dados mínimos da sessão associados a um token. */
+    /**
+     * Dados mínimos da sessão associados a um token.
+     *
+     * @param userId identificador do usuário dono da sessão.
+     * @param role   papel/permissão do usuário ("ADMIN" ou "VOLUNTARIO").
+     * @param nome   nome de exibição do usuário.
+     */
     public record Sessao(Long userId, String role, String nome) {}
 
     private final ConcurrentHashMap<String, Sessao> tokens = new ConcurrentHashMap<>();
 
-    /** Gera um novo token para o usuário e o registra. */
+    /**
+     * Gera um novo token opaco (UUID) para o usuário e o registra em memória.
+     *
+     * @param usuario usuário autenticado.
+     * @return o token de sessão gerado.
+     */
     public String gerar(Usuario usuario) {
         String token = UUID.randomUUID().toString();
         tokens.put(token, new Sessao(usuario.getId(), usuario.getRole(), usuario.getNome()));
         return token;
     }
 
-    /** Retorna a sessão associada ao token, se válida. */
+    /**
+     * Valida um token e retorna a sessão associada, se existir.
+     *
+     * @param token token a validar (pode ser {@code null} ou em branco).
+     * @return {@link Optional} com a {@link Sessao}, ou vazio se o token for inválido.
+     */
     public Optional<Sessao> validar(String token) {
         if (token == null || token.isBlank()) {
             return Optional.empty();
@@ -36,7 +52,11 @@ public class TokenStore {
         return Optional.ofNullable(tokens.get(token));
     }
 
-    /** Invalida (remove) o token — usado no logout. */
+    /**
+     * Invalida (remove) um token do store — usado no logout.
+     *
+     * @param token token a remover (ignorado se {@code null}).
+     */
     public void invalidar(String token) {
         if (token != null) {
             tokens.remove(token);

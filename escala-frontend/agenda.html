@@ -12,7 +12,8 @@
     <script src='https://cdn.jsdelivr.net/npm/fullcalendar@6.1.11/index.global.min.js'></script>
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.restaurarTema(); Auth.exigirLogin();</script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirLogin();</script>
     <style>
         .equipe-grid {
             display: grid;
@@ -122,14 +123,21 @@
         #step-2-equipe {
             display: none;
         }
+
+        /* Compacta o topo da Agenda para o calendário caber em 1366x768 @100% */
+        .main-content { padding: 1.25rem 2rem; }
+        .main-header { margin-bottom: 1rem; }
+        .section-header { margin-bottom: 1rem !important; }
     </style>
 </head>
 <body>
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
             <div class="sidebar-logo">
-                <img src="assets/img/logo.png" alt="Serve" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
             </div>
             <div class="user-profile">
                 <div class="avatar-wrapper">
@@ -144,10 +152,15 @@
             <nav class="sidebar-nav">
                 <ul>
                     <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                    <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                    <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
+                    <li class="nav-group open">
+                        <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
+                        <ul class="nav-submenu">
+                            <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                            <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                        </ul>
+                    </li>
                     <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 </ul>
             </nav>
@@ -218,12 +231,29 @@
                         </div>
 
                         <div class="form-group">
-                            <label for="escala-data">Data e Hora</label>
+                            <label for="escala-data">Início</label>
                             <input type="datetime-local" id="escala-data" required>
                         </div>
 
                         <div class="form-group">
-                            <label for="escala-classificacao">Classificação</label>
+                            <label for="escala-duracao">Duração</label>
+                            <select id="escala-duracao" style="width:100%;padding:0.5rem;border:1px solid var(--border-color);border-radius:4px;background:var(--bg-sidebar);color:var(--text-color);">
+                                <option value="30">30 min</option>
+                                <option value="60" selected>1 hora</option>
+                                <option value="90">1h30</option>
+                                <option value="120">2 horas</option>
+                                <option value="180">3 horas</option>
+                                <option value="custom">Personalizado</option>
+                            </select>
+                        </div>
+
+                        <div class="form-group">
+                            <label for="escala-data-fim">Término</label>
+                            <input type="datetime-local" id="escala-data-fim">
+                        </div>
+
+                        <div class="form-group">
+                            <label for="escala-classificacao">Ministério</label>
                             <select id="escala-classificacao" class="form-control" required style="width: 100%; padding: 0.5rem; border: 1px solid var(--border-color); border-radius: 4px; background: var(--bg-sidebar); color: var(--text-color);">
                                 <option value="" disabled selected>Carregando...</option>
                             </select>
@@ -249,7 +279,7 @@
                     <!-- Boxes gerados dinamicamente por agenda.ts baseado na ConfiguracaoEscala -->
                     <div id="equipe-grid" class="equipe-grid">
                         <p id="equipe-loading" style="color: var(--text-muted); font-style: italic; grid-column: 1/-1; text-align:center; padding: 2rem 0;">
-                            <i class="fas fa-spinner fa-spin"></i> Carregando ministérios...
+                            <i class="fas fa-spinner fa-spin"></i> Carregando áreas...
                         </p>
                     </div>
 

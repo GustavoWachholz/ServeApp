@@ -1,9 +1,15 @@
 /**
- * login.js — Lógica de autenticação e cadastro de voluntários
+ * login.js — Lógica da tela de autenticação: alterna entre as views de login e
+ * cadastro, envia as credenciais à API e persiste a sessão em {@code sessionStorage}.
  */
 
+/** URL base dos endpoints de autenticação. */
 const API_BASE = 'http://localhost:8080/api/auth';
 
+/**
+ * Inicialização da tela de login: redireciona se já houver sessão, fixa os listeners
+ * de alternância entre views e trata os submits dos formulários de login e cadastro.
+ */
 document.addEventListener('DOMContentLoaded', () => {
     // Se já estiver logado, redireciona direto
     if (sessionStorage.getItem('serve_session')) {
@@ -129,6 +135,12 @@ document.addEventListener('DOMContentLoaded', () => {
 
 // ── Utilitários ────────────────────────────────────────────────────────────
 
+/**
+ * Exibe um elemento de view re-disparando sua animação de entrada (via reflow forçado).
+ *
+ * @param {HTMLElement} el elemento da view a exibir.
+ * @returns {void}
+ */
 function mostrarView(el) {
     // Re-dispara a animação de entrada removendo e re-adicionando o elemento
     el.style.display = '';
@@ -137,12 +149,27 @@ function mostrarView(el) {
     el.style.animation = '';
 }
 
+/**
+ * Exibe uma mensagem de erro no elemento informado; se ausente, usa {@code alert}.
+ *
+ * @param {HTMLElement|null} el  elemento onde mostrar a mensagem.
+ * @param {string}           msg texto do erro.
+ * @returns {void}
+ */
 function mostrarErro(el, msg) {
     if (!el) { alert(msg); return; }
     el.textContent = msg;
     el.style.display = 'block';
 }
 
+/**
+ * Alterna o estado de carregamento de um botão (habilitado/desabilitado e texto).
+ *
+ * @param {HTMLButtonElement|null} btn     botão alvo.
+ * @param {boolean}                loading {@code true} para desabilitar (carregando).
+ * @param {string}                 texto   texto a exibir no botão.
+ * @returns {void}
+ */
 function setBtnLoading(btn, loading, texto) {
     if (!btn) return;
     btn.disabled = loading;

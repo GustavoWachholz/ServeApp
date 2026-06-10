@@ -15,6 +15,10 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Serviço de regras de negócio para ministérios (áreas): CRUD, montagem de
+ * detalhes com membros e conversão entre entidade e DTO.
+ */
 @Service
 public class MinisterioService {
 
@@ -22,7 +26,14 @@ public class MinisterioService {
     private final VoluntarioRepository voluntarioRepository;
     private final EscalaVoluntarioRepository escalaVoluntarioRepository;
 
-    public MinisterioService(MinisterioRepository ministerioRepository, 
+    /**
+     * Injeta os repositórios necessários.
+     *
+     * @param ministerioRepository       repositório de ministérios.
+     * @param voluntarioRepository        repositório de voluntários.
+     * @param escalaVoluntarioRepository  repositório de vínculos escala-voluntário (para contagem de escalas).
+     */
+    public MinisterioService(MinisterioRepository ministerioRepository,
                              VoluntarioRepository voluntarioRepository,
                              EscalaVoluntarioRepository escalaVoluntarioRepository) {
         this.ministerioRepository = ministerioRepository;
@@ -30,6 +41,11 @@ public class MinisterioService {
         this.escalaVoluntarioRepository = escalaVoluntarioRepository;
     }
 
+    /**
+     * Lista todos os ministérios cadastrados.
+     *
+     * @return lista de {@link MinisterioDTO}.
+     */
     @Transactional(readOnly = true)
     public List<MinisterioDTO> listarTodos() {
         return ministerioRepository.findAll().stream()
@@ -37,6 +53,14 @@ public class MinisterioService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Busca um ministério pelo id e monta seu detalhe, incluindo a lista de membros
+     * (voluntários que têm o ministério no perfil) e quantas vezes cada um já foi escalado.
+     *
+     * @param id identificador do ministério.
+     * @return {@link MinisterioDetalheDTO} com líderes e membros.
+     * @throws ResourceNotFoundException se o ministério não for encontrado.
+     */
     @Transactional(readOnly = true)
     public MinisterioDetalheDTO buscarPorId(Long id) {
         Ministerio ministerio = ministerioRepository.findById(id)
@@ -65,6 +89,12 @@ public class MinisterioService {
         );
     }
 
+    /**
+     * Cria um novo ministério a partir do DTO informado.
+     *
+     * @param dto dados do ministério a criar.
+     * @return o {@link MinisterioDTO} persistido (com id gerado).
+     */
     @Transactional
     public MinisterioDTO criar(MinisterioDTO dto) {
         Ministerio ministerio = convertToEntity(dto);
@@ -72,6 +102,15 @@ public class MinisterioService {
         return convertToDTO(salvo);
     }
 
+    /**
+     * Atualiza um ministério existente com os dados do DTO, resolvendo líder/co-líder
+     * a partir de seus identificadores.
+     *
+     * @param id  identificador do ministério a atualizar.
+     * @param dto novos dados do ministério.
+     * @return o {@link MinisterioDTO} atualizado.
+     * @throws ResourceNotFoundException se o ministério não for encontrado.
+     */
     @Transactional
     public MinisterioDTO atualizar(Long id, MinisterioDTO dto) {
         Ministerio ministerio = ministerioRepository.findById(id)
@@ -88,6 +127,12 @@ public class MinisterioService {
         return convertToDTO(atualizado);
     }
 
+    /**
+     * Remove um ministério pelo id.
+     *
+     * @param id identificador do ministério.
+     * @throws ResourceNotFoundException se o ministério não for encontrado.
+     */
     @Transactional
     public void deletar(Long id) {
         if (!ministerioRepository.existsById(id)) {
@@ -96,6 +141,13 @@ public class MinisterioService {
         ministerioRepository.deleteById(id);
     }
 
+    /**
+     * Converte uma entidade {@link Ministerio} em {@link MinisterioDTO},
+     * achatando líder e co-líder em id/nome.
+     *
+     * @param ministerio entidade a converter.
+     * @return o DTO correspondente.
+     */
     private MinisterioDTO convertToDTO(Ministerio ministerio) {
         return new MinisterioDTO(
                 ministerio.getId(),
@@ -110,6 +162,13 @@ public class MinisterioService {
         );
     }
 
+    /**
+     * Converte um {@link MinisterioDTO} em entidade {@link Ministerio}, resolvendo
+     * líder/co-líder a partir de seus identificadores (ou {@code null} se ausentes).
+     *
+     * @param dto DTO a converter.
+     * @return a entidade correspondente.
+     */
     private Ministerio convertToEntity(MinisterioDTO dto) {
         Ministerio ministerio = new Ministerio();
         ministerio.setId(dto.id());

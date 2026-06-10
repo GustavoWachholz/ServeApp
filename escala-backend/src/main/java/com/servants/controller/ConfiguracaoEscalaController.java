@@ -9,36 +9,66 @@ import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
+/**
+ * Controller REST das configurações de escala (na UI, "Ministérios"), exposto em
+ * {@code /api/configuracao-escala}. Oferece CRUD de classificações usadas para
+ * montar a imagem exportada da escala.
+ */
 @RestController
 @RequestMapping("/api/configuracao-escala")
 public class ConfiguracaoEscalaController {
 
     private final ConfiguracaoEscalaService service;
 
+    /**
+     * @param service serviço de regras de negócio das configurações de escala.
+     */
     public ConfiguracaoEscalaController(ConfiguracaoEscalaService service) {
         this.service = service;
     }
 
-    /** Lista todas as classificações cadastradas. */
+    /**
+     * {@code GET /api/configuracao-escala} — lista todas as classificações cadastradas.
+     *
+     * @return lista de {@link ConfiguracaoEscalaDTO}.
+     */
     @GetMapping
     public List<ConfiguracaoEscalaDTO> listarTodas() {
         return service.listarTodas();
     }
 
-    /** Busca uma classificação pelo identificador (chave). */
+    /**
+     * {@code GET /api/configuracao-escala/{classificacao}} — busca uma classificação
+     * pela sua chave (ignorando caixa).
+     *
+     * @param classificacao chave da classificação.
+     * @return {@code 200 OK} com {@link ConfiguracaoEscalaDTO}.
+     */
     @GetMapping("/{classificacao}")
     public ResponseEntity<ConfiguracaoEscalaDTO> buscar(@PathVariable String classificacao) {
         return ResponseEntity.ok(service.buscarPorClassificacao(classificacao));
     }
 
-    /** Cria uma nova classificação. */
+    /**
+     * {@code POST /api/configuracao-escala} — cria uma nova classificação.
+     *
+     * @param request dados da nova classificação.
+     * @return {@code 201 CREATED} com o {@link ConfiguracaoEscalaDTO} persistido.
+     */
     @PostMapping
     public ResponseEntity<ConfiguracaoEscalaDTO> criar(@RequestBody ConfiguracaoEscalaRequest request) {
         ConfiguracaoEscalaDTO criada = service.criar(request);
         return ResponseEntity.status(HttpStatus.CREATED).body(criada);
     }
 
-    /** Atualiza a configuração completa de uma classificação existente. */
+    /**
+     * {@code PUT /api/configuracao-escala/{classificacao}} — atualiza a configuração
+     * completa de uma classificação existente.
+     *
+     * @param classificacao chave da classificação.
+     * @param request       novos dados.
+     * @return {@code 200 OK} com o {@link ConfiguracaoEscalaDTO} atualizado.
+     */
     @PutMapping("/{classificacao}")
     public ResponseEntity<ConfiguracaoEscalaDTO> salvar(
             @PathVariable String classificacao,
@@ -46,7 +76,13 @@ public class ConfiguracaoEscalaController {
         return ResponseEntity.ok(service.salvar(classificacao, request));
     }
 
-    /** Remove uma classificação (apenas se não houver escalas vinculadas). */
+    /**
+     * {@code DELETE /api/configuracao-escala/{classificacao}} — remove uma
+     * classificação, apenas se não houver escalas vinculadas.
+     *
+     * @param classificacao chave da classificação.
+     * @return {@code 204 NO CONTENT}.
+     */
     @DeleteMapping("/{classificacao}")
     public ResponseEntity<Void> deletar(@PathVariable String classificacao) {
         service.deletar(classificacao);

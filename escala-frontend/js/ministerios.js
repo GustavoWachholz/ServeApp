@@ -1,15 +1,22 @@
 /**
- * Ministerios.js - Gestão de Ministérios para o Sistema Serve
+ * Ministerios.js — Gestão de ministérios (na UI, "Áreas") do Sistema Serve:
+ * listagem em tabela, CRUD via modal e seleção de classificações e líderes.
  */
 
+/** URL da API de ministérios. */
 const MINISTERIOS_API_URL = 'http://localhost:8080/api/ministerios';
+/** URL da API de voluntários (para popular os selects de líder/co-líder). */
 const VOLUNTARIOS_API_URL = 'http://localhost:8080/api/voluntarios';
 
-let classificacoesDisponiveis = []; // carregado dinamicamente do backend
+/** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
+let classificacoesDisponiveis = [];
 
+/** Ministério atualmente aberto no modal (view/edição). */
 let currentMinisterio = null;
+/** Cache da lista completa de voluntários, usada para resolver nomes de líderes. */
 let voluntariosGlobal = [];
 
+/** Inicializa a tela: carrega classificações, liga eventos do modal e busca dados. */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Ministérios inicializado.');
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
@@ -20,9 +27,11 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Renderiza os chips de classificação em um container.
- * @param {string} containerId  - id do elemento <div>
- * @param {string[]} selecionadas - chaves já selecionadas
+ * Renderiza os chips de classificação (selecionáveis) em um container.
+ *
+ * @param {string} containerId  id do elemento {@code <div>} container.
+ * @param {string[]} selecionadas chaves já selecionadas (virão marcadas).
+ * @returns {void}
  */
 function renderClassifChips(containerId, selecionadas) {
     const container = document.getElementById(containerId);
@@ -39,6 +48,13 @@ function renderClassifChips(containerId, selecionadas) {
     }).join('');
 }
 
+/**
+ * Sincroniza a classe visual {@code checked} de um chip com o estado do seu checkbox
+ * (acionado pelo clique no label).
+ *
+ * @param {HTMLElement} label o elemento do chip clicado.
+ * @returns {void}
+ */
 function toggleClassifChip(label) {
     const cb = label.querySelector('input[type="checkbox"]');
     // O clique no label já alterna o checkbox — só sincronizamos a classe
@@ -46,7 +62,10 @@ function toggleClassifChip(label) {
 }
 
 /**
- * Retorna a lista de chaves selecionadas nos chips de um container.
+ * Retorna a lista de chaves de classificação selecionadas nos chips de um container.
+ *
+ * @param {string} containerId id do container dos chips.
+ * @returns {string[]} chaves selecionadas.
  */
 function getClassificacoesSelecionadas(containerId) {
     return Array.from(document.querySelectorAll(`input[name="classif-${containerId}"]:checked`))
@@ -54,7 +73,13 @@ function getClassificacoesSelecionadas(containerId) {
 }
 
 /**
- * Renderiza chips somente para leitura (modo visualização).
+ * Renderiza chips de classificação somente leitura (modo visualização). Mostra
+ * "Nenhuma" se a lista estiver vazia e exibe a chave crua para classificações
+ * desconhecidas.
+ *
+ * @param {string} containerId id do container.
+ * @param {string[]} selecionadas chaves a exibir.
+ * @returns {void}
  */
 function renderClassifView(containerId, selecionadas) {
     const container = document.getElementById(containerId);
@@ -74,7 +99,13 @@ function renderClassifView(containerId, selecionadas) {
 }
 
 /**
- * Resolve o nome de um líder ou co-líder de forma resiliente
+ * Resolve o nome de um líder ou co-líder de forma resiliente, tentando, nesta ordem:
+ * propriedade direta (nomeLider/nomeColider), objeto aninhado (lider.nome) e, por fim,
+ * busca por id na lista global de voluntários.
+ *
+ * @param {Object} m    objeto do ministério.
+ * @param {('lider'|'colider')} type qual papel resolver.
+ * @returns {string|null} o nome encontrado, ou {@code null}.
  */
 function resolveName(m, type) {
     const nameProp = type === 'lider' ? 'nomeLider' : 'nomeColider';
@@ -97,6 +128,13 @@ function resolveName(m, type) {
     return null;
 }
 
+/**
+ * Busca a lista de voluntários na API, guarda em {@link voluntariosGlobal} e popula
+ * os selects de líder/co-líder. Em caso de falha, deixa as listas vazias.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function fetchVoluntarios() {
     try {
         const response = await fetch(VOLUNTARIOS_API_URL);
@@ -111,6 +149,12 @@ async function fetchVoluntarios() {
     }
 }
 
+/**
+ * Preenche os selects de líder e co-líder com a lista de voluntários informada.
+ *
+ * @param {Array<{id:(number|string),nome:string}>} voluntarios voluntários disponíveis.
+ * @returns {void}
+ */
 function populateLiderSelects(voluntarios) {
     const liderSelect = document.getElementById('liderId');
     const coliderSelect = document.getElementById('coliderId');
@@ -123,6 +167,13 @@ function populateLiderSelects(voluntarios) {
     });
 }
 
+/**
+ * Busca os ministérios na API e renderiza a tabela. Em caso de falha, exibe dados
+ * mock como fallback.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function fetchMinisterios() {
     try {
         const response = await fetch(MINISTERIOS_API_URL);
@@ -132,6 +183,13 @@ async function fetchMinisterios() {
     } catch (error) { renderMockMinisterios(); }
 }
 
+/**
+ * Renderiza as linhas da tabela de ministérios, com badge de tipo, nome do líder e
+ * botões de ação (ver/editar).
+ *
+ * @param {Array<Object>} ministerios lista de ministérios a exibir.
+ * @returns {void}
+ */
 function renderMinisteriosTable(ministerios) {
     const list = document.getElementById('ministerios-list');
     if (!list) return;
@@ -155,6 +213,12 @@ function renderMinisteriosTable(ministerios) {
     });
 }
 
+/**
+ * Liga todos os eventos do modal de ministério: abrir (novo), ver, editar, voltar,
+ * confirmar/cancelar exclusão, toggle de "exclusivo" e submit do formulário (POST/PUT).
+ *
+ * @returns {void}
+ */
 function initModalEvents() {
     const modal = document.getElementById('ministerio-modal');
     const confirmModal = document.getElementById('confirm-modal');
@@ -172,11 +236,17 @@ function initModalEvents() {
     const btnConfirmDelete = document.getElementById('btn-confirm-delete');
 
     // Fechar modais ao clicar fora ou no botão fechar
+    // Rastreia onde o clique começou: só fecha pelo fundo se o mousedown iniciou no fundo
+    // (evita fechar ao selecionar texto de um campo e soltar fora do modal).
+    let downTarget = null;
+    window.addEventListener('mousedown', (e) => { downTarget = e.target; });
     window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('close-modal') || e.target.classList.contains('cancel-modal') || e.target === modal) {
+        if (e.target.classList.contains('close-modal') || e.target.classList.contains('cancel-modal')) {
+            modal.classList.remove('show-modal');
+        } else if (e.target === modal && downTarget === modal) {
             modal.classList.remove('show-modal');
         }
-        if (e.target === confirmModal) confirmModal.classList.remove('show-modal');
+        if (e.target === confirmModal && downTarget === confirmModal) confirmModal.classList.remove('show-modal');
     });
 
     btnConfirmCancel.onclick = () => confirmModal.classList.remove('show-modal');
@@ -264,18 +334,36 @@ function initModalEvents() {
     };
 }
 
+/**
+ * Alterna o modal para o modo de visualização (read-only).
+ *
+ * @returns {void}
+ */
 function showViewMode() {
     document.getElementById('modal-title').textContent = 'Detalhes do Ministério';
     document.getElementById('view-mode').style.display = 'block';
     document.getElementById('ministerio-form').style.display = 'none';
 }
 
+/**
+ * Alterna o modal para o modo de edição/criação e define o título.
+ *
+ * @param {string} title título exibido no cabeçalho do modal.
+ * @returns {void}
+ */
 function showEditMode(title) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('view-mode').style.display = 'none';
     document.getElementById('ministerio-form').style.display = 'block';
 }
 
+/**
+ * Busca um ministério por id na API e abre o modal em modo visualização.
+ *
+ * @async
+ * @param {(number|string)} id identificador do ministério.
+ * @returns {Promise<void>}
+ */
 async function viewMinisterio(id) {
     try {
         const response = await fetch(`${MINISTERIOS_API_URL}/${id}`);
@@ -288,6 +376,13 @@ async function viewMinisterio(id) {
     }
 }
 
+/**
+ * Preenche e exibe o modo de visualização com os dados de um ministério, incluindo
+ * a tabela de membros e suas frequências de escala.
+ *
+ * @param {Object} m ministério (detalhe) a exibir.
+ * @returns {void}
+ */
 function renderViewMode(m) {
     currentMinisterio = m;
     document.getElementById('view-nome').textContent = m.nome;
@@ -311,6 +406,14 @@ function renderViewMode(m) {
     document.getElementById('ministerio-modal').classList.add('show-modal');
 }
 
+/**
+ * Busca um ministério por id na API e abre o modal já em modo de edição com o
+ * formulário preenchido.
+ *
+ * @async
+ * @param {(number|string)} id identificador do ministério.
+ * @returns {Promise<void>}
+ */
 async function editMinisterio(id) {
     try {
         const response = await fetch(`${MINISTERIOS_API_URL}/${id}`);
@@ -327,6 +430,13 @@ async function editMinisterio(id) {
     }
 }
 
+/**
+ * Preenche o formulário de edição com os dados de um ministério (nome, tipo,
+ * exclusividade, classificações e líderes), tratando variações de formato dos ids.
+ *
+ * @param {Object} m ministério a carregar no formulário.
+ * @returns {void}
+ */
 function fillForm(m) {
     document.getElementById('ministerio-id').value = m.id || m._id;
     document.getElementById('nome').value = m.nome;
@@ -351,6 +461,12 @@ function fillForm(m) {
     document.getElementById('coliderId').value = colidId || '';
 }
 
+/**
+ * Limpa o formulário e restaura os valores padrão (tipo ESPECIFICO, exclusivo=Sim,
+ * sem classificações), zerando o ministério corrente.
+ *
+ * @returns {void}
+ */
 function resetForm() {
     document.getElementById('ministerio-id').value = '';
     document.getElementById('ministerio-form').reset();
@@ -365,9 +481,15 @@ function resetForm() {
 // Aparência, toggle de tema, color picker e botão de configurações
 // são gerenciados centralmente pelo auth.js (inicializarAparencia).
 
+/** Dados mock de ministérios usados como fallback quando a API está indisponível. */
 let mockMinisterios = [
     { id: 1, nome: 'Louvor', liderId: 1, nomeLider: 'Ana Souza', coliderId: 3, nomeColider: 'Mariana Lima', membros: [{nome: 'Ana Souza', vezesEscalado: 12}, {nome: 'João Silva', vezesEscalado: 8}] },
     { id: 2, nome: 'Mídia', liderId: 2, nomeLider: 'Carlos Rocha', coliderId: null, nomeColider: '', membros: [] }
 ];
 
+/**
+ * Renderiza a tabela usando os dados mock (fallback de {@link fetchMinisterios}).
+ *
+ * @returns {void}
+ */
 function renderMockMinisterios() { renderMinisteriosTable(mockMinisterios); }

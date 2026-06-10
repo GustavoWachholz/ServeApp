@@ -1,16 +1,24 @@
 /**
- * Voluntarios.js - Integração Total com API para o Sistema Serve
+ * Voluntarios.js — Gestão de voluntários (na UI, "Servos"): listagem com busca e
+ * ordenação, CRUD via modal e vínculo a áreas e classificações.
  */
 
+/** URL da API de voluntários. */
 const API_URL = 'http://localhost:8080/api/voluntarios';
+/** URL da API de ministérios (áreas), usada para popular os checkboxes do formulário. */
 const MINISTERIOS_URL = 'http://localhost:8080/api/ministerios';
 
-let classificacoesDisponiveis = []; // carregado dinamicamente do backend
+/** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
+let classificacoesDisponiveis = [];
 
+/** Voluntário atualmente aberto no modal. */
 let currentVolunteer = null;
-let voluntariosCache = [];   // lista completa em memória
-let ordemAtual = 'cadastro'; // 'cadastro' | 'alpha'
+/** Cache em memória da lista completa de voluntários. */
+let voluntariosCache = [];
+/** Ordenação atual da lista: 'cadastro' (por id) ou 'alpha' (por nome). */
+let ordemAtual = 'cadastro';
 
+/** Inicializa a tela: carrega classificações, voluntários, opções e liga eventos. */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Voluntários (API Mode) inicializado.');
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
@@ -22,6 +30,13 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /* ─────────────── Chips de classificação ─────────────── */
+/**
+ * Renderiza os chips de classificação (selecionáveis) em um container.
+ *
+ * @param {string} containerId id do container.
+ * @param {string[]} selecionadas chaves já selecionadas.
+ * @returns {void}
+ */
 function renderClassifChips(containerId, selecionadas) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -37,16 +52,35 @@ function renderClassifChips(containerId, selecionadas) {
     }).join('');
 }
 
+/**
+ * Sincroniza a classe visual {@code checked} de um chip com o estado do seu checkbox.
+ *
+ * @param {HTMLElement} label o elemento do chip clicado.
+ * @returns {void}
+ */
 function toggleClassifChip(label) {
     const cb = label.querySelector('input[type="checkbox"]');
     setTimeout(() => label.classList.toggle('checked', cb.checked), 0);
 }
 
+/**
+ * Retorna a lista de chaves de classificação selecionadas nos chips de um container.
+ *
+ * @param {string} containerId id do container dos chips.
+ * @returns {string[]} chaves selecionadas.
+ */
 function getClassificacoesSelecionadas(containerId) {
     return Array.from(document.querySelectorAll(`input[name="classif-${containerId}"]:checked`))
                 .map(cb => cb.value);
 }
 
+/**
+ * Renderiza chips de classificação somente leitura (modo visualização).
+ *
+ * @param {string} containerId id do container.
+ * @param {string[]} selecionadas chaves a exibir.
+ * @returns {void}
+ */
 function renderClassifView(containerId, selecionadas) {
     const container = document.getElementById(containerId);
     if (!container) return;
@@ -66,7 +100,11 @@ function renderClassifView(containerId, selecionadas) {
 /* ──────────────────────────────────────────────────────── */
 
 /**
- * Busca as opções de ministérios na API para preencher os checkboxes
+ * Busca os ministérios (áreas) na API e preenche os checkboxes do formulário,
+ * exibindo apenas os do tipo ESPECIFICO (gerais não são vinculáveis ao voluntário).
+ *
+ * @async
+ * @returns {Promise<void>}
  */
 async function carregarOpcoesMinisterios() {
     const container = document.getElementById('ministerios-checkbox-container');
@@ -80,7 +118,7 @@ async function carregarOpcoesMinisterios() {
         container.innerHTML = '';
 
         if (!ministerios || ministerios.length === 0) {
-            container.innerHTML = '<p style="grid-column: 1/-1; opacity: 0.5; font-size: 0.85rem;">Nenhum ministério cadastrado. Cadastre no menu Ministérios primeiro.</p>';
+            container.innerHTML = '<p style="grid-column: 1/-1; opacity: 0.5; font-size: 0.85rem;">Nenhuma área cadastrada. Cadastre no menu Áreas primeiro.</p>';
             return;
         }
 
@@ -108,7 +146,11 @@ async function carregarOpcoesMinisterios() {
 }
 
 /**
- * Busca a lista completa da API e armazena em cache
+ * Busca a lista completa de voluntários na API, guarda em {@link voluntariosCache} e
+ * aplica o filtro/ordenação atuais. Exibe estados de carregamento e erro na tabela.
+ *
+ * @async
+ * @returns {Promise<void>}
  */
 async function carregarVoluntarios() {
     const list = document.getElementById('volunteers-list');
@@ -131,14 +173,21 @@ async function carregarVoluntarios() {
 }
 
 /**
- * Remove acentos e converte para minúsculo para comparação insensível
+ * Normaliza uma string para comparação insensível a acentos e caixa.
+ *
+ * @param {string} str texto de entrada.
+ * @returns {string} texto sem acentos e em minúsculas.
  */
 function normalizar(str) {
     return (str || '').normalize('NFD').replace(/[̀-ͯ]/g, '').toLowerCase();
 }
 
 /**
- * Envolve ocorrências do termo em <mark> para destaque visual
+ * Envolve as ocorrências de um termo em {@code <mark>} para destaque visual na busca.
+ *
+ * @param {string} texto texto onde destacar.
+ * @param {string} termo termo a destacar (escapado para regex).
+ * @returns {string} HTML com o termo destacado.
  */
 function destacar(texto, termo) {
     if (!termo) return texto;
@@ -147,7 +196,10 @@ function destacar(texto, termo) {
 }
 
 /**
- * Aplica o filtro de busca e a ordenação atual, depois renderiza
+ * Aplica o filtro de busca (nome, e-mail, telefone, áreas) e a ordenação atual sobre
+ * o cache, renderiza a tabela e atualiza o contador de voluntários.
+ *
+ * @returns {void}
  */
 function aplicarFiltroEOrdem() {
     const inputEl = document.getElementById('search-input');
@@ -186,7 +238,12 @@ function aplicarFiltroEOrdem() {
 }
 
 /**
- * Renderiza as linhas da tabela com destaque opcional do termo buscado
+ * Renderiza as linhas da tabela de voluntários, com destaque opcional do termo
+ * buscado, ou uma mensagem de vazio apropriada.
+ *
+ * @param {Array<Object>} voluntarios lista a renderizar.
+ * @param {string} [termoDestaque=''] termo a destacar nas células.
+ * @returns {void}
  */
 function renderVoluntarios(voluntarios, termoDestaque = '') {
     const list = document.getElementById('volunteers-list');
@@ -232,7 +289,10 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
 }
 
 /**
- * Inicializa a toolbar de pesquisa e ordenação
+ * Inicializa a toolbar: campo de pesquisa (com tecla Esc para limpar), botão de
+ * limpar e os botões de ordenação (cadastro/alfabética).
+ *
+ * @returns {void}
  */
 function initToolbar() {
     const searchInput = document.getElementById('search-input');
@@ -272,7 +332,11 @@ function initToolbar() {
 }
 
 /**
- * Inicializa eventos de Modal e Formulário
+ * Liga os eventos do modal de voluntário: abrir (novo), ver/editar a partir da
+ * tabela, alternar para edição, voltar, confirmar/cancelar exclusão (DELETE) e
+ * submeter o formulário (POST/PUT).
+ *
+ * @returns {void}
  */
 function initModalEvents() {
     const modal = document.getElementById('volunteer-modal');
@@ -287,11 +351,17 @@ function initModalEvents() {
     const btnConfirmDelete = document.getElementById('btn-confirm-delete');
     const btnCancelConfirm = document.getElementById('btn-confirm-cancel');
 
+    // Rastreia onde o clique começou: só fecha pelo fundo se o mousedown iniciou no fundo
+    // (evita fechar ao selecionar texto de um campo e soltar fora do modal).
+    let downTarget = null;
+    window.addEventListener('mousedown', (e) => { downTarget = e.target; });
     window.addEventListener('click', (e) => {
-        if (e.target.classList.contains('close-modal') || e.target.classList.contains('cancel-modal') || e.target === modal) {
+        if (e.target.classList.contains('close-modal') || e.target.classList.contains('cancel-modal')) {
+            modal.classList.remove('show-modal');
+        } else if (e.target === modal && downTarget === modal) {
             modal.classList.remove('show-modal');
         }
-        if (e.target === confirmModal || e.target === btnCancelConfirm) {
+        if (e.target === btnCancelConfirm || (e.target === confirmModal && downTarget === confirmModal)) {
             confirmModal.classList.remove('show-modal');
         }
     });
@@ -407,7 +477,10 @@ function initModalEvents() {
 }
 
 /**
- * Converte data no formato ISO (YYYY-MM-DD) para dd/mm/aaaa.
+ * Converte uma data ISO ({@code YYYY-MM-DD}) para o formato brasileiro {@code dd/mm/aaaa}.
+ *
+ * @param {string} iso data em formato ISO.
+ * @returns {string} data formatada, ou "-" se vazia.
  */
 function formatarData(iso) {
     if (!iso) return '-';
@@ -417,7 +490,13 @@ function formatarData(iso) {
 }
 
 /**
- * Busca resiliente: tenta buscar por ID, se falhar, busca na lista.
+ * Busca resiliente de um voluntário: tenta o endpoint individual e, se falhar, procura
+ * na lista completa; em seguida abre o modal em modo visualização ou edição.
+ *
+ * @async
+ * @param {(number|string)} id identificador do voluntário.
+ * @param {('view'|'edit')} mode modo de apresentação do modal.
+ * @returns {Promise<void>}
  */
 async function buscarEPresentar(id, mode) {
     try {
@@ -471,6 +550,13 @@ async function buscarEPresentar(id, mode) {
     }
 }
 
+/**
+ * Preenche o formulário de voluntário com os dados informados, marcando os checkboxes
+ * de áreas e os chips de classificação correspondentes.
+ *
+ * @param {Object} v voluntário a carregar no formulário.
+ * @returns {void}
+ */
 function preencherFormulario(v) {
     document.getElementById('volunteer-id').value = v.id || v._id || '';
     document.getElementById('name').value = v.nome || '';
@@ -484,18 +570,35 @@ function preencherFormulario(v) {
     renderClassifChips('classif-checkboxes-vol', v.classificacoes || []);
 }
 
+/**
+ * Alterna o modal para o modo de visualização (read-only).
+ *
+ * @returns {void}
+ */
 function showViewMode() {
     document.getElementById('view-mode').style.display = 'block';
     document.getElementById('volunteer-form').style.display = 'none';
     document.getElementById('modal-title').textContent = 'Detalhes do Voluntário';
 }
 
+/**
+ * Alterna o modal para o modo de edição/criação e define o título.
+ *
+ * @param {string} title título exibido no cabeçalho do modal.
+ * @returns {void}
+ */
 function showEditMode(title) {
     document.getElementById('modal-title').textContent = title;
     document.getElementById('view-mode').style.display = 'none';
     document.getElementById('volunteer-form').style.display = 'block';
 }
 
+/**
+ * Limpa o formulário de voluntário, reseta os chips de classificação e zera o
+ * voluntário corrente.
+ *
+ * @returns {void}
+ */
 function resetForm() {
     document.getElementById('volunteer-id').value = '';
     const form = document.getElementById('volunteer-form');

@@ -18,6 +18,10 @@ import java.util.List;
 import java.util.Locale;
 import java.util.stream.Collectors;
 
+/**
+ * Serviço responsável por montar os dados agregados exibidos na tela inicial
+ * (dashboard): nome do usuário, ministérios, avisos, escalas e aniversariantes.
+ */
 @Service
 public class DashboardService {
 
@@ -25,7 +29,14 @@ public class DashboardService {
     private final VoluntarioRepository voluntarioRepository;
     private final MinisterioRepository ministerioRepository;
 
-    public DashboardService(UsuarioRepository usuarioRepository, 
+    /**
+     * Injeta os repositórios necessários para compor o dashboard.
+     *
+     * @param usuarioRepository    repositório de usuários.
+     * @param voluntarioRepository repositório de voluntários.
+     * @param ministerioRepository repositório de ministérios.
+     */
+    public DashboardService(UsuarioRepository usuarioRepository,
                             VoluntarioRepository voluntarioRepository,
                             MinisterioRepository ministerioRepository) {
         this.usuarioRepository = usuarioRepository;
@@ -33,6 +44,13 @@ public class DashboardService {
         this.ministerioRepository = ministerioRepository;
     }
 
+    /**
+     * Monta a resposta do dashboard. Usa o usuário de id 1 como referência de nome
+     * e preferências de aparência, lista todos os ministérios cadastrados e calcula
+     * os aniversariantes do mês corrente. Avisos e escalas ainda não são populados.
+     *
+     * @return {@link DashboardResponse} com os dados agregados para a tela inicial.
+     */
     @Transactional(readOnly = true)
     public DashboardResponse getDashboardData() {
         Usuario admin = usuarioRepository.findById(1L).orElse(new Usuario());

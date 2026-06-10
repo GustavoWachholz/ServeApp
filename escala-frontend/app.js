@@ -1,11 +1,17 @@
 /**
- * App.js - Lógica inicial para Cadastro de Voluntários
+ * App.js — Script inicial (legado) de teste de conexão com a API de voluntários (servos).
+ * Mantido como exemplo/protótipo; a tela real de voluntários usa js/voluntarios.js.
  */
 
+/** URL base da API de voluntários (servos). */
 const API_URL = 'http://localhost:8080/api/voluntarios';
 
 /**
- * Função genérica para buscar voluntários via API
+ * Busca a lista de voluntários (servos) na API e a registra no console.
+ *
+ * @async
+ * @returns {Promise<Array<Object>|undefined>} os dados retornados pela API, ou
+ *          {@code undefined} em caso de falha (o erro é apenas logado).
  */
 async function fetchVoluntarios() {
     console.log('Iniciando busca de voluntários...');
@@ -29,7 +35,10 @@ async function fetchVoluntarios() {
     }
 }
 
-// Inicialização ao carregar o DOM
+/**
+ * Inicialização ao carregar o DOM: dispara o teste de conexão e registra um
+ * listener de submit (apenas demonstrativo) no formulário de voluntário.
+ */
 document.addEventListener('DOMContentLoaded', () => {
     console.log('Aplicação inicializada.');
     

@@ -12,6 +12,11 @@ import org.springframework.transaction.annotation.Transactional;
 import java.util.List;
 import java.util.stream.Collectors;
 
+/**
+ * Serviço de regras de negócio para voluntários (servos): CRUD e conversão entre
+ * entidade e DTO. A exclusão remove primeiro os vínculos em escalas para respeitar
+ * as FK constraints.
+ */
 @Service
 public class VoluntarioService {
 
@@ -19,6 +24,13 @@ public class VoluntarioService {
     private final EscalaVoluntarioRepository escalaVoluntarioRepository;
     private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
 
+    /**
+     * Injeta os repositórios necessários.
+     *
+     * @param voluntarioRepository        repositório de voluntários.
+     * @param escalaVoluntarioRepository  repositório de vínculos escala-voluntário.
+     * @param escalaAtribuicaoRepository  repositório de atribuições de escala.
+     */
     public VoluntarioService(VoluntarioRepository voluntarioRepository,
                              EscalaVoluntarioRepository escalaVoluntarioRepository,
                              EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
@@ -27,6 +39,13 @@ public class VoluntarioService {
         this.escalaAtribuicaoRepository = escalaAtribuicaoRepository;
     }
 
+    /**
+     * Busca um voluntário pelo id.
+     *
+     * @param id identificador do voluntário.
+     * @return o {@link VoluntarioDTO} correspondente.
+     * @throws ResourceNotFoundException se o voluntário não for encontrado.
+     */
     @Transactional(readOnly = true)
     public VoluntarioDTO buscarPorId(Long id) {
         Voluntario voluntario = voluntarioRepository.findById(id)
@@ -34,6 +53,11 @@ public class VoluntarioService {
         return convertToDTO(voluntario);
     }
 
+    /**
+     * Lista todos os voluntários cadastrados.
+     *
+     * @return lista de {@link VoluntarioDTO}.
+     */
     @Transactional(readOnly = true)
     public List<VoluntarioDTO> listarTodos() {
         return voluntarioRepository.findAll().stream()
@@ -41,6 +65,12 @@ public class VoluntarioService {
                 .collect(Collectors.toList());
     }
 
+    /**
+     * Cria um novo voluntário a partir do DTO informado.
+     *
+     * @param dto dados do voluntário a criar.
+     * @return o {@link VoluntarioDTO} persistido (com id gerado).
+     */
     @Transactional
     public VoluntarioDTO criar(VoluntarioDTO dto) {
         Voluntario voluntario = convertToEntity(dto);
@@ -48,6 +78,14 @@ public class VoluntarioService {
         return convertToDTO(salvo);
     }
 
+    /**
+     * Atualiza um voluntário existente com os dados do DTO.
+     *
+     * @param id  identificador do voluntário.
+     * @param dto novos dados do voluntário.
+     * @return o {@link VoluntarioDTO} atualizado.
+     * @throws ResourceNotFoundException se o voluntário não for encontrado.
+     */
     @Transactional
     public VoluntarioDTO atualizar(Long id, VoluntarioDTO dto) {
         Voluntario voluntario = voluntarioRepository.findById(id)
@@ -64,6 +102,14 @@ public class VoluntarioService {
         return convertToDTO(atualizado);
     }
 
+    /**
+     * Remove um voluntário pelo id, apagando antes seus vínculos em escalas
+     * ({@code escala_atribuicoes} e {@code escala_voluntarios}) para evitar
+     * violação de FK.
+     *
+     * @param id identificador do voluntário.
+     * @throws ResourceNotFoundException se o voluntário não for encontrado.
+     */
     @Transactional
     public void deletar(Long id) {
         if (!voluntarioRepository.existsById(id)) {
@@ -76,6 +122,12 @@ public class VoluntarioService {
         voluntarioRepository.deleteById(id);
     }
 
+    /**
+     * Converte uma entidade {@link Voluntario} em {@link VoluntarioDTO}.
+     *
+     * @param voluntario entidade a converter.
+     * @return o DTO correspondente.
+     */
     private VoluntarioDTO convertToDTO(Voluntario voluntario) {
         return new VoluntarioDTO(
                 voluntario.getId(),
@@ -88,6 +140,12 @@ public class VoluntarioService {
         );
     }
 
+    /**
+     * Converte um {@link VoluntarioDTO} em entidade {@link Voluntario}.
+     *
+     * @param dto DTO a converter.
+     * @return a entidade correspondente.
+     */
     private Voluntario convertToEntity(VoluntarioDTO dto) {
         Voluntario voluntario = new Voluntario();
         voluntario.setId(dto.id());

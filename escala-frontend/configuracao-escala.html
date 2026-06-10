@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Classificações - Serve</title>
+    <title>Ministérios - Serve</title>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
-    <script>Auth.restaurarTema(); Auth.exigirAdmin();</script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirAdmin();</script>
     <style>
         /* ── Lista de classificações ── */
         .classif-list {
@@ -218,8 +219,10 @@
 <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
+        <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
         <div class="sidebar-logo">
-            <img src="assets/img/logo.png" alt="Serve" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+            <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+            <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
         </div>
         <div class="user-profile">
             <div class="avatar-wrapper">
@@ -234,10 +237,15 @@
         <nav class="sidebar-nav">
             <ul>
                 <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                <li class="nav-admin-only"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Voluntários</span></a></li>
-                <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Ministérios</span></a></li>
-                <li class="nav-admin-only active"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Classificações</span></a></li>
+                <li class="nav-group open">
+                    <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
+                    <ul class="nav-submenu">
+                        <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                        <li class="nav-admin-only"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                        <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                        <li class="nav-admin-only active"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    </ul>
+                </li>
                 <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
             </ul>
         </nav>
@@ -273,20 +281,20 @@
         <section class="dashboard-section">
             <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
                 <div>
-                    <h2>CLASSIFICAÇÕES</h2>
+                    <h2>MINISTÉRIOS</h2>
                     <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.25rem;">
-                        Gerencie os tipos de culto/evento e configure como cada um é exibido na escala.
+                        Gerencie os ministérios e configure como cada um é exibido na escala.
                     </p>
                 </div>
                 <button class="btn-primary" onclick="abrirModalCriar()">
-                    <i class="fas fa-plus"></i> Nova Classificação
+                    <i class="fas fa-plus"></i> Novo Ministério
                 </button>
             </div>
 
             <div class="classif-list" id="classif-list">
                 <div class="empty-state">
                     <i class="fas fa-tags"></i>
-                    <p>Carregando classificações...</p>
+                    <p>Carregando ministérios...</p>
                 </div>
             </div>
         </section>
@@ -296,11 +304,11 @@
 <!-- ══════════════════════════════ Modal: Nova Classificação ════ -->
 <div class="modal-overlay" id="modal-criar">
     <div class="modal-box">
-        <div class="modal-title"><i class="fas fa-plus" style="margin-right:.4rem;"></i>Nova Classificação</div>
+        <div class="modal-title"><i class="fas fa-plus" style="margin-right:.4rem;"></i>Novo Ministério</div>
 
         <div class="form-group">
             <label for="criar-nome">Nome <small style="color:var(--text-muted);font-weight:400">(ex: Atitude, BeOne, Kids)</small></label>
-            <input type="text" id="criar-nome" placeholder="Nome da classificação" maxlength="60">
+            <input type="text" id="criar-nome" placeholder="Nome do ministério" maxlength="60">
         </div>
         <div class="form-group">
             <label for="criar-titulo">Título <small style="color:var(--text-muted);font-weight:400">(aparece na escala)</small></label>
@@ -334,13 +342,13 @@
 <!-- ══════════════════════════════ Modal: Editar Classificação ══ -->
 <div class="modal-overlay" id="modal-editar">
     <div class="modal-box modal-wide">
-        <div class="modal-title" id="editar-titulo-modal"><i class="fas fa-edit" style="margin-right:.4rem;"></i>Editar Classificação</div>
+        <div class="modal-title" id="editar-titulo-modal"><i class="fas fa-edit" style="margin-right:.4rem;"></i>Editar Ministério</div>
 
         <!-- Identidade -->
         <div class="config-card">
             <div class="config-card-title">Identidade</div>
             <div class="form-group">
-                <label for="editar-nome">Nome da Classificação</label>
+                <label for="editar-nome">Nome do Ministério</label>
                 <input type="text" id="editar-nome" placeholder="Ex: Atitude" maxlength="60">
             </div>
             <div class="form-group">
@@ -370,9 +378,9 @@
 
         <!-- Ministérios -->
         <div class="config-card">
-            <div class="config-card-title">Ministérios exibidos como colunas</div>
+            <div class="config-card-title">Áreas exibidas como colunas</div>
             <p style="font-size:0.8rem;color:var(--text-muted);margin-bottom:0.75rem;">
-                Selecione quais ministérios aparecem como colunas na imagem exportada para este tipo de culto.
+                Selecione quais áreas aparecem como colunas na imagem exportada para este ministério.
             </p>
             <div class="min-grid" id="editar-min-grid"></div>
         </div>
@@ -398,7 +406,7 @@
 <div class="modal-overlay" id="modal-confirmar-excluir">
     <div class="modal-box" style="max-width:420px;">
         <div class="modal-title" style="color:#ef4444;">
-            <i class="fas fa-exclamation-triangle" style="margin-right:.4rem;"></i>Excluir Classificação
+            <i class="fas fa-exclamation-triangle" style="margin-right:.4rem;"></i>Excluir Ministério
         </div>
         <p id="confirmar-excluir-texto" style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0;"></p>
         <div class="modal-footer">

@@ -22,10 +22,22 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private final TokenStore tokenStore;
 
+    /**
+     * @param tokenStore store consultado para validar tokens e obter a sessão/role.
+     */
     public AuthInterceptor(TokenStore tokenStore) {
         this.tokenStore = tokenStore;
     }
 
+    /**
+     * Executado antes de cada handler. Libera preflight CORS, exige token válido para
+     * autenticação e, para métodos de escrita, exige papel ADMIN.
+     *
+     * @param request  requisição HTTP recebida.
+     * @param response resposta HTTP (usada para definir 401/403 quando bloqueado).
+     * @param handler  handler alvo (não utilizado).
+     * @return {@code true} para prosseguir; {@code false} para interromper (com status já definido).
+     */
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler) {
         // Libera preflight CORS
@@ -53,6 +65,12 @@ public class AuthInterceptor implements HandlerInterceptor {
         return true;
     }
 
+    /**
+     * Extrai o token Bearer do cabeçalho {@code Authorization}.
+     *
+     * @param request requisição HTTP.
+     * @return o token sem o prefixo "Bearer ", ou {@code null} se ausente/malformado.
+     */
     private String extrairToken(HttpServletRequest request) {
         String header = request.getHeader("Authorization");
         if (header != null && header.startsWith("Bearer ")) {

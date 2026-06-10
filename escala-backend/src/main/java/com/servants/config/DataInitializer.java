@@ -9,6 +9,12 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * Inicializador executado na subida da aplicação ({@link CommandLineRunner}).
+ * Garante a existência de um usuário ADMIN e, opcionalmente, limpa todos os dados
+ * (exceto o admin) quando a propriedade {@code serve.reset-on-startup} está ativa —
+ * útil para reiniciar o ambiente de testes.
+ */
 @Component
 public class DataInitializer implements CommandLineRunner {
 
@@ -16,9 +22,15 @@ public class DataInitializer implements CommandLineRunner {
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbc;
 
+    /** Flag (de {@code application.properties}) que liga/desliga a limpeza na inicialização. */
     @Value("${serve.reset-on-startup:false}")
     private boolean resetOnStartup;
 
+    /**
+     * @param usuarioRepository repositório usado para garantir o usuário admin.
+     * @param passwordEncoder   codificador para gerar/migrar o hash da senha do admin.
+     * @param jdbc              template JDBC usado na limpeza ordenada das tabelas.
+     */
     public DataInitializer(UsuarioRepository usuarioRepository,
                            PasswordEncoder passwordEncoder,
                            JdbcTemplate jdbc) {
@@ -27,6 +39,12 @@ public class DataInitializer implements CommandLineRunner {
         this.jdbc = jdbc;
     }
 
+    /**
+     * Ponto de execução pós-inicialização: garante o admin e, se habilitado, limpa os dados.
+     *
+     * @param args argumentos de linha de comando (não utilizados).
+     * @throws Exception se a inicialização falhar.
+     */
     @Override
     @Transactional
     public void run(String... args) throws Exception {
@@ -39,6 +57,11 @@ public class DataInitializer implements CommandLineRunner {
 
     // ── Admin ─────────────────────────────────────────────────────────────────
 
+    /**
+     * Garante a existência do usuário {@code admin@admin.com}: se já existir, migra a
+     * senha para BCrypt e corrige a role para ADMIN quando necessário; se não existir,
+     * cria-o com credenciais e preferências padrão.
+     */
     private void garantirAdmin() {
         usuarioRepository.findByEmail("admin@admin.com").ifPresentOrElse(admin -> {
             boolean alterado = false;
@@ -69,8 +92,9 @@ public class DataInitializer implements CommandLineRunner {
     // ── Reset ─────────────────────────────────────────────────────────────────
 
     /**
-     * Remove todos os dados exceto o usuário ADMIN.
-     * Ordem de deleção respeita as FK constraints do MySQL.
+     * Remove todos os dados exceto o usuário ADMIN. A ordem das deleções respeita as
+     * FK constraints do MySQL: dependentes de escala primeiro, depois configurações,
+     * ministérios (com FKs de líder zeradas), voluntários e, por fim, usuários não-admin.
      */
     private void limparDados() {
         System.out.println("[DataInitializer] Iniciando limpeza de dados (reset-on-startup=true)...");

@@ -8,6 +8,11 @@
 
     // ── Helpers de sessão ──────────────────────────────────────────────────
 
+    /**
+     * Lê o usuário logado a partir do {@code sessionStorage}.
+     *
+     * @returns {Object|null} o objeto de sessão, ou {@code null} se não houver/for inválido.
+     */
     function getUsuarioLogado() {
         try {
             const raw = sessionStorage.getItem(STORAGE_KEY);
@@ -17,15 +22,33 @@
         }
     }
 
+    /**
+     * Persiste o objeto de sessão do usuário no {@code sessionStorage}.
+     *
+     * @param {Object} usuario dados de sessão a salvar.
+     * @returns {void}
+     */
     function salvarSessao(usuario) {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
     }
 
+    /**
+     * Verifica se o usuário logado tem papel de administrador.
+     *
+     * @returns {boolean} {@code true} se houver sessão com role "ADMIN".
+     */
     function isAdmin() {
         const u = getUsuarioLogado();
         return u !== null && u.role === 'ADMIN';
     }
 
+    /**
+     * Encerra a sessão: invalida o token no servidor (best-effort), limpa o
+     * {@code sessionStorage} e redireciona para a tela de login.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
     async function logout() {
         const sessao = getUsuarioLogado();
         // Invalida o token no servidor (best-effort)
@@ -61,8 +84,40 @@
         }
     }
 
+    /** Chave de armazenamento do estado recolhido da sidebar. */
+    const SIDEBAR_KEY = 'serve_sidebar_collapsed';
+
     /**
-     * Aplica tema ao <html> (e ao <body> se já existir) e sincroniza o toggle.
+     * Aplica o estado recolhido/expandido da sidebar ao {@code <html>} de forma
+     * síncrona (lendo o localStorage). Deve ser chamado no {@code <head>} para evitar flash.
+     *
+     * @returns {void}
+     */
+    function restaurarSidebar() {
+        if (localStorage.getItem(SIDEBAR_KEY) === '1') {
+            document.documentElement.classList.add('sidebar-collapsed');
+        } else {
+            document.documentElement.classList.remove('sidebar-collapsed');
+        }
+    }
+
+    /**
+     * Alterna o estado recolhido/expandido da sidebar, persiste no localStorage e
+     * dispara um {@code resize} (para que a agenda recalcule a altura/largura).
+     *
+     * @returns {void}
+     */
+    function alternarSidebar() {
+        const recolhido = document.documentElement.classList.toggle('sidebar-collapsed');
+        localStorage.setItem(SIDEBAR_KEY, recolhido ? '1' : '0');
+        window.dispatchEvent(new Event('resize'));
+    }
+
+    /**
+     * Aplica o tema ao {@code <html>} (e ao {@code <body>} se já existir) e sincroniza o toggle.
+     *
+     * @param {string} tema "dark" para modo escuro; qualquer outro valor para claro.
+     * @returns {void}
      */
     function aplicarTema(tema) {
         document.documentElement.classList.toggle('dark-mode', tema === 'dark');
@@ -72,7 +127,10 @@
     }
 
     /**
-     * Aplica cor primária como CSS variable e sincroniza o color picker.
+     * Aplica a cor primária como variável CSS {@code --primary-color} e sincroniza o color picker.
+     *
+     * @param {string} cor cor em formato hex (ex.: "#004b87").
+     * @returns {void}
      */
     function aplicarCor(cor) {
         document.documentElement.style.setProperty('--primary-color', cor);
@@ -81,8 +139,13 @@
     }
 
     /**
-     * Persiste preferências: atualiza sessionStorage imediatamente e envia
-     * ao backend de forma assíncrona (best-effort).
+     * Persiste as preferências de aparência: atualiza o {@code sessionStorage}
+     * imediatamente e envia ao backend de forma assíncrona (best-effort).
+     *
+     * @async
+     * @param {string} tema tema escolhido ("light" ou "dark").
+     * @param {string} cor  cor primária em hex.
+     * @returns {Promise<void>}
      */
     async function salvarPreferencias(tema, cor) {
         const sessao = getUsuarioLogado();
@@ -160,6 +223,16 @@
     const API_MARKER = 'localhost:8080/api/';
     const originalFetch = window.fetch.bind(window);
 
+    /**
+     * Wrapper de {@code window.fetch} que anexa automaticamente o cabeçalho
+     * {@code Authorization: Bearer <token>} nas chamadas à API (exceto endpoints de
+     * auth) e, ao receber 401 numa chamada autenticada, encerra a sessão e
+     * redireciona para o login.
+     *
+     * @param {RequestInfo} input recurso da requisição (URL ou Request).
+     * @param {RequestInit} [init] opções da requisição.
+     * @returns {Promise<Response>} a resposta do fetch original.
+     */
     window.fetch = function (input, init) {
         init = init || {};
         const url = (typeof input === 'string') ? input : (input && input.url) || '';
@@ -190,6 +263,11 @@
 
     // ── Guards (chamados inline no <head> de cada página) ──────────────────
 
+    /**
+     * Guard de autenticação: redireciona para o login se não houver sessão.
+     *
+     * @returns {boolean} {@code true} se houver usuário logado.
+     */
     function exigirLogin() {
         if (!getUsuarioLogado()) {
             window.location.replace('login.html');
@@ -198,6 +276,12 @@
         return true;
     }
 
+    /**
+     * Guard de administrador: exige login e papel ADMIN; caso contrário redireciona
+     * (para login ou para a home).
+     *
+     * @returns {boolean} {@code true} se o usuário logado for administrador.
+     */
     function exigirAdmin() {
         if (!exigirLogin()) return false;
         if (!isAdmin()) {
@@ -209,6 +293,13 @@
 
     // ── Inicialização da sidebar (chamado via DOMContentLoaded) ────────────
 
+    /**
+     * Popula a sidebar com os dados do usuário (nome, papel, avatar), revela os itens
+     * de navegação exclusivos de admin, oculta elementos {@code [data-admin-only]} para
+     * não-admins e liga o botão de logout.
+     *
+     * @returns {void}
+     */
     function inicializarSidebar() {
         const usuario = getUsuarioLogado();
         if (!usuario) return;
@@ -219,7 +310,7 @@
 
         // Badge de role
         const roleEl = document.querySelector('.user-role');
-        if (roleEl) roleEl.textContent = isAdmin() ? 'Administrador' : 'Voluntário';
+        if (roleEl) roleEl.textContent = isAdmin() ? 'Administrador' : 'Servo';
 
         // Avatar dinâmico
         const avatarEl = document.getElementById('user-avatar');
@@ -248,6 +339,31 @@
         if (logoutBtn) {
             logoutBtn.addEventListener('click', logout);
         }
+
+        // Botão de recolher/expandir a sidebar
+        const toggleBtn = document.getElementById('sidebar-toggle');
+        if (toggleBtn) toggleBtn.addEventListener('click', alternarSidebar);
+
+        // Submenu "Cadastros": accordion + abertura automática na página ativa
+        document.querySelectorAll('.nav-group').forEach(group => {
+            const toggle = group.querySelector('.nav-group-toggle');
+            if (toggle) {
+                toggle.addEventListener('click', () => {
+                    // Recolhida: a sidebar expande em vez de abrir o accordion
+                    if (document.documentElement.classList.contains('sidebar-collapsed')) {
+                        alternarSidebar();
+                        group.classList.add('open');
+                    } else {
+                        group.classList.toggle('open');
+                    }
+                });
+            }
+            // Abre o grupo se a página atual estiver entre seus itens
+            const atual = window.location.pathname.split('/').pop();
+            if (group.querySelector(`.nav-submenu a[href="${atual}"]`)) {
+                group.classList.add('open');
+            }
+        });
     }
 
     // Inicializa sidebar e aparência automaticamente quando o DOM estiver pronto
@@ -255,8 +371,181 @@
         if (getUsuarioLogado()) {
             inicializarSidebar();
             inicializarAparencia();
+            inicializarIgreja();
         }
     });
+
+    // ── Configuração da Igreja (nome central + modal) ──────────────────────
+
+    /**
+     * Aplica o nome da igreja ao título central (`.logo-title`) de todas as telas.
+     *
+     * @param {string} nome nome da igreja.
+     * @returns {void}
+     */
+    function aplicarNomeIgreja(nome) {
+        if (!nome) return;
+        document.querySelectorAll('.logo-title').forEach(el => {
+            const span = el.querySelector('span');
+            if (span) span.textContent = nome;
+            else el.textContent = nome;
+        });
+    }
+
+    /**
+     * Carrega os dados da igreja, aplica o nome no cabeçalho e (para admin) injeta o
+     * botão "Igreja" no popover de configurações e o modal de edição.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    async function inicializarIgreja() {
+        const dados = window.IgrejaCache ? await window.IgrejaCache.carregar() : null;
+        if (dados) aplicarNomeIgreja(dados.nome);
+        if (isAdmin()) injetarConfigIgreja();
+    }
+
+    /**
+     * Injeta (uma única vez) o botão "Configurar Igreja" no popover e o modal de edição.
+     *
+     * @returns {void}
+     */
+    function injetarConfigIgreja() {
+        const menu = document.getElementById('settings-menu');
+        if (menu && !document.getElementById('btn-config-igreja')) {
+            const btn = document.createElement('button');
+            btn.id = 'btn-config-igreja';
+            btn.type = 'button';
+            btn.className = 'btn-secondary';
+            btn.style.cssText = 'width:100%;margin-top:1rem;justify-content:center;';
+            btn.innerHTML = '<i class="fas fa-church"></i> Configurar Igreja';
+            btn.onclick = abrirModalIgreja;
+            menu.appendChild(btn);
+        }
+
+        if (!document.getElementById('igreja-modal')) {
+            const modal = document.createElement('div');
+            modal.id = 'igreja-modal';
+            modal.className = 'modal';
+            modal.innerHTML = `
+                <div class="modal-content" style="max-width:560px;">
+                    <div class="modal-header">
+                        <h2><i class="fas fa-church" style="margin-right:.5rem;"></i>Dados da Igreja</h2>
+                        <span class="close-modal" id="igreja-close">&times;</span>
+                    </div>
+                    <div class="form-group">
+                        <label for="igreja-nome">Nome da Igreja <small style="color:var(--text-muted);font-weight:400">(título central)</small></label>
+                        <input type="text" id="igreja-nome" maxlength="80" placeholder="Ex: Igreja Batista Atitude">
+                    </div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="form-group"><label for="igreja-telefone">Telefone</label>
+                            <input type="text" id="igreja-telefone" placeholder="(11) 99999-9999"></div>
+                        <div class="form-group"><label for="igreja-whatsapp">WhatsApp</label>
+                            <input type="text" id="igreja-whatsapp" placeholder="(11) 99999-9999"></div>
+                    </div>
+                    <div class="form-group"><label for="igreja-endereco">Endereço</label>
+                        <input type="text" id="igreja-endereco" placeholder="Rua, número, bairro, cidade"></div>
+                    <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+                        <div class="form-group"><label for="igreja-instagram">Instagram</label>
+                            <input type="text" id="igreja-instagram" placeholder="@igreja"></div>
+                        <div class="form-group"><label for="igreja-facebook">Facebook</label>
+                            <input type="text" id="igreja-facebook" placeholder="facebook.com/igreja"></div>
+                        <div class="form-group"><label for="igreja-youtube">YouTube</label>
+                            <input type="text" id="igreja-youtube" placeholder="youtube.com/@igreja"></div>
+                        <div class="form-group"><label for="igreja-site">Site</label>
+                            <input type="text" id="igreja-site" placeholder="https://..."></div>
+                    </div>
+                    <div id="igreja-status" style="font-size:0.85rem;min-height:1.1rem;"></div>
+                    <div class="modal-footer">
+                        <span></span>
+                        <div class="footer-right">
+                            <button type="button" class="btn-secondary" id="igreja-cancelar">Cancelar</button>
+                            <button type="button" class="btn-primary" id="igreja-salvar"><i class="fas fa-save"></i> Salvar</button>
+                        </div>
+                    </div>
+                </div>`;
+            document.body.appendChild(modal);
+
+            const fechar = () => modal.classList.remove('show-modal');
+            document.getElementById('igreja-close').onclick = fechar;
+            document.getElementById('igreja-cancelar').onclick = fechar;
+            // Só fecha se o clique começou E terminou no fundo (evita fechar ao arrastar de dentro para fora)
+            let downNoFundo = false;
+            modal.addEventListener('mousedown', (e) => { downNoFundo = (e.target === modal); });
+            modal.addEventListener('click', (e) => { if (e.target === modal && downNoFundo) fechar(); });
+            document.getElementById('igreja-salvar').onclick = salvarIgreja;
+        }
+    }
+
+    /**
+     * Abre o modal da igreja, preenchendo os campos com os dados atuais.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    async function abrirModalIgreja() {
+        const menu = document.getElementById('settings-menu');
+        if (menu) menu.classList.remove('show-menu');
+        const dados = window.IgrejaCache ? await window.IgrejaCache.carregar() : null;
+        const set = (id, v) => { const el = document.getElementById(id); if (el) el.value = v || ''; };
+        set('igreja-nome', dados?.nome);
+        set('igreja-telefone', dados?.telefone);
+        set('igreja-whatsapp', dados?.whatsapp);
+        set('igreja-endereco', dados?.endereco);
+        set('igreja-instagram', dados?.instagram);
+        set('igreja-facebook', dados?.facebook);
+        set('igreja-youtube', dados?.youtube);
+        set('igreja-site', dados?.site);
+        const status = document.getElementById('igreja-status');
+        if (status) { status.textContent = ''; status.style.color = ''; }
+        document.getElementById('igreja-modal').classList.add('show-modal');
+    }
+
+    /**
+     * Salva os dados da igreja (PUT /api/igreja), atualiza o cabeçalho e invalida o cache.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    async function salvarIgreja() {
+        const val = (id) => (document.getElementById(id)?.value || '').trim();
+        const status = document.getElementById('igreja-status');
+        const btn = document.getElementById('igreja-salvar');
+        btn.disabled = true;
+        if (status) { status.textContent = ''; status.style.color = ''; }
+
+        // Nenhum campo é obrigatório; sem nome, o backend usa "Serve".
+        const payload = {
+            nome:      val('igreja-nome'),
+            telefone:  val('igreja-telefone'),
+            endereco:  val('igreja-endereco'),
+            instagram: val('igreja-instagram'),
+            facebook:  val('igreja-facebook'),
+            whatsapp:  val('igreja-whatsapp'),
+            youtube:   val('igreja-youtube'),
+            site:      val('igreja-site')
+        };
+        try {
+            const res = await fetch('http://localhost:8080/api/igreja', {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            });
+            if (!res.ok) throw new Error('HTTP ' + res.status);
+            const salvo = await res.json().catch(() => null);
+            aplicarNomeIgreja(salvo?.nome || 'Serve');
+            if (window.IgrejaCache) window.IgrejaCache.invalidar();
+            document.getElementById('igreja-modal').classList.remove('show-modal');
+        } catch (e) {
+            if (status) {
+                status.textContent = 'Erro ao salvar (' + (e.message || 'falha de conexão')
+                    + '). Verifique se o backend foi reiniciado.';
+                status.style.color = '#ef4444';
+            }
+        } finally {
+            btn.disabled = false;
+        }
+    }
 
     // ── API pública ────────────────────────────────────────────────────────
 
@@ -275,5 +564,11 @@
         aplicarCor,
         salvarPreferencias,
         inicializarAparencia,
+        // Sidebar
+        restaurarSidebar,
+        alternarSidebar,
+        // Igreja
+        inicializarIgreja,
+        abrirModalIgreja,
     };
 })();

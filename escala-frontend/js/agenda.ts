@@ -1,5 +1,7 @@
 /**
- * Agenda.ts - CRUD de Escalas para o Sistema Serve (Autocomplete & Wizard)
+ * Agenda.ts — CRUD de escalas do Sistema Serve. Implementa o calendário (FullCalendar),
+ * o wizard de montagem de equipe em 2 passos, o autocomplete de voluntários com regra
+ * de exclusividade e a exportação da escala como imagem (html2canvas).
  */
 
 import { EscalaDTO, AtribuicaoDTO } from './types.js';
@@ -9,9 +11,12 @@ declare const FullCalendar: any;
 declare const html2canvas: any;
 declare const ClassificacoesCache: any;
 
+/** URL da API de escalas. */
 const ESCALAS_API_URL        = 'http://localhost:8080/api/escalas';
+/** URL da API de configurações de escala (classificações). */
 const CONFIG_ESCALA_API_URL  = 'http://localhost:8080/api/configuracao-escala';
 
+/** Representação enxuta de um voluntário no contexto da agenda. */
 interface Voluntario {
     id?: number;
     _id?: number;
@@ -19,14 +24,24 @@ interface Voluntario {
     ministerios?: string[];
 }
 
+/** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis: any[] = [];
 
+/** Instância do FullCalendar. */
 let calendar: any;
+/** Cache da lista de voluntários para o autocomplete. */
 let listaVoluntarios: Voluntario[] = [];
+/** Id da escala atualmente em edição (null ao criar). */
 let escalaAtualId: number | null = null;
-let configAtual: any = null;                     // Configuração da escala ativa
-let atribuicoesParaCarregar: AtribuicaoDTO[] = []; // Atribuições pré-carregadas ao editar evento
+/** Configuração da escala ativa (cor, organização, setor, ministérios). */
+let configAtual: any = null;
+/** Atribuições pré-carregadas ao editar um evento existente. */
+let atribuicoesParaCarregar: AtribuicaoDTO[] = [];
 
+/**
+ * Inicializa a tela da agenda: carrega classificações, popula o select, liga os
+ * controles do modal, busca voluntários, monta o calendário e o autocomplete.
+ */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Agenda inicializada (Autocomplete Mode).');
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
@@ -38,7 +53,10 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Popula o <select id="escala-classificacao"> com as classificações dinâmicas do backend.
+ * Popula o {@code <select id="escala-classificacao">} com as classificações dinâmicas
+ * do backend, guardando a cor de cada uma em {@code data-cor}.
+ *
+ * @returns {void}
  */
 function popularSelectClassificacao(): void {
     const sel = document.getElementById('escala-classificacao') as HTMLSelectElement;
@@ -54,7 +72,11 @@ function popularSelectClassificacao(): void {
 }
 
 /**
- * Busca a lista de voluntários para o autocomplete
+ * Busca a lista de voluntários na API para alimentar o autocomplete. Em caso de
+ * falha, usa uma lista de exemplo como fallback.
+ *
+ * @async
+ * @returns {Promise<void>}
  */
 async function carregarVoluntariosParaEscala() {
     try {
@@ -98,8 +120,12 @@ function obterVoluntariosJaEscalados(): Record<string, string[]> {
 }
 
 /**
- * Inicializa o autocomplete usando event delegation no document.
- * Deve ser chamado UMA VEZ no DOMContentLoaded — funciona com grids dinâmicos.
+ * Inicializa o autocomplete de voluntários via event delegation no {@code document}
+ * (funciona com grids gerados dinamicamente). Filtra por nome, por vínculo ao
+ * ministério específico e pela regra de exclusividade, e trata adicionar/fechar.
+ * Deve ser chamado UMA única vez no {@code DOMContentLoaded}.
+ *
+ * @returns {void}
  */
 function initAutocomplete() {
     // ── Busca em tempo real ──
@@ -183,6 +209,15 @@ function initAutocomplete() {
     });
 }
 
+/**
+ * Renderiza a lista de resultados do autocomplete (com botão "+") e, se houver,
+ * uma nota informando quantos voluntários foram ocultados por exclusividade.
+ *
+ * @param {HTMLUListElement} ul elemento da lista de resultados.
+ * @param {Voluntario[]} lista voluntários a exibir.
+ * @param {number} [ocultosExclusividade=0] quantos foram ocultados pela regra de exclusividade.
+ * @returns {void}
+ */
 function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[], ocultosExclusividade = 0) {
     let html: string;
     if (lista.length === 0) {
@@ -209,6 +244,15 @@ function renderizarResultados(ul: HTMLUListElement, lista: Voluntario[], ocultos
     ul.style.display = 'block';
 }
 
+/**
+ * Adiciona uma "tag" de voluntário à lista de selecionados de um ministério, com
+ * botão de remoção. Ignora duplicados no mesmo ministério.
+ *
+ * @param {HTMLDivElement} container elemento {@code .voluntarios-list} do ministério.
+ * @param {string} id identificador do voluntário.
+ * @param {string} nome nome do voluntário.
+ * @returns {void}
+ */
 function adicionarTagVoluntario(container: HTMLDivElement, id: string, nome: string) {
     // Evita duplicados no mesmo ministério
     if (container.querySelector(`[data-id="${id}"]`)) return;
@@ -230,8 +274,11 @@ function adicionarTagVoluntario(container: HTMLDivElement, id: string, nome: str
 }
 
 /**
- * Busca a configuração da escala para uma classificação.
- * Retorna o objeto de configuração ou null em caso de falha.
+ * Busca a configuração de escala de uma classificação e a guarda em {@link configAtual}.
+ *
+ * @async
+ * @param {string} classificacao chave da classificação (será normalizada para maiúsculas).
+ * @returns {Promise<any>} o objeto de configuração, ou {@code null} em caso de falha.
  */
 async function carregarConfigEscala(classificacao: string): Promise<any> {
     const key = classificacao.toUpperCase();
@@ -249,8 +296,12 @@ async function carregarConfigEscala(classificacao: string): Promise<any> {
 }
 
 /**
- * Gera dinamicamente os boxes de ministério no equipe-grid.
- * Deve ser chamado após carregarConfigEscala.
+ * Gera dinamicamente os boxes de ministério (áreas) no {@code #equipe-grid}, cada um
+ * com sua lista de selecionados e campo de busca. Deve ser chamado após
+ * {@link carregarConfigEscala}.
+ *
+ * @param {any[]} ministerios áreas configuradas para a classificação.
+ * @returns {void}
  */
 function gerarGridMinisterios(ministerios: any[]): void {
     const grid = document.getElementById('equipe-grid') as HTMLElement;
@@ -284,7 +335,12 @@ function gerarGridMinisterios(ministerios: any[]): void {
 }
 
 /**
- * Inicializa os controles do Modal e Navegação por Passos
+ * Inicializa os controles do modal e a navegação por passos (wizard): avançar para a
+ * montagem da equipe (carregando config e grid), voltar, salvar agenda/equipe,
+ * imprimir a escala (com confirmação se houver áreas vazias e geração da imagem),
+ * abrir nova escala, fechar o modal e excluir o evento.
+ *
+ * @returns {void}
  */
 function initModalControls() {
     const modal = document.getElementById('escala-modal') as HTMLElement;
@@ -474,7 +530,11 @@ function initModalControls() {
     document.querySelectorAll('.close-modal, .cancel-modal').forEach(btn => {
         (btn as HTMLElement).onclick = closeModal;
     });
-    window.onclick = (e) => { if (e.target == modal) closeModal(); };
+    // Só fecha pelo fundo se o clique começou E terminou no fundo (evita fechar ao
+    // selecionar texto de um campo e soltar fora do modal).
+    let downNoFundo = false;
+    window.addEventListener('mousedown', (e) => { downNoFundo = (e.target === modal); });
+    window.onclick = (e) => { if (e.target == modal && downNoFundo) closeModal(); };
 
     // Auto-preenchimento do título ao selecionar classificação
     selectClass.addEventListener('change', function() {
@@ -482,6 +542,14 @@ function initModalControls() {
             inputTitulo.value = this.value;
         }
     });
+
+    // Início/Duração/Término: presets ajustam o término automaticamente; editar o
+    // término manualmente muda a duração para "Personalizado".
+    const inputDataFim = document.getElementById('escala-data-fim') as HTMLInputElement;
+    const selectDuracao = document.getElementById('escala-duracao') as HTMLSelectElement;
+    inputData.addEventListener('change', recalcularTermino);
+    selectDuracao.addEventListener('change', recalcularTermino);
+    inputDataFim.addEventListener('change', () => { selectDuracao.value = 'custom'; });
 
     // Deletar Evento
     const btnDeleteEvent = document.getElementById('delete-event-btn') as HTMLButtonElement;
@@ -500,16 +568,22 @@ function initModalControls() {
 }
 
 /**
- * Função unificada para salvar dados básicos ou equipe completa
- * @param {boolean} incluirEquipe 
+ * Salva a escala via API (POST para criar, PUT para editar). Quando {@code incluirEquipe}
+ * é verdadeiro, coleta as atribuições dos boxes e calcula o status
+ * ("COMPLETO"/"INCOMPLETO") conforme todas as áreas tenham ou não voluntários.
+ *
+ * @async
+ * @param {boolean} [incluirEquipe=false] se {@code true}, inclui as atribuições e o status.
+ * @returns {Promise<void>}
  */
 async function salvarEscala(incluirEquipe = false) {
     const inputTitulo = document.getElementById('escala-titulo') as HTMLInputElement;
     const inputData = document.getElementById('escala-data') as HTMLInputElement;
+    const inputDataFim = document.getElementById('escala-data-fim') as HTMLInputElement;
     const selectClass = document.getElementById('escala-classificacao') as HTMLSelectElement;
     const inputId = document.getElementById('escala-id') as HTMLInputElement;
 
-    if (!inputTitulo.reportValidity() || 
+    if (!inputTitulo.reportValidity() ||
         !inputData.reportValidity() ||
         !selectClass.reportValidity()) return;
 
@@ -539,6 +613,7 @@ async function salvarEscala(incluirEquipe = false) {
     const payload: EscalaDTO = {
         titulo: inputTitulo.value,
         dataEscala: inputData.value,
+        dataFim: inputDataFim.value || undefined,
         classificacao: selectClass.value,
         cor: corSelecionada,
         status: incluirEquipe ? (todasPreenchidas ? 'COMPLETO' : 'INCOMPLETO') : undefined,
@@ -575,7 +650,62 @@ async function salvarEscala(incluirEquipe = false) {
 }
 
 /**
- * Inicialização do FullCalendar
+ * Calcula a altura responsiva do calendário: preenche a altura disponível do
+ * viewport (descontando cabeçalho/margens), com um mínimo que garante a grade
+ * do mês 100% visível em 1366×768.
+ *
+ * @returns {number} altura em pixels.
+ */
+function alturaCalendario(): number {
+    return Math.max(520, window.innerHeight - 170);
+}
+
+/**
+ * Converte um {@link Date} para o formato aceito por {@code <input type="datetime-local">}
+ * (horário local, "YYYY-MM-DDTHH:mm").
+ *
+ * @param {Date} d data a converter.
+ * @returns {string} string no formato datetime-local.
+ */
+function toLocalInput(d: Date): string {
+    return new Date(d.getTime() - d.getTimezoneOffset() * 60000).toISOString().slice(0, 16);
+}
+
+/**
+ * Ajusta o {@code <select>} de duração para o preset correspondente aos minutos
+ * informados, ou "custom" se não houver preset exato.
+ *
+ * @param {number} minutos duração em minutos.
+ * @returns {void}
+ */
+function aplicarDuracaoSelect(minutos: number): void {
+    const sel = document.getElementById('escala-duracao') as HTMLSelectElement;
+    if (!sel) return;
+    const presets = ['30', '60', '90', '120', '180'];
+    sel.value = presets.includes(String(minutos)) ? String(minutos) : 'custom';
+}
+
+/**
+ * Recalcula o horário de término a partir do início e da duração selecionada.
+ * Não faz nada se a duração for "Personalizado" ou se não houver início.
+ *
+ * @returns {void}
+ */
+function recalcularTermino(): void {
+    const inicio = (document.getElementById('escala-data') as HTMLInputElement).value;
+    const durSel = document.getElementById('escala-duracao') as HTMLSelectElement;
+    const fimInput = document.getElementById('escala-data-fim') as HTMLInputElement;
+    if (!inicio || !durSel || durSel.value === 'custom') return;
+    const fim = new Date(new Date(inicio).getTime() + parseInt(durSel.value, 10) * 60000);
+    fimInput.value = toLocalInput(fim);
+}
+
+/**
+ * Inicializa o FullCalendar: configura visões e toolbar, carrega os eventos da API
+ * (mapeando status para o ícone ⏳ quando incompleto) e liga os handlers de clique em
+ * data (nova escala) e em evento (editar) — restritos a administradores.
+ *
+ * @returns {void}
  */
 function initCalendar() {
     const calendarEl = document.getElementById('calendar-container') as HTMLElement;
@@ -584,10 +714,19 @@ function initCalendar() {
     calendar = new FullCalendar.Calendar(calendarEl, {
         initialView: 'dayGridMonth',
         locale: 'pt-br',
+        height: alturaCalendario(),
+        expandRows: true,
+        buttonText: {
+            today: 'Hoje',
+            month: 'Mês',
+            week:  'Semana',
+            day:   'Dia',
+            list:  'Lista'
+        },
         headerToolbar: {
             left: 'prev,next today',
             center: 'title',
-            right: 'dayGridMonth,timeGridWeek,listWeek'
+            right: 'dayGridMonth,timeGridWeek,timeGridDay,listWeek'
         },
         events: function(fetchInfo: any, successCallback: Function, failureCallback: Function) {
             // Garanta o uso da URL absoluta do backend
@@ -604,10 +743,12 @@ function initCalendar() {
                         id: String(escala.id),
                         title: (escala.status !== 'COMPLETO') ? "⏳ " + escala.titulo : escala.titulo,
                         start: escala.dataEscala,
+                        end: escala.dataFim || undefined,
                         backgroundColor: escala.cor || '#004b87',
                         extendedProps: {
                             classificacao: escala.classificacao,
                             status: escala.status,
+                            dataFim: escala.dataFim,
                             atribuicoes: escala.atribuicoes
                         }
                     }));
@@ -623,11 +764,8 @@ function initCalendar() {
         selectable: (window as any).Auth?.isAdmin() ?? false,
 
         dateClick: function(info: any) {
-            if (!(window as any).Auth?.isAdmin()) return; // somente admin cria escalas
-            resetModal();
-            (document.getElementById('modal-title') as HTMLElement).textContent = '+ Nova Escala';
-            (document.getElementById('escala-data') as HTMLInputElement).value = info.dateStr + 'T09:00';
-            modal.classList.add('show-modal');
+            // Clicar no dia abre a visão do dia (criação de escala é só pelo botão "Nova Escala")
+            calendar.changeView('timeGridDay', info.dateStr);
         },
 
         eventClick: function(info: any) {
@@ -642,9 +780,19 @@ function initCalendar() {
             (document.getElementById('escala-titulo') as HTMLInputElement).value = event.title.replace("⏳ ", "");
             
             const start = event.start;
-            const formattedDate = new Date(start.getTime() - (start.getTimezoneOffset() * 60000)).toISOString().slice(0, 16);
-            (document.getElementById('escala-data') as HTMLInputElement).value = formattedDate;
-            
+            (document.getElementById('escala-data') as HTMLInputElement).value = toLocalInput(start);
+
+            // Preenche término e duração (se houver fim)
+            const fimInput = document.getElementById('escala-data-fim') as HTMLInputElement;
+            if (event.end) {
+                fimInput.value = toLocalInput(event.end);
+                const minutos = Math.round((event.end.getTime() - start.getTime()) / 60000);
+                aplicarDuracaoSelect(minutos);
+            } else {
+                fimInput.value = '';
+                (document.getElementById('escala-duracao') as HTMLSelectElement).value = 'custom';
+            }
+
             // 1. Preencha a classificação
             const extendedProps = event.extendedProps as { classificacao: string; atribuicoes: AtribuicaoDTO[] };
             (document.getElementById('escala-classificacao') as HTMLSelectElement).value = extendedProps.classificacao || '';
@@ -658,8 +806,20 @@ function initCalendar() {
     });
 
     calendar.render();
+
+    // Altura responsiva: recalcula ao redimensionar a janela (e ao recolher a sidebar,
+    // que dispara um evento 'resize' a partir do auth.js).
+    window.addEventListener('resize', () => {
+        if (calendar) calendar.setOption('height', alturaCalendario());
+    });
 }
 
+/**
+ * Reseta o modal de escala ao estado inicial: limpa estado global, formulário, grid
+ * de equipe e volta ao passo 1.
+ *
+ * @returns {void}
+ */
 function resetModal() {
     escalaAtualId = null;
     configAtual = null;

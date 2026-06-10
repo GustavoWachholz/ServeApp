@@ -1,16 +1,23 @@
 /**
- * configuracao-escala.js
- * Gerencia a lista de classificações dinâmicas e seus modais de criar/editar/excluir.
+ * configuracao-escala.js — Tela de gestão das classificações (na UI, "Ministérios").
+ * Gerencia a listagem e os modais de criar, editar (identidade visual + áreas em
+ * colunas + pré-visualização) e excluir.
  */
 
+/** URL da API de configurações de escala (classificações). */
 const API_CONFIG = 'http://localhost:8080/api/configuracao-escala';
+/** URL da API de ministérios (áreas) exibidas como colunas. */
 const API_MINS   = 'http://localhost:8080/api/ministerios';
 
+/** Cache de todos os ministérios (áreas) disponíveis para seleção. */
 let todosMinisterios  = [];
-let classificacoesList = [];  // Array de ConfiguracaoEscalaDTO
-let editandoKey       = null; // chave da classificação sendo editada
+/** Lista de classificações cadastradas (array de ConfiguracaoEscalaDTO). */
+let classificacoesList = [];
+/** Chave da classificação atualmente em edição (null fora do modal de edição). */
+let editandoKey       = null;
 
 /* ═══════════════════════════════════════════ Inicialização ════ */
+/** Inicializa a tela: carrega dados, renderiza a lista e liga os listeners do editor. */
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([carregarMinisterios(), carregarClassificacoes()]);
     renderLista();
@@ -18,6 +25,12 @@ document.addEventListener('DOMContentLoaded', async () => {
     Auth.inicializarAparencia();
 });
 
+/**
+ * Carrega os ministérios (áreas) da API para {@link todosMinisterios}.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function carregarMinisterios() {
     try {
         const r = await fetch(API_MINS);
@@ -27,6 +40,12 @@ async function carregarMinisterios() {
     }
 }
 
+/**
+ * Carrega as classificações cadastradas da API para {@link classificacoesList}.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function carregarClassificacoes() {
     try {
         const r = await fetch(API_CONFIG);
@@ -39,6 +58,12 @@ async function carregarClassificacoes() {
 }
 
 /* ═══════════════════════════════════════════ Renderização ════ */
+/**
+ * Renderiza a lista de classificações como cards (cor, nome, título, chave e ações),
+ * ou um estado vazio quando não há nenhuma.
+ *
+ * @returns {void}
+ */
 function renderLista() {
     const container = document.getElementById('classif-list');
 
@@ -72,6 +97,11 @@ function renderLista() {
 }
 
 /* ═══════════════════════ Modal: Nova Classificação ═══════════ */
+/**
+ * Abre o modal de criação, limpando os campos e definindo a cor padrão (#004b87).
+ *
+ * @returns {void}
+ */
 function abrirModalCriar() {
     document.getElementById('criar-nome').value    = '';
     document.getElementById('criar-titulo').value  = '';
@@ -86,10 +116,22 @@ function abrirModalCriar() {
     setTimeout(() => document.getElementById('criar-nome').focus(), 100);
 }
 
+/**
+ * Fecha o modal de criação.
+ *
+ * @returns {void}
+ */
 function fecharModalCriar() {
     document.getElementById('modal-criar').classList.remove('show-modal');
 }
 
+/**
+ * Valida e envia (POST) a nova classificação à API; em sucesso, atualiza a lista,
+ * invalida o cache compartilhado e fecha o modal. Erros são exibidos no status.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function salvarNovaClassificacao() {
     const nome   = document.getElementById('criar-nome').value.trim();
     const titulo = document.getElementById('criar-titulo').value.trim();
@@ -130,6 +172,13 @@ async function salvarNovaClassificacao() {
 }
 
 /* ════════════════════════ Modal: Editar Classificação ════════ */
+/**
+ * Abre o modal de edição preenchido com os dados da classificação (identidade,
+ * cor, áreas selecionadas) e renderiza a pré-visualização.
+ *
+ * @param {string} key chave da classificação a editar.
+ * @returns {void}
+ */
 function abrirModalEditar(key) {
     const config = classificacoesList.find(c => c.classificacao === key);
     if (!config) return;
@@ -161,11 +210,23 @@ function abrirModalEditar(key) {
     document.getElementById('modal-editar').classList.add('show-modal');
 }
 
+/**
+ * Fecha o modal de edição e limpa a chave em edição.
+ *
+ * @returns {void}
+ */
 function fecharModalEditar() {
     document.getElementById('modal-editar').classList.remove('show-modal');
     editandoKey = null;
 }
 
+/**
+ * Valida e envia (PUT) a edição da classificação à API; em sucesso, atualiza a lista,
+ * invalida o cache compartilhado e fecha o modal. Erros são exibidos no status.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function salvarEdicao() {
     if (!editandoKey) return;
 
@@ -212,6 +273,12 @@ async function salvarEdicao() {
     }
 }
 
+/**
+ * Liga os listeners do modal de edição que mantêm a pré-visualização sincronizada:
+ * color picker, campo hex e os textos de organização/setor.
+ *
+ * @returns {void}
+ */
 function wireEditarListeners() {
     // Cor
     document.getElementById('editar-cor')?.addEventListener('input', e => {
@@ -235,6 +302,12 @@ function wireEditarListeners() {
     );
 }
 
+/**
+ * Handler de mudança nos checkboxes de áreas: atualiza o destaque visual de cada
+ * item e re-renderiza a pré-visualização.
+ *
+ * @returns {void}
+ */
 function onMinChangeEditar() {
     document.querySelectorAll('#editar-min-grid input[type="checkbox"]').forEach(cb => {
         cb.closest('.min-check-item')?.classList.toggle('selected', cb.checked);
@@ -242,6 +315,12 @@ function onMinChangeEditar() {
     atualizarPreviewEditar();
 }
 
+/**
+ * Recolhe os valores atuais do editor (cor, organização, setor e áreas marcadas) e
+ * renderiza a pré-visualização da imagem exportada.
+ *
+ * @returns {void}
+ */
 function atualizarPreviewEditar() {
     const cor   = document.getElementById('editar-cor')?.value   || '#004b87';
     const org   = document.getElementById('editar-org')?.value   || '';
@@ -256,6 +335,13 @@ function atualizarPreviewEditar() {
 /* ════════════════════════════ Modal: Confirmar Exclusão ══════ */
 let excluindoKey = null;
 
+/**
+ * Abre o modal de confirmação de exclusão, preenchendo o texto com o nome da
+ * classificação alvo.
+ *
+ * @param {string} key chave da classificação a excluir.
+ * @returns {void}
+ */
 function abrirModalExcluir(key) {
     const config = classificacoesList.find(c => c.classificacao === key);
     if (!config) return;
@@ -268,11 +354,23 @@ function abrirModalExcluir(key) {
     document.getElementById('modal-confirmar-excluir').classList.add('show-modal');
 }
 
+/**
+ * Fecha o modal de exclusão e limpa a chave alvo.
+ *
+ * @returns {void}
+ */
 function fecharModalExcluir() {
     document.getElementById('modal-confirmar-excluir').classList.remove('show-modal');
     excluindoKey = null;
 }
 
+/**
+ * Envia (DELETE) a exclusão da classificação à API; em sucesso, remove-a da lista,
+ * invalida o cache e fecha o modal. Em falha (ex.: escalas vinculadas), alerta o erro.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
 async function executarExclusao() {
     if (!excluindoKey) return;
 
@@ -300,6 +398,13 @@ async function executarExclusao() {
 }
 
 /* ═══════════════════════════════════════════════ Helpers ════ */
+/**
+ * Monta o HTML da grade de seleção de áreas (checkboxes com badge de tipo),
+ * marcando as já selecionadas.
+ *
+ * @param {Array<number>} selecionados ids das áreas já selecionadas.
+ * @returns {string} HTML da grade.
+ */
 function renderMinGrid(selecionados) {
     if (!todosMinisterios.length) {
         return '<p style="grid-column:1/-1;opacity:0.5;font-size:0.85rem;">Nenhum ministério cadastrado.</p>';
@@ -321,6 +426,16 @@ function renderMinGrid(selecionados) {
     }).join('');
 }
 
+/**
+ * Monta o HTML da pré-visualização da imagem exportada (cabeçalho colorido + tabela
+ * com as áreas como colunas).
+ *
+ * @param {string} cor cor principal (hex).
+ * @param {string} org nome da organização.
+ * @param {string} setor nome do setor.
+ * @param {string[]} ministerios nomes das áreas que viram colunas.
+ * @returns {string} HTML da pré-visualização.
+ */
 function renderPreview(cor, org, setor, ministerios) {
     const thBg = hexDarken(cor, 0.25);
     const cols = ministerios.length ? ministerios : ['—'];
@@ -345,6 +460,13 @@ function renderPreview(cor, org, setor, ministerios) {
     </table>`;
 }
 
+/**
+ * Escurece uma cor hexadecimal por um percentual (usado no cabeçalho da tabela).
+ *
+ * @param {string} hex cor em formato "#rrggbb".
+ * @param {number} pct fração de escurecimento (0–1).
+ * @returns {string} a cor escurecida em formato "#rrggbb".
+ */
 function hexDarken(hex, pct) {
     const n = parseInt(hex.replace('#', ''), 16);
     const adj = c => Math.max(0, Math.round(c - c * pct));
@@ -354,6 +476,14 @@ function hexDarken(hex, pct) {
     return `#${((r << 16) | (g << 8) | b).toString(16).padStart(6, '0')}`;
 }
 
+/**
+ * Define a mensagem e o estilo de um elemento de status de salvamento.
+ *
+ * @param {string} id    id do elemento de status.
+ * @param {string} msg   mensagem a exibir.
+ * @param {string} [type] tipo opcional ("success" ou "error") para a classe CSS.
+ * @returns {void}
+ */
 function setStatus(id, msg, type) {
     const el = document.getElementById(id);
     if (!el) return;
@@ -361,6 +491,12 @@ function setStatus(id, msg, type) {
     el.className   = 'save-status' + (type ? ' ' + type : '');
 }
 
+/**
+ * Escapa caracteres especiais de HTML para evitar injeção ao interpolar texto.
+ *
+ * @param {*} str valor a escapar (convertido para string).
+ * @returns {string} o texto com {@code &, <, >, "} escapados.
+ */
 function escapeHtml(str) {
     return String(str ?? '')
         .replace(/&/g, '&amp;')

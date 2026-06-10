@@ -1,18 +1,27 @@
 /**
  * classificacoes-cache.js
- * Módulo compartilhado para carregar as classificações dinâmicas do backend.
- * Cache por carregamento de página (singleton Promise).
+ * Módulo compartilhado para carregar as classificações dinâmicas do backend
+ * (na UI, "Ministérios"). Mantém um cache por carregamento de página via uma
+ * Promise singleton, evitando múltiplos fetches entre telas.
+ *
+ * Exposto em {@code window.ClassificacoesCache} para ser acessível tanto de scripts
+ * comuns quanto de módulos ES (ex.: agenda.js).
+ *
+ * @namespace ClassificacoesCache
  */
-
 window.ClassificacoesCache = (() => {
+    /** URL da API de configurações de escala. */
     const API_URL = 'http://localhost:8080/api/configuracao-escala';
+    /** Promise cacheada do carregamento (null até o primeiro fetch ou após invalidar). */
     let _promise = null;
 
     /**
-     * Retorna uma Promise que resolve para um array de objetos:
-     * [{ key, label, titulo, cor }, ...]
+     * Carrega (e cacheia) as classificações do backend, mapeando cada item para
+     * {@code { key, label, titulo, cor }}. Reusa a Promise em chamadas subsequentes.
      *
-     * O resultado é cacheado na sessão de página (não refaz fetch).
+     * @memberof ClassificacoesCache
+     * @returns {Promise<Array<{key:string,label:string,titulo:string,cor:string}>>}
+     *          lista de classificações; resolve para {@code []} em caso de erro (com retry liberado).
      */
     function carregarClassificacoes() {
         if (_promise) return _promise;
@@ -37,7 +46,13 @@ window.ClassificacoesCache = (() => {
         return _promise;
     }
 
-    /** Invalida o cache (útil após criar/editar/deletar uma classificação). */
+    /**
+     * Invalida o cache, forçando um novo fetch na próxima chamada de
+     * {@link carregarClassificacoes}. Útil após criar/editar/excluir uma classificação.
+     *
+     * @memberof ClassificacoesCache
+     * @returns {void}
+     */
     function invalidar() {
         _promise = null;
     }

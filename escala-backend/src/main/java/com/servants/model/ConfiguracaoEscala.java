@@ -5,8 +5,12 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Armazena a configuração visual e de ministérios para cada classificação de escala
- * (ATITUDE, BEONE, KIDS, EVENTOS, BASE).
+ * Entidade JPA que armazena a configuração visual e de ministérios (áreas) para
+ * cada classificação de escala (na interface, cada registro é um "Ministério":
+ * ATITUDE, BEONE, KIDS, EVENTOS, BASE, etc.).
+ *
+ * <p>Mapeada para a tabela {@code configuracao_escala}. Determina como a imagem
+ * exportada da escala é renderizada — cores, títulos e quais áreas viram colunas.</p>
  */
 @Entity
 @Table(name = "configuracao_escala")
@@ -51,29 +55,46 @@ public class ConfiguracaoEscala {
     )
     private List<Ministerio> ministerios = new ArrayList<>();
 
+    /** Construtor padrão exigido pelo JPA. */
     public ConfiguracaoEscala() {}
 
+    /** @return o identificador único da configuração. */
     public Long getId() { return id; }
+    /** @param id define o identificador único da configuração. */
     public void setId(Long id) { this.id = id; }
 
+    /** @return a chave única da classificação (ex.: "ATITUDE"). */
     public String getClassificacao() { return classificacao; }
+    /** @param classificacao define a chave única da classificação. */
     public void setClassificacao(String classificacao) { this.classificacao = classificacao; }
 
+    /** @return o nome de exibição cadastrado pelo usuário. */
     public String getNome() { return nome; }
+    /** @param nome define o nome de exibição. */
     public void setNome(String nome) { this.nome = nome; }
 
+    /** @return o título usado no calendário e na imagem. */
     public String getTitulo() { return titulo; }
+    /** @param titulo define o título usado no calendário e na imagem. */
     public void setTitulo(String titulo) { this.titulo = titulo; }
 
+    /** @return o nome da organização (título principal da imagem). */
     public String getNomeOrganizacao() { return nomeOrganizacao; }
+    /** @param nomeOrganizacao define o nome da organização. */
     public void setNomeOrganizacao(String nomeOrganizacao) { this.nomeOrganizacao = nomeOrganizacao; }
 
+    /** @return o nome do setor (subtítulo da imagem). */
     public String getNomeSetor() { return nomeSetor; }
+    /** @param nomeSetor define o nome do setor. */
     public void setNomeSetor(String nomeSetor) { this.nomeSetor = nomeSetor; }
 
+    /** @return a cor principal (hex) da imagem. */
     public String getCor() { return cor; }
+    /** @param cor define a cor principal (hex) da imagem. */
     public void setCor(String cor) { this.cor = cor; }
 
+    /** @return os ministérios (áreas) que viram colunas na imagem. */
     public List<Ministerio> getMinisterios() { return ministerios; }
+    /** @param ministerios define os ministérios (áreas) que viram colunas. */
     public void setMinisterios(List<Ministerio> ministerios) { this.ministerios = ministerios; }
 }

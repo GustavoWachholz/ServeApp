@@ -228,6 +228,53 @@ input[type="color"] {
 
 .card:hover { transform: translateY(-5px); border-color: var(--primary-color); box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
 
+/* Faixa horizontal de compromissos (linha única com rolagem) */
+.cards-row {
+    display: flex;
+    flex-wrap: nowrap;
+    gap: 1rem;
+    overflow-x: auto;
+    padding-bottom: 0.5rem;
+    scroll-snap-type: x proximity;
+}
+.cards-row .card {
+    flex: 0 0 260px;
+    max-width: 260px;
+    scroll-snap-align: start;
+}
+.cards-row::-webkit-scrollbar { height: 8px; }
+.cards-row::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
+
+/* Toggle Semana/Mês */
+.periodo-toggle {
+    display: inline-flex;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    overflow: hidden;
+}
+.periodo-btn {
+    background: var(--bg-card);
+    border: none;
+    color: var(--text-muted);
+    font-size: 0.78rem;
+    font-weight: 600;
+    padding: 0.4rem 0.9rem;
+    cursor: pointer;
+    transition: all 0.15s;
+}
+.periodo-btn.active { background: var(--primary-color); color: #fff; }
+
+/* Lista dentro do modal "Ver todos" */
+.lista-modal-item {
+    display: flex;
+    align-items: center;
+    gap: 0.8rem;
+    padding: 0.8rem 0.2rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.lista-modal-item:last-child { border-bottom: none; }
+.lista-modal-item i { color: var(--primary-color); width: 1.2rem; text-align: center; }
+
 /* Switch Toggle */
 .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
 .switch input { opacity: 0; width: 0; height: 0; }
@@ -255,15 +302,92 @@ input:checked + .slider:before { transform: translateX(20px); }
     .user-profile { padding: 1.5rem; justify-content: center; }
 }
 
+/* ── Botão de recolher/expandir a sidebar ── */
+.sidebar-toggle {
+    position: absolute;
+    top: 0.6rem;
+    right: 0.6rem;
+    background: none;
+    border: none;
+    color: var(--text-muted);
+    cursor: pointer;
+    font-size: 1rem;
+    padding: 0.35rem 0.45rem;
+    border-radius: 6px;
+    z-index: 5;
+    transition: all 0.2s;
+}
+.sidebar-toggle:hover { background-color: rgba(0, 75, 135, 0.08); color: var(--primary-color); }
+
+/* Logos: full visível por padrão, mini oculta */
+.sidebar-logo .logo-mini { display: none; }
+
+/* ── Submenu "Cadastros" (accordion) ── */
+.nav-group-toggle {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    width: 100%;
+    background: none;
+    border: none;
+    cursor: pointer;
+    text-align: left;
+    color: var(--primary-text);
+    font-size: 0.875rem;
+    font-weight: 500;
+    padding: 0.8rem 1rem;
+    border-radius: 6px;
+    transition: all 0.2s;
+}
+.nav-group-toggle:hover { background-color: rgba(0, 75, 135, 0.05); }
+.nav-group-toggle .nav-caret { margin-left: auto; font-size: 0.7rem; transition: transform 0.2s; }
+.nav-group.open .nav-group-toggle .nav-caret { transform: rotate(180deg); }
+
+.nav-submenu {
+    list-style: none;
+    max-height: 0;
+    overflow: hidden;
+    transition: max-height 0.25s ease;
+}
+.nav-group.open .nav-submenu { max-height: 500px; }
+.nav-submenu li a { padding-left: 2.4rem; font-size: 0.84rem; }
+
+/* ── Sidebar recolhida (só ícones) — controlada por classe no <html> ── */
+:root.sidebar-collapsed .sidebar { width: 80px; }
+:root.sidebar-collapsed .sidebar span,
+:root.sidebar-collapsed .user-info,
+:root.sidebar-collapsed .nav-caret { display: none; }
+/* !important para vencer o "display:block" inline do <img> da logo grande */
+:root.sidebar-collapsed .sidebar-logo .logo-full { display: none !important; }
+:root.sidebar-collapsed .sidebar-logo .logo-mini { display: block !important; }
+:root.sidebar-collapsed .user-profile { justify-content: center; padding: 1.5rem 0; }
+:root.sidebar-collapsed .sidebar-nav li a,
+:root.sidebar-collapsed .nav-group-toggle,
+:root.sidebar-collapsed .sidebar-footer .sidebar-btn { justify-content: center; gap: 0; }
+:root.sidebar-collapsed .sidebar-nav li.active a { margin-left: 0; padding-left: 1rem; border-left: none; }
+/* No modo recolhido o submenu fica sempre visível como ícones (sem accordion) */
+:root.sidebar-collapsed .nav-submenu { max-height: none; overflow: visible; }
+:root.sidebar-collapsed .nav-submenu li a { padding-left: 1rem; }
+:root.sidebar-collapsed .sidebar-toggle { right: 50%; transform: translateX(50%) rotate(180deg); }
+:root.sidebar-collapsed .settings-popover { left: 0.4rem; right: auto; width: 240px; }
+
 /* FullCalendar Overrides Modernized */
 #calendar-container {
-    height: calc(100vh - 150px);
+    height: auto;               /* a altura é controlada dinamicamente pelo FullCalendar (agenda.ts) */
     background-color: var(--bg-card);
-    padding: 1.5rem;
+    padding: 1.25rem;
     border-radius: 16px;
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
+
+/* Toolbar: botões com limites definidos e espaçamento (não encostam) */
+.fc .fc-toolbar.fc-header-toolbar { margin-bottom: 1rem; gap: 0.75rem; flex-wrap: wrap; }
+.fc .fc-toolbar-chunk { display: flex; align-items: center; gap: 0.5rem; }
+.fc .fc-button-group { gap: 4px; }
+.fc .fc-button-group > .fc-button { border-radius: 6px !important; }
+.fc .fc-button { padding: 0.4rem 0.75rem; font-size: 0.82rem; }
+.fc .fc-toolbar-title { font-size: 1.15rem; }
 
 :root {
     --fc-button-bg-color: var(--primary-color);

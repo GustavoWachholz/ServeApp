@@ -18,6 +18,13 @@ let voluntariosCache = [];
 /** Ordenação atual da lista: 'cadastro' (por id) ou 'alpha' (por nome). */
 let ordemAtual = 'cadastro';
 
+/** Filtro por área (nome do ministério/área); '' = todas. */
+let filtroArea = '';
+/** Filtro por ministério (chave da classificação); '' = todos. */
+let filtroMinisterio = '';
+/** Filtro por situação na escala: '' (todos), 'escalados' ou 'nao-escalados'. */
+let filtroEscala = '';
+
 /** Inicializa a tela: carrega classificações, voluntários, opções e liga eventos. */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Voluntários (API Mode) inicializado.');
@@ -25,9 +32,43 @@ document.addEventListener('DOMContentLoaded', async () => {
     carregarVoluntarios();
     carregarOpcoesMinisterios();
     renderClassifChips('classif-checkboxes-vol', []);
+    popularFiltroMinisterios();
     initModalEvents();
     initToolbar();
+    initFiltros();
+    initMascaraTelefone();
 });
+
+/* ─────────────── Máscara de telefone ─────────────── */
+/**
+ * Formata um número de telefone brasileiro conforme a quantidade de dígitos:
+ * {@code (XX) XXXXX-XXXX} para 11 dígitos (celular) e {@code (XX) XXXX-XXXX}
+ * para 10 dígitos (fixo). Ignora caracteres não numéricos.
+ *
+ * @param {string} valor texto digitado (com ou sem máscara).
+ * @returns {string} telefone formatado.
+ */
+function formatarTelefone(valor) {
+    const d = (valor || '').replace(/\D/g, '').slice(0, 11);
+    if (d.length === 0) return '';
+    if (d.length <= 2) return `(${d}`;
+    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
+    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
+    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
+}
+
+/**
+ * Liga a máscara de telefone ao campo {@code #phone}, formatando enquanto o usuário digita.
+ *
+ * @returns {void}
+ */
+function initMascaraTelefone() {
+    const input = document.getElementById('phone');
+    if (!input) return;
+    input.addEventListener('input', () => {
+        input.value = formatarTelefone(input.value);
+    });
+}
 
 /* ─────────────── Chips de classificação ─────────────── */
 /**
@@ -139,9 +180,65 @@ async function carregarOpcoesMinisterios() {
             `;
             container.appendChild(item);
         });
+
+        popularFiltroAreas(especificos.map(m => m.nome));
     } catch (error) {
         console.error('Erro ao carregar ministérios:', error);
         container.innerHTML = '<p style="grid-column: 1/-1; color: #ef4444; font-size: 0.85rem;">Erro ao carregar lista de ministérios.</p>';
+    }
+}
+
+/* ─────────────── Filtros ─────────────── */
+/**
+ * Preenche o select de filtro por área com os nomes informados.
+ *
+ * @param {string[]} nomes nomes das áreas (ministérios específicos).
+ * @returns {void}
+ */
+function popularFiltroAreas(nomes) {
+    const sel = document.getElementById('filter-area');
+    if (!sel) return;
+    const atual = sel.value;
+    sel.innerHTML = '<option value="">Todas</option>' +
+        nomes.map(n => `<option value="${n}">${n}</option>`).join('');
+    sel.value = atual;
+}
+
+/**
+ * Preenche o select de filtro por ministério (classificação) com as opções disponíveis.
+ *
+ * @returns {void}
+ */
+function popularFiltroMinisterios() {
+    const sel = document.getElementById('filter-ministerio');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Todos</option>' +
+        classificacoesDisponiveis.map(cl => `<option value="${cl.key}">${cl.label}</option>`).join('');
+}
+
+/**
+ * Liga os eventos de mudança dos selects de filtro e o botão de limpar filtros.
+ *
+ * @returns {void}
+ */
+function initFiltros() {
+    const selArea = document.getElementById('filter-area');
+    const selMin  = document.getElementById('filter-ministerio');
+    const selEsc  = document.getElementById('filter-escala');
+    const btnClear = document.getElementById('btn-clear-filters');
+
+    if (selArea) selArea.addEventListener('change', () => { filtroArea = selArea.value; aplicarFiltroEOrdem(); });
+    if (selMin)  selMin.addEventListener('change',  () => { filtroMinisterio = selMin.value; aplicarFiltroEOrdem(); });
+    if (selEsc)  selEsc.addEventListener('change',  () => { filtroEscala = selEsc.value; aplicarFiltroEOrdem(); });
+
+    if (btnClear) {
+        btnClear.addEventListener('click', () => {
+            filtroArea = filtroMinisterio = filtroEscala = '';
+            if (selArea) selArea.value = '';
+            if (selMin)  selMin.value = '';
+            if (selEsc)  selEsc.value = '';
+            aplicarFiltroEOrdem();
+        });
     }
 }
 
@@ -157,7 +254,7 @@ async function carregarVoluntarios() {
     if (!list) return;
 
     list.innerHTML = `
-        <tr><td colspan="4" style="text-align:center;padding:2rem;opacity:0.5;">
+        <tr><td colspan="3" style="text-align:center;padding:2rem;opacity:0.5;">
             <i class="fas fa-spinner fa-spin" style="margin-right:0.5rem;"></i>Carregando…
         </td></tr>`;
 
@@ -168,7 +265,7 @@ async function carregarVoluntarios() {
         aplicarFiltroEOrdem();
     } catch (error) {
         console.error('Erro ao carregar:', error);
-        list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:2rem;">Erro ao carregar dados do banco.</td></tr>';
+        list.innerHTML = '<tr><td colspan="3" style="text-align:center;color:#ef4444;padding:2rem;">Erro ao carregar dados do banco.</td></tr>';
     }
 }
 
@@ -210,13 +307,26 @@ function aplicarFiltroEOrdem() {
     const btnClear = document.getElementById('btn-clear-search');
     if (btnClear) btnClear.style.display = termo ? 'flex' : 'none';
 
-    // Filtro
+    // Filtro de busca textual
     let lista = voluntariosCache.filter(v =>
         normalizar(v.nome).includes(termo) ||
         normalizar(v.email).includes(termo) ||
         normalizar(v.telefone).includes(termo) ||
         (v.ministerios || []).some(m => normalizar(m).includes(termo))
     );
+
+    // Filtros estruturados (área, ministério, situação na escala)
+    if (filtroArea) {
+        lista = lista.filter(v => (v.ministerios || []).includes(filtroArea));
+    }
+    if (filtroMinisterio) {
+        lista = lista.filter(v => (v.classificacoes || []).includes(filtroMinisterio));
+    }
+    if (filtroEscala === 'escalados') {
+        lista = lista.filter(v => v.escalado === true);
+    } else if (filtroEscala === 'nao-escalados') {
+        lista = lista.filter(v => v.escalado !== true);
+    }
 
     // Ordenação
     if (ordemAtual === 'alpha') {
@@ -229,10 +339,11 @@ function aplicarFiltroEOrdem() {
     // Contador
     const counter = document.getElementById('volunteers-count');
     if (counter) {
-        if (termo) {
-            counter.textContent = `${lista.length} de ${voluntariosCache.length} voluntário${voluntariosCache.length !== 1 ? 's' : ''}`;
+        const temFiltro = termo || filtroArea || filtroMinisterio || filtroEscala;
+        if (temFiltro) {
+            counter.textContent = `${lista.length} de ${voluntariosCache.length} servo${voluntariosCache.length !== 1 ? 's' : ''}`;
         } else {
-            counter.textContent = `${voluntariosCache.length} voluntário${voluntariosCache.length !== 1 ? 's' : ''}`;
+            counter.textContent = `${voluntariosCache.length} servo${voluntariosCache.length !== 1 ? 's' : ''}`;
         }
     }
 }
@@ -252,28 +363,22 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
 
     if (!voluntarios || voluntarios.length === 0) {
         const msg = voluntariosCache.length > 0
-            ? 'Nenhum voluntário encontrado para essa pesquisa.'
-            : 'Nenhum voluntário cadastrado.';
-        list.innerHTML = `<tr><td colspan="4" style="text-align:center;opacity:0.5;padding:2rem;">${msg}</td></tr>`;
+            ? 'Nenhum servo encontrado para essa pesquisa.'
+            : 'Nenhum servo cadastrado.';
+        list.innerHTML = `<tr><td colspan="3" style="text-align:center;opacity:0.5;padding:2rem;">${msg}</td></tr>`;
         return;
     }
 
     voluntarios.forEach(v => {
         const id  = v.id || v._id;
         const nome  = destacar(v.nome  || '', termoDestaque);
-        const email = destacar(v.email || '', termoDestaque);
         const tel   = destacar(v.telefone || '', termoDestaque);
-        const tags  = (v.ministerios || [])
-            .map(m => `<span class="ministry-tag">${destacar(m, termoDestaque)}</span>`)
-            .join('');
 
         const tr = document.createElement('tr');
         tr.innerHTML = `
             <td>
                 <div style="font-weight:600;">${nome}</div>
-                <div style="font-size:0.8rem;color:var(--text-muted);">${email}</div>
             </td>
-            <td>${tags}</td>
             <td>${tel}</td>
             <td class="actions-cell">
                 <button class="btn-icon btn-view" data-id="${id}" title="Ver Detalhes">
@@ -451,6 +556,7 @@ function initModalEvents() {
                 nome: document.getElementById('name').value,
                 email: document.getElementById('email').value,
                 telefone: document.getElementById('phone').value,
+                genero: document.getElementById('genero').value || null,
                 dataNascimento: document.getElementById('birthdate').value,
                 ministerios: ministerios,
                 classificacoes: getClassificacoesSelecionadas('classif-checkboxes-vol')
@@ -487,6 +593,18 @@ function formatarData(iso) {
     const parts = String(iso).split('-');
     if (parts.length !== 3) return iso;
     return `${parts[2]}/${parts[1]}/${parts[0]}`;
+}
+
+/**
+ * Converte o código de gênero armazenado em rótulo amigável para exibição.
+ *
+ * @param {string} g código do gênero ("MASCULINO" / "FEMININO").
+ * @returns {string} "Masculino", "Feminino" ou "-" se vazio/desconhecido.
+ */
+function generoLabel(g) {
+    if (g === 'MASCULINO') return 'Masculino';
+    if (g === 'FEMININO') return 'Feminino';
+    return '-';
 }
 
 /**
@@ -531,6 +649,7 @@ async function buscarEPresentar(id, mode) {
             document.getElementById('view-name').textContent = currentVolunteer.nome || '-';
             document.getElementById('view-email').textContent = currentVolunteer.email || '-';
             document.getElementById('view-phone').textContent = currentVolunteer.telefone || '-';
+            document.getElementById('view-genero').textContent = generoLabel(currentVolunteer.genero);
             document.getElementById('view-birthdate').textContent = formatarData(currentVolunteer.dataNascimento);
             const minDiv = document.getElementById('view-ministries');
             minDiv.innerHTML = (currentVolunteer.ministerios || []).map(m => `<span class="ministry-tag">${m}</span>`).join('');
@@ -561,7 +680,8 @@ function preencherFormulario(v) {
     document.getElementById('volunteer-id').value = v.id || v._id || '';
     document.getElementById('name').value = v.nome || '';
     document.getElementById('email').value = v.email || '';
-    document.getElementById('phone').value = v.telefone || '';
+    document.getElementById('phone').value = formatarTelefone(v.telefone || '');
+    document.getElementById('genero').value = v.genero || '';
     document.getElementById('birthdate').value = v.dataNascimento || '';
     const checkboxes = document.querySelectorAll('input[name="ministries"]');
     checkboxes.forEach(cb => {

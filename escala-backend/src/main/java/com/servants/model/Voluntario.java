@@ -35,6 +35,9 @@ public class Voluntario {
     /** Data de nascimento (usada para aniversariantes no dashboard). */
     private LocalDate dataNascimento;
 
+    /** Gênero do voluntário: "MASCULINO" ou "FEMININO". Opcional. */
+    private String genero;
+
     /**
      * Nomes dos ministérios (áreas) específicos em que o voluntário atua.
      * Persistido na tabela de coleção {@code voluntario_ministerios}.
@@ -106,6 +109,16 @@ public class Voluntario {
     /** @param dataNascimento define a data de nascimento. */
     public void setDataNascimento(LocalDate dataNascimento) {
         this.dataNascimento = dataNascimento;
+    }
+
+    /** @return o gênero do voluntário ("MASCULINO" ou "FEMININO"). */
+    public String getGenero() {
+        return genero;
+    }
+
+    /** @param genero define o gênero do voluntário ("MASCULINO" ou "FEMININO"). */
+    public void setGenero(String genero) {
+        this.genero = genero;
     }
 
     /** @return os nomes dos ministérios (áreas) específicos do voluntário. */

@@ -4,7 +4,10 @@ import com.servants.model.EscalaVoluntario;
 import com.servants.model.Ministerio;
 import com.servants.model.Voluntario;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
+
+import java.util.List;
 
 /**
  * Repositório Spring Data JPA para a entidade de vínculo {@link EscalaVoluntario}.
@@ -29,4 +32,13 @@ public interface EscalaVoluntarioRepository extends JpaRepository<EscalaVoluntar
      * @param voluntarioId identificador do voluntário.
      */
     void deleteByVoluntarioId(Long voluntarioId);
+
+    /**
+     * Retorna os IDs (distintos) de todos os voluntários que possuem ao menos um
+     * vínculo (legado) em alguma escala (usado para marcar voluntários como "escalados").
+     *
+     * @return lista de IDs de voluntários escalados via vínculo.
+     */
+    @Query("SELECT DISTINCT ev.voluntario.id FROM EscalaVoluntario ev")
+    List<Long> findDistinctVoluntarioIds();
 }

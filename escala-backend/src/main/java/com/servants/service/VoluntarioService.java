@@ -9,7 +9,9 @@ import com.servants.repository.VoluntarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -50,7 +52,7 @@ public class VoluntarioService {
     public VoluntarioDTO buscarPorId(Long id) {
         Voluntario voluntario = voluntarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado com ID: " + id));
-        return convertToDTO(voluntario);
+        return convertToDTO(voluntario, buscarEscaladoIds());
     }
 
     /**
@@ -60,9 +62,24 @@ public class VoluntarioService {
      */
     @Transactional(readOnly = true)
     public List<VoluntarioDTO> listarTodos() {
+        Set<Long> escaladoIds = buscarEscaladoIds();
         return voluntarioRepository.findAll().stream()
-                .map(this::convertToDTO)
+                .map(v -> convertToDTO(v, escaladoIds))
                 .collect(Collectors.toList());
+    }
+
+    /**
+     * Reúne os IDs de todos os voluntários que estão escalados em algum compromisso
+     * da agenda, considerando tanto as atribuições ({@code escala_atribuicoes}) quanto
+     * os vínculos legados ({@code escala_voluntarios}).
+     *
+     * @return conjunto de IDs de voluntários escalados.
+     */
+    @Transactional(readOnly = true)
+    public Set<Long> buscarEscaladoIds() {
+        Set<Long> ids = new HashSet<>(escalaAtribuicaoRepository.findDistinctVoluntarioIds());
+        ids.addAll(escalaVoluntarioRepository.findDistinctVoluntarioIds());
+        return ids;
     }
 
     /**
@@ -75,7 +92,7 @@ public class VoluntarioService {
     public VoluntarioDTO criar(VoluntarioDTO dto) {
         Voluntario voluntario = convertToEntity(dto);
         Voluntario salvo = voluntarioRepository.save(voluntario);
-        return convertToDTO(salvo);
+        return convertToDTO(salvo, buscarEscaladoIds());
     }
 
     /**
@@ -95,11 +112,12 @@ public class VoluntarioService {
         voluntario.setTelefone(dto.telefone());
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
+        voluntario.setGenero(dto.genero());
         voluntario.setMinisterios(dto.ministerios());
         voluntario.setClassificacoes(dto.classificacoes());
 
         Voluntario atualizado = voluntarioRepository.save(voluntario);
-        return convertToDTO(atualizado);
+        return convertToDTO(atualizado, buscarEscaladoIds());
     }
 
     /**
@@ -123,20 +141,24 @@ public class VoluntarioService {
     }
 
     /**
-     * Converte uma entidade {@link Voluntario} em {@link VoluntarioDTO}.
+     * Converte uma entidade {@link Voluntario} em {@link VoluntarioDTO}, marcando o
+     * campo {@code escalado} conforme a presença do id no conjunto informado.
      *
-     * @param voluntario entidade a converter.
+     * @param voluntario  entidade a converter.
+     * @param escaladoIds conjunto de IDs de voluntários escalados.
      * @return o DTO correspondente.
      */
-    private VoluntarioDTO convertToDTO(Voluntario voluntario) {
+    private VoluntarioDTO convertToDTO(Voluntario voluntario, Set<Long> escaladoIds) {
         return new VoluntarioDTO(
                 voluntario.getId(),
                 voluntario.getNome(),
                 voluntario.getTelefone(),
                 voluntario.getEmail(),
                 voluntario.getDataNascimento(),
+                voluntario.getGenero(),
                 voluntario.getMinisterios(),
-                voluntario.getClassificacoes()
+                voluntario.getClassificacoes(),
+                escaladoIds.contains(voluntario.getId())
         );
     }
 
@@ -153,6 +175,7 @@ public class VoluntarioService {
         voluntario.setTelefone(dto.telefone());
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
+        voluntario.setGenero(dto.genero());
         voluntario.setMinisterios(dto.ministerios());
         voluntario.setClassificacoes(dto.classificacoes());
         return voluntario;

@@ -217,6 +217,48 @@
             color: #fff;
         }
 
+        /* ── Barra de filtros ── */
+        .filter-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .filter-item label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .filter-item select {
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-color);
+            font-size: 0.82rem;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        .filter-item select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,75,135,0.1);
+        }
+
+        #btn-clear-filters { align-self: flex-end; }
+
         .toolbar-footer {
             display: flex;
             align-items: center;
@@ -371,6 +413,29 @@
                         </button>
                     </div>
                 </div>
+                <!-- Filtros -->
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label for="filter-area">Área</label>
+                        <select id="filter-area"><option value="">Todas</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filter-ministerio">Ministério</label>
+                        <select id="filter-ministerio"><option value="">Todos</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filter-escala">Situação</label>
+                        <select id="filter-escala">
+                            <option value="">Todos</option>
+                            <option value="escalados">Escalados</option>
+                            <option value="nao-escalados">Não escalados</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btn-clear-filters" class="btn-sort" title="Limpar filtros">
+                        <i class="fas fa-filter-circle-xmark" style="margin-right:0.3rem;font-size:0.75rem;"></i>Limpar filtros
+                    </button>
+                </div>
+
                 <div class="toolbar-footer">
                     <span class="volunteers-count" id="volunteers-count"></span>
                 </div>
@@ -380,7 +445,6 @@
                         <thead>
                             <tr>
                                 <th>Nome</th>
-                                <th>Áreas</th>
                                 <th>Contato</th>
                                 <th>Ações</th>
                             </tr>
@@ -415,6 +479,10 @@
                 <div class="view-data-group">
                     <div class="view-label">Telefone</div>
                     <div class="view-value" id="view-phone">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Gênero</div>
+                    <div class="view-value" id="view-genero">-</div>
                 </div>
                 <div class="view-data-group">
                     <div class="view-label">Data de Nascimento</div>
@@ -455,7 +523,16 @@
 
                 <div class="form-group">
                     <label for="phone">Telefone</label>
-                    <input type="tel" id="phone" required placeholder="(11) 99999-9999">
+                    <input type="tel" id="phone" required placeholder="(11) 99999-9999" maxlength="16">
+                </div>
+
+                <div class="form-group">
+                    <label for="genero">Gênero</label>
+                    <select id="genero" required>
+                        <option value="">Selecione…</option>
+                        <option value="MASCULINO">Masculino</option>
+                        <option value="FEMININO">Feminino</option>
+                    </select>
                 </div>
 
                 <div class="form-group">

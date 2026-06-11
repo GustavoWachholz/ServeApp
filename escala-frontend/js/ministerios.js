@@ -271,10 +271,9 @@ function initModalEvents() {
         document.getElementById('btn-form-delete').style.display = 'block';
     };
 
-    btnBack.onclick = () => {
-        if (document.getElementById('ministerio-id').value) showViewMode();
-        else modal.classList.remove('show-modal');
-    };
+    // "Cancelar" simplesmente fecha o modal (mesmo comportamento do "x"),
+    // sem voltar para a tela de visualização.
+    btnBack.onclick = () => modal.classList.remove('show-modal');
 
     // Lógica de abertura do modal de confirmação
     const openConfirmModal = () => {

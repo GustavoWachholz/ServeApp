@@ -21,8 +21,10 @@ let editandoKey       = null;
 document.addEventListener('DOMContentLoaded', async () => {
     await Promise.all([carregarMinisterios(), carregarClassificacoes()]);
     renderLista();
+    initToolbar();
     wireEditarListeners();
     Auth.inicializarAparencia();
+    Auth.esconderLoading();
 });
 
 /**
@@ -64,35 +66,52 @@ async function carregarClassificacoes() {
  *
  * @returns {void}
  */
-function renderLista() {
-    const container = document.getElementById('classif-list');
+/**
+ * @param {string} [filtro] texto para filtrar por nome ou título.
+ */
+function renderLista(filtro) {
+    const tbody = document.getElementById('classif-list');
+    const termo = (filtro || '').toLowerCase().trim();
 
-    if (!classificacoesList.length) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-tags"></i>
-                <p>Nenhuma classificação cadastrada ainda.<br>Crie a primeira clicando em "Nova Classificação".</p>
-            </div>`;
+    const lista = termo
+        ? classificacoesList.filter(c =>
+            (c.nome || c.classificacao).toLowerCase().includes(termo) ||
+            (c.titulo || '').toLowerCase().includes(termo))
+        : classificacoesList;
+
+    if (!lista.length) {
+        const msg = classificacoesList.length
+            ? 'Nenhum ministério encontrado para a pesquisa.'
+            : 'Nenhum ministério cadastrado ainda. Crie o primeiro clicando em "Novo Ministério".';
+        tbody.innerHTML = `
+            <tr>
+                <td colspan="5" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
+                    <i class="fas fa-tags" style="font-size:2rem;margin-bottom:.75rem;opacity:.3;display:block;"></i>
+                    ${msg}
+                </td>
+            </tr>`;
         return;
     }
 
-    container.innerHTML = classificacoesList.map(c => `
-        <div class="classif-item" id="item-${c.classificacao}">
-            <span class="classif-color-dot" style="background:${c.cor || '#004b87'};"></span>
-            <div class="classif-info">
-                <div class="classif-nome">${escapeHtml(c.nome || c.classificacao)}</div>
-                ${c.titulo ? `<div class="classif-titulo">${escapeHtml(c.titulo)}</div>` : ''}
-                <span class="classif-key">${escapeHtml(c.classificacao)}</span>
-            </div>
-            <div class="classif-actions">
-                <button class="btn-icon" onclick="abrirModalEditar('${c.classificacao}')">
-                    <i class="fas fa-edit"></i> Editar
-                </button>
-                <button class="btn-icon danger" onclick="abrirModalExcluir('${c.classificacao}')">
-                    <i class="fas fa-trash"></i>
-                </button>
-            </div>
-        </div>
+    tbody.innerHTML = lista.map(c => `
+        <tr id="item-${c.classificacao}">
+            <td style="width:2.5rem;">
+                <span class="color-dot" style="background:${c.cor || '#004b87'};"></span>
+            </td>
+            <td><strong>${escapeHtml(c.nome || c.classificacao)}</strong></td>
+            <td style="color:var(--text-muted);">${c.titulo ? escapeHtml(c.titulo) : '—'}</td>
+            <td><span class="classif-key">${escapeHtml(c.classificacao)}</span></td>
+            <td>
+                <div class="actions-cell">
+                    <button class="btn-icon" onclick="abrirModalEditar('${c.classificacao}')" title="Editar">
+                        <i class="fas fa-edit"></i>
+                    </button>
+                    <button class="btn-icon" onclick="abrirModalExcluir('${c.classificacao}')" title="Excluir">
+                        <i class="fas fa-trash"></i>
+                    </button>
+                </div>
+            </td>
+        </tr>
     `).join('');
 }
 
@@ -391,10 +410,45 @@ async function executarExclusao() {
         renderLista();
         fecharModalExcluir();
     } catch (e) {
-        alert(e.message || 'Erro ao excluir classificação. Verifique se há escalas vinculadas.');
+        Auth.toast(e.message || 'Erro ao excluir classificação. Verifique se há escalas vinculadas.', 'error');
         btn.disabled    = false;
         btn.textContent = 'Excluir';
     }
+}
+
+/* ══════════════════════════════════ Toolbar: search + export ════ */
+function initToolbar() {
+    const search = document.getElementById('search-ministerios');
+    if (search) {
+        search.addEventListener('input', () => renderLista(search.value));
+    }
+    const btnExport = document.getElementById('btn-export-ministerios');
+    if (btnExport) btnExport.addEventListener('click', exportarCSV);
+}
+
+function exportarCSV() {
+    if (!classificacoesList.length) return;
+    const linhas = [
+        ['Nome', 'Título', 'Chave', 'Cor'],
+        ...classificacoesList.map(c => [
+            c.nome || c.classificacao,
+            c.titulo || '',
+            c.classificacao,
+            c.cor || ''
+        ])
+    ];
+    const conteudo = linhas
+        .map(cols => cols.map(v => `"${String(v).replace(/"/g, '""')}"`).join(';'))
+        .join('\r\n');
+    const blob = new Blob(['﻿' + conteudo], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const a    = document.createElement('a');
+    a.href     = url;
+    a.download = 'ministerios.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
 }
 
 /* ═══════════════════════════════════════════════ Helpers ════ */

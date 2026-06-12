@@ -15,6 +15,8 @@ let classificacoesDisponiveis = [];
 let currentMinisterio = null;
 /** Cache da lista completa de voluntários, usada para resolver nomes de líderes. */
 let voluntariosGlobal = [];
+/** Cache da lista completa de ministérios, usada para busca/filtro e exportação CSV. */
+let ministeriosGlobal = [];
 
 /** Inicializa a tela: carrega classificações, liga eventos do modal e busca dados. */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -22,8 +24,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
     initModalEvents();
     renderClassifChips('classif-checkboxes-min', []);
-    await fetchVoluntarios();
-    fetchMinisterios();
+    await Promise.all([fetchVoluntarios(), fetchMinisterios()]);
+    initMinisteriosToolbar();
+    Auth.esconderLoading();
 });
 
 /**
@@ -168,19 +171,34 @@ function populateLiderSelects(voluntarios) {
 }
 
 /**
- * Busca os ministérios na API e renderiza a tabela. Em caso de falha, exibe dados
- * mock como fallback.
+ * Busca os ministérios na API e renderiza a tabela.
  *
  * @async
  * @returns {Promise<void>}
  */
 async function fetchMinisterios() {
+    const list = document.getElementById('ministerios-list');
+    if (list) {
+        list.innerHTML = Array.from({ length: 4 }, () => `
+            <tr class="skeleton-row">
+                <td><span class="skeleton" style="width:60%;"></span></td>
+                <td><span class="skeleton" style="width:50%;"></span></td>
+                <td><span class="skeleton" style="width:45%;"></span></td>
+                <td><span class="skeleton" style="width:60px;"></span></td>
+            </tr>`).join('');
+    }
     try {
         const response = await fetch(MINISTERIOS_API_URL);
         if (!response.ok) throw new Error('API Offline');
         const data = await response.json();
+        ministeriosGlobal = data;
         renderMinisteriosTable(data);
-    } catch (error) { renderMockMinisterios(); }
+    } catch (error) {
+        console.error('Erro ao carregar ministérios:', error);
+        if (list) list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:2rem;">'
+            + '<i class="fas fa-exclamation-circle" style="margin-right:.5rem;"></i>'
+            + 'Erro ao carregar dados. Verifique a conexão com o servidor.</td></tr>';
+    }
 }
 
 /**
@@ -288,17 +306,26 @@ function initModalEvents() {
     btnConfirmDelete.onclick = async () => {
         if (!currentMinisterio) return;
         const id = currentMinisterio.id || currentMinisterio._id;
+        const textoOriginal = btnConfirmDelete.textContent;
+        btnConfirmDelete.disabled = true;
+        btnConfirmDelete.textContent = 'Excluindo…';
         try {
             const response = await fetch(`${MINISTERIOS_API_URL}/${id}`, { method: 'DELETE' });
             if (!response.ok) {
-                alert('Erro ao excluir ministério. Tente novamente.');
+                let msg = 'Erro ao excluir ministério. Tente novamente.';
+                try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
+                Auth.toast(msg, 'error');
+                btnConfirmDelete.disabled = false;
+                btnConfirmDelete.textContent = textoOriginal;
                 return;
             }
             confirmModal.classList.remove('show-modal');
             modal.classList.remove('show-modal');
             fetchMinisterios();
         } catch (e) {
-            alert('Falha na conexão ao tentar excluir.');
+            Auth.toast('Falha na conexão ao tentar excluir.', 'error');
+            btnConfirmDelete.disabled = false;
+            btnConfirmDelete.textContent = textoOriginal;
         }
     };
 
@@ -309,6 +336,32 @@ function initModalEvents() {
 
     form.onsubmit = async (e) => {
         e.preventDefault();
+
+        // Validação visual do campo obrigatório
+        const nomeEl = document.getElementById('nome');
+        if (nomeEl) {
+            const erroId = 'nome-ministerio-erro';
+            let erroEl = document.getElementById(erroId);
+            if (!erroEl) {
+                erroEl = document.createElement('span');
+                erroEl.id = erroId;
+                erroEl.className = 'field-error-msg';
+                nomeEl.parentNode.appendChild(erroEl);
+            }
+            if (!nomeEl.value.trim()) {
+                nomeEl.classList.add('field-invalid');
+                erroEl.textContent = 'Nome é obrigatório.';
+                nomeEl.addEventListener('input', () => {
+                    nomeEl.classList.remove('field-invalid');
+                    erroEl.textContent = '';
+                }, { once: true });
+                return;
+            } else {
+                nomeEl.classList.remove('field-invalid');
+                erroEl.textContent = '';
+            }
+        }
+
         const id = document.getElementById('ministerio-id').value;
         const tipoSelecionado = document.querySelector('input[name="tipo"]:checked')?.value || 'ESPECIFICO';
         const formData = {
@@ -319,16 +372,27 @@ function initModalEvents() {
             liderId: document.getElementById('liderId').value || null,
             coliderId: document.getElementById('coliderId').value || null
         };
+        const btnSubmit = form.querySelector('button[type="submit"]');
+        const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Salvar';
+        if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Salvando…'; }
         try {
-            await fetch(id ? `${MINISTERIOS_API_URL}/${id}` : MINISTERIOS_API_URL, {
+            const resp = await fetch(id ? `${MINISTERIOS_API_URL}/${id}` : MINISTERIOS_API_URL, {
                 method: id ? 'PUT' : 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(formData)
             });
+            if (!resp.ok) {
+                let msg = 'Erro ao salvar ministério.';
+                try { const data = await resp.json(); msg = data.message || msg; } catch (_) {}
+                Auth.toast(msg, 'error');
+                if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
+                return;
+            }
             modal.classList.remove('show-modal');
             fetchMinisterios();
         } catch (e) {
-            modal.classList.remove('show-modal');
+            Auth.toast('Falha na conexão. Verifique se o servidor está rodando.', 'error');
+            if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
         }
     };
 }
@@ -371,7 +435,7 @@ async function viewMinisterio(id) {
         renderViewMode(m);
     } catch (e) {
         console.error('Erro ao carregar ministério:', e);
-        alert('Não foi possível carregar os dados do ministério.');
+        Auth.toast('Não foi possível carregar os dados do ministério.', 'error');
     }
 }
 
@@ -425,7 +489,7 @@ async function editMinisterio(id) {
         document.getElementById('ministerio-modal').classList.add('show-modal');
     } catch (e) {
         console.error('Erro ao carregar ministério para edição:', e);
-        alert('Não foi possível carregar os dados do ministério.');
+        Auth.toast('Não foi possível carregar os dados do ministério.', 'error');
     }
 }
 
@@ -477,18 +541,72 @@ function resetForm() {
     currentMinisterio = null;
 }
 
-// Aparência, toggle de tema, color picker e botão de configurações
-// são gerenciados centralmente pelo auth.js (inicializarAparencia).
-
-/** Dados mock de ministérios usados como fallback quando a API está indisponível. */
-let mockMinisterios = [
-    { id: 1, nome: 'Louvor', liderId: 1, nomeLider: 'Ana Souza', coliderId: 3, nomeColider: 'Mariana Lima', membros: [{nome: 'Ana Souza', vezesEscalado: 12}, {nome: 'João Silva', vezesEscalado: 8}] },
-    { id: 2, nome: 'Mídia', liderId: 2, nomeLider: 'Carlos Rocha', coliderId: null, nomeColider: '', membros: [] }
-];
-
 /**
- * Renderiza a tabela usando os dados mock (fallback de {@link fetchMinisterios}).
+ * Inicializa a toolbar de busca e o botão de exportação CSV da tela de ministérios.
  *
  * @returns {void}
  */
-function renderMockMinisterios() { renderMinisteriosTable(mockMinisterios); }
+function initMinisteriosToolbar() {
+    const searchInput = document.getElementById('search-ministerios');
+    if (searchInput) {
+        searchInput.addEventListener('input', () => {
+            const termo = searchInput.value.trim().toLowerCase();
+            const filtrados = termo
+                ? ministeriosGlobal.filter(m =>
+                    m.nome.toLowerCase().includes(termo) ||
+                    (m.tipo || '').toLowerCase().includes(termo) ||
+                    (resolveName(m, 'lider') || '').toLowerCase().includes(termo)
+                  )
+                : ministeriosGlobal;
+            renderMinisteriosTable(filtrados);
+        });
+    }
+
+    const btnExport = document.getElementById('btn-export-ministerios');
+    if (btnExport) btnExport.addEventListener('click', exportarMinisteriosCSV);
+}
+
+/**
+ * Exporta a lista de ministérios como arquivo CSV.
+ *
+ * @returns {void}
+ */
+function exportarMinisteriosCSV() {
+    if (!ministeriosGlobal.length) {
+        Auth.toast('Nenhum dado disponível para exportar.', 'warning');
+        return;
+    }
+    const cabecalho = ['Nome', 'Tipo', 'Exclusivo', 'Líder', 'Co-líder', 'Classificações'];
+    const linhas = ministeriosGlobal.map(m => [
+        m.nome || '',
+        m.tipo === 'GERAL' ? 'Geral' : 'Específico',
+        m.exclusivoNaEscala ? 'Sim' : 'Não',
+        resolveName(m, 'lider') || '',
+        resolveName(m, 'colider') || '',
+        (m.classificacoes || []).join('; ')
+    ]);
+    baixarCSV('ministerios.csv', [cabecalho, ...linhas]);
+}
+
+/**
+ * Gera e dispara o download de um arquivo CSV.
+ *
+ * @param {string}     nome  nome do arquivo a baixar.
+ * @param {string[][]} linhas matriz de linhas e colunas.
+ * @returns {void}
+ */
+function baixarCSV(nome, linhas) {
+    const conteudo = '﻿' + linhas
+        .map(linha => linha.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href     = url;
+    link.download = nome;
+    link.click();
+    URL.revokeObjectURL(url);
+}
+
+// Aparência, toggle de tema, color picker e botão de configurações
+// são gerenciados centralmente pelo auth.js (inicializarAparencia).

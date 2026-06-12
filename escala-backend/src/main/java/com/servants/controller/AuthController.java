@@ -4,97 +4,79 @@ import com.servants.dto.CadastroRequest;
 import com.servants.dto.LoginRequest;
 import com.servants.dto.UsuarioResponseDTO;
 import com.servants.model.Usuario;
-import com.servants.security.TokenStore;
+import com.servants.security.JwtService;
+import com.servants.service.PermissaoService;
 import com.servants.service.UsuarioService;
-import jakarta.servlet.http.HttpServletRequest;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 /**
- * Controller REST de autenticação, exposto em {@code /api/auth}. Trata login,
- * cadastro e logout, emitindo e invalidando tokens de sessão via {@link TokenStore}.
+ * Controller REST de autenticação, exposto em {@code /api/auth}.
+ *
+ * <p>Emite tokens JWT stateless — sobrevivem a restarts do servidor.
+ * O logout é efetivado no cliente (limpar o token); o endpoint retorna 204
+ * para compatibilidade com o frontend.</p>
  */
 @RestController
 @RequestMapping("/api/auth")
 public class AuthController {
 
     private final UsuarioService usuarioService;
-    private final TokenStore tokenStore;
+    private final JwtService jwtService;
+    private final PermissaoService permissaoService;
 
-    /**
-     * @param usuarioService serviço de autenticação e contas.
-     * @param tokenStore     armazenamento de tokens de sessão.
-     */
-    public AuthController(UsuarioService usuarioService, TokenStore tokenStore) {
+    public AuthController(UsuarioService usuarioService, JwtService jwtService,
+                          PermissaoService permissaoService) {
         this.usuarioService = usuarioService;
-        this.tokenStore = tokenStore;
+        this.jwtService = jwtService;
+        this.permissaoService = permissaoService;
     }
 
     /**
-     * {@code POST /api/auth/login} — autentica o usuário e emite um token.
+     * {@code POST /api/auth/login} — autentica e emite um JWT.
      *
-     * @param loginRequest credenciais (e-mail e senha).
-     * @return {@code 200 OK} com {@link UsuarioResponseDTO} e token, ou {@code 401} se inválido.
+     * @return 200 com {@link UsuarioResponseDTO} + token, ou 401 se inválido.
      */
     @PostMapping("/login")
-    public ResponseEntity<UsuarioResponseDTO> login(@RequestBody LoginRequest loginRequest) {
+    public ResponseEntity<UsuarioResponseDTO> login(@Valid @RequestBody LoginRequest loginRequest) {
         return usuarioService.realizarLogin(loginRequest)
-                .map(u -> ResponseEntity.ok(toDTO(u, tokenStore.gerar(u))))
+                .map(u -> ResponseEntity.ok(toDTO(u, jwtService.gerar(u.getId(), u.getRole(), u.getNome()))))
                 .orElse(ResponseEntity.status(401).build());
     }
 
     /**
      * {@code POST /api/auth/cadastro} — cadastra um novo usuário e já o autentica.
      *
-     * @param request dados de cadastro (nome, e-mail, senha).
-     * @return {@code 201 CREATED} com {@link UsuarioResponseDTO} e token, ou
-     *         {@code 409 CONFLICT} com a mensagem de erro se o e-mail já existir.
+     * @return 201 com token, ou 409 se o e-mail já estiver em uso.
      */
     @PostMapping("/cadastro")
-    public ResponseEntity<?> cadastro(@RequestBody CadastroRequest request) {
+    public ResponseEntity<?> cadastro(@Valid @RequestBody CadastroRequest request) {
         try {
             Usuario usuario = usuarioService.cadastrar(request);
-            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(usuario, tokenStore.gerar(usuario)));
+            String token = jwtService.gerar(usuario.getId(), usuario.getRole(), usuario.getNome());
+            return ResponseEntity.status(HttpStatus.CREATED).body(toDTO(usuario, token));
         } catch (IllegalArgumentException e) {
             return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
         }
     }
 
     /**
-     * {@code POST /api/auth/logout} — invalida o token de sessão do cabeçalho Authorization.
+     * {@code POST /api/auth/logout} — no-op server-side (JWT é stateless).
+     * O cliente deve descartar o token localmente.
      *
-     * @param request requisição HTTP de onde o token Bearer é extraído.
-     * @return {@code 204 NO CONTENT}.
+     * @return 204 NO CONTENT.
      */
     @PostMapping("/logout")
-    public ResponseEntity<Void> logout(HttpServletRequest request) {
-        tokenStore.invalidar(extrairToken(request));
+    public ResponseEntity<Void> logout() {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * Extrai o token Bearer do cabeçalho {@code Authorization}.
-     *
-     * @param request requisição HTTP.
-     * @return o token sem o prefixo "Bearer ", ou {@code null} se ausente/malformado.
-     */
-    private String extrairToken(HttpServletRequest request) {
-        String header = request.getHeader("Authorization");
-        if (header != null && header.startsWith("Bearer ")) {
-            return header.substring(7);
-        }
-        return null;
-    }
-
-    /**
-     * Monta o DTO de resposta de autenticação a partir do usuário e do token emitido.
-     *
-     * @param u     usuário autenticado.
-     * @param token token de sessão gerado.
-     * @return o {@link UsuarioResponseDTO} pronto para resposta.
-     */
     private UsuarioResponseDTO toDTO(Usuario u, String token) {
-        return new UsuarioResponseDTO(u.getId(), u.getNome(), u.getEmail(), u.getTema(), u.getCorPrimaria(), u.getRole(), token);
+        return new UsuarioResponseDTO(
+                u.getId(), u.getNome(), u.getEmail(),
+                u.getTema(), u.getCorPrimaria(), u.getRole(), u.getFoto(),
+                permissaoService.listarDTO(u.getId()), token);
     }
 }

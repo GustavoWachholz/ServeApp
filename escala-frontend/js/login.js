@@ -13,7 +13,7 @@ const API_BASE = 'http://localhost:8080/api/auth';
 document.addEventListener('DOMContentLoaded', () => {
     // Se já estiver logado, redireciona direto
     if (sessionStorage.getItem('serve_session')) {
-        window.location.replace('index.html');
+        window.location.replace('app.html');
         return;
     }
 
@@ -68,7 +68,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.ok) {
                     const usuario = await res.json();
                     sessionStorage.setItem('serve_session', JSON.stringify(usuario));
-                    window.location.replace('index.html');
+                    window.location.replace('app.html');
                 } else if (res.status === 401) {
                     mostrarErro(msgErro, 'E-mail ou senha incorretos.');
                 } else {
@@ -99,8 +99,8 @@ document.addEventListener('DOMContentLoaded', () => {
                 mostrarErro(msgErroRegistro, 'As senhas não coincidem.');
                 return;
             }
-            if (senha.length < 6) {
-                mostrarErro(msgErroRegistro, 'A senha deve ter no mínimo 6 caracteres.');
+            if (senha.length < 8) {
+                mostrarErro(msgErroRegistro, 'A senha deve ter no mínimo 8 caracteres.');
                 return;
             }
 
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     // Cadastro feito — faz login automático
                     const usuario = await res.json();
                     sessionStorage.setItem('serve_session', JSON.stringify(usuario));
-                    window.location.replace('index.html');
+                    window.location.replace('app.html');
                 } else if (res.status === 409) {
                     const msg = await res.text();
                     mostrarErro(msgErroRegistro, msg || 'Este e-mail já está cadastrado.');

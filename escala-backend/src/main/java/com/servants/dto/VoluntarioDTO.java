@@ -1,5 +1,7 @@
 package com.servants.dto;
 
+import jakarta.validation.constraints.PastOrPresent;
+
 import java.time.LocalDate;
 import java.util.List;
 
@@ -10,7 +12,7 @@ import java.util.List;
  * @param nome           nome completo.
  * @param telefone       telefone de contato.
  * @param email          e-mail de contato.
- * @param dataNascimento data de nascimento.
+ * @param dataNascimento data de nascimento (não pode ser futura).
  * @param genero         gênero do voluntário ("MASCULINO" ou "FEMININO").
  * @param ministerios    nomes dos ministérios (áreas) específicos do voluntário.
  * @param classificacoes classificações (ministérios, na UI) em que o voluntário pode atuar.
@@ -22,7 +24,7 @@ public record VoluntarioDTO(
     String nome,
     String telefone,
     String email,
-    LocalDate dataNascimento,
+    @PastOrPresent(message = "A data de nascimento não pode ser uma data futura") LocalDate dataNascimento,
     String genero,
     List<String> ministerios,
     List<String> classificacoes,

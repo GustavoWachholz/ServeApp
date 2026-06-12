@@ -4,6 +4,7 @@ import com.servants.dto.EscalaDTO;
 import com.servants.dto.EscalaVoluntarioDTO;
 import com.servants.dto.EventoAgendaDTO;
 import com.servants.service.EscalaService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -56,7 +57,7 @@ public class EscalaController {
      * @return {@code 201 CREATED} com o {@link EscalaDTO} persistido.
      */
     @PostMapping
-    public ResponseEntity<EscalaDTO> criar(@RequestBody EscalaDTO dto) {
+    public ResponseEntity<EscalaDTO> criar(@Valid @RequestBody EscalaDTO dto) {
         EscalaDTO salva = escalaService.criarComAtribuicoes(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(salva);
     }
@@ -69,7 +70,7 @@ public class EscalaController {
      * @return {@code 200 OK} com o {@link EscalaDTO} atualizado.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<EscalaDTO> atualizar(@PathVariable Long id, @RequestBody EscalaDTO dto) {
+    public ResponseEntity<EscalaDTO> atualizar(@PathVariable Long id, @Valid @RequestBody EscalaDTO dto) {
         EscalaDTO atualizada = escalaService.atualizarComAtribuicoes(id, dto);
         return ResponseEntity.ok(atualizada);
     }

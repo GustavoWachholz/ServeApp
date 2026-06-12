@@ -2,6 +2,7 @@ package com.servants.controller;
 
 import com.servants.dto.VoluntarioDTO;
 import com.servants.service.VoluntarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -53,7 +54,7 @@ public class VoluntarioController {
      * @return {@code 201 CREATED} com o {@link VoluntarioDTO} persistido.
      */
     @PostMapping
-    public ResponseEntity<VoluntarioDTO> criar(@RequestBody VoluntarioDTO voluntarioDTO) {
+    public ResponseEntity<VoluntarioDTO> criar(@Valid @RequestBody VoluntarioDTO voluntarioDTO) {
         VoluntarioDTO salvo = voluntarioService.criar(voluntarioDTO);
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
@@ -66,7 +67,7 @@ public class VoluntarioController {
      * @return {@code 200 OK} com o {@link VoluntarioDTO} atualizado.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<VoluntarioDTO> atualizar(@PathVariable Long id, @RequestBody VoluntarioDTO voluntarioDTO) {
+    public ResponseEntity<VoluntarioDTO> atualizar(@PathVariable Long id, @Valid @RequestBody VoluntarioDTO voluntarioDTO) {
         VoluntarioDTO atualizado = voluntarioService.atualizar(id, voluntarioDTO);
         return ResponseEntity.ok(atualizado);
     }

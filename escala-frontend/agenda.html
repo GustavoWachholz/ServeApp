@@ -13,7 +13,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
-    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirLogin();</script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirLogin();</script>
     <style>
         .equipe-grid {
             display: grid;
@@ -136,8 +136,8 @@
         <aside class="sidebar">
             <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
             <div class="sidebar-logo">
-                <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
-                <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
             </div>
             <div class="user-profile">
                 <div class="avatar-wrapper">
@@ -155,13 +155,14 @@
                     <li class="nav-group open">
                         <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
                         <ul class="nav-submenu">
-                            <li class="active"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                            <li class="nav-admin-only" style="display:none;"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                            <li class="nav-admin-only" style="display:none;"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                            <li class="nav-admin-only" style="display:none;"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                            <li class="active" data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                            <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                            <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                            <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
                         </ul>
                     </li>
-                    <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
                 </ul>
             </nav>
 
@@ -197,6 +198,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
             <header class="main-header">
                 <h1 class="logo-title"><span>Serve</span></h1>
             </header>

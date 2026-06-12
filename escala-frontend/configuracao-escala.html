@@ -9,74 +9,27 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
-    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirAdmin();</script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirAdmin();</script>
     <style>
-        /* ── Lista de classificações ── */
-        .classif-list {
-            display: flex;
-            flex-direction: column;
-            gap: 0.75rem;
-        }
-
-        .classif-item {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            background: var(--bg-card);
-            border: 1px solid var(--border-color);
-            border-radius: 12px;
-            padding: 1rem 1.25rem;
-        }
-
-        .classif-color-dot {
-            width: 18px;
-            height: 18px;
-            border-radius: 50%;
-            flex-shrink: 0;
-            border: 2px solid rgba(255,255,255,0.3);
-        }
-
-        .classif-info { flex: 1; min-width: 0; }
-        .classif-nome  { font-weight: 600; font-size: 0.95rem; color: var(--text-color); }
-        .classif-titulo { font-size: 0.8rem; color: var(--text-muted); margin-top: 2px; }
+        /* ── Chave de identificação na tabela ── */
         .classif-key {
             font-family: monospace;
-            font-size: 0.7rem;
+            font-size: 0.72rem;
             background: var(--bg-main);
             border: 1px solid var(--border-color);
             border-radius: 4px;
             padding: 1px 6px;
             color: var(--text-muted);
-            margin-top: 4px;
+        }
+
+        .color-dot {
             display: inline-block;
+            width: 14px;
+            height: 14px;
+            border-radius: 50%;
+            vertical-align: middle;
+            flex-shrink: 0;
         }
-
-        .classif-actions { display: flex; gap: 0.5rem; flex-shrink: 0; }
-
-        .btn-icon {
-            display: inline-flex;
-            align-items: center;
-            gap: 0.35rem;
-            padding: 0.4rem 0.8rem;
-            border-radius: 7px;
-            border: 1px solid var(--border-color);
-            background: var(--bg-main);
-            color: var(--text-color);
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.15s;
-        }
-        .btn-icon:hover { border-color: var(--primary-color); color: var(--primary-color); background: var(--bg-card); }
-        .btn-icon.danger:hover { border-color: #ef4444; color: #ef4444; }
-
-        .empty-state {
-            text-align: center;
-            padding: 3rem 1.5rem;
-            color: var(--text-muted);
-        }
-        .empty-state i { font-size: 2.5rem; margin-bottom: 1rem; opacity: 0.4; display: block; }
-        .empty-state p { font-size: 0.9rem; margin-bottom: 1.25rem; }
 
         /* ── Modais ── */
         .modal-overlay {
@@ -221,8 +174,8 @@
     <aside class="sidebar">
         <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
         <div class="sidebar-logo">
-            <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
-            <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
+            <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+            <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
         </div>
         <div class="user-profile">
             <div class="avatar-wrapper">
@@ -240,13 +193,14 @@
                 <li class="nav-group open">
                     <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
                     <ul class="nav-submenu">
-                        <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                        <li class="nav-admin-only"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                        <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                        <li class="nav-admin-only active"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                        <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                        <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                        <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                        <li class="active" data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
                     </ul>
                 </li>
-                <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
             </ul>
         </nav>
 
@@ -274,28 +228,44 @@
 
     <!-- Main Content -->
     <main class="main-content">
+        <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
         <header class="main-header">
             <h1 class="logo-title"><span>Serve</span></h1>
         </header>
 
         <section class="dashboard-section">
-            <div class="section-header" style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1.5rem;">
-                <div>
-                    <h2>MINISTÉRIOS</h2>
-                    <p style="color:var(--text-muted);font-size:0.85rem;margin-top:0.25rem;">
-                        Gerencie os ministérios e configure como cada um é exibido na escala.
-                    </p>
-                </div>
+            <div class="section-header">
+                <h2>MINISTÉRIOS</h2>
                 <button class="btn-primary" onclick="abrirModalCriar()">
                     <i class="fas fa-plus"></i> Novo Ministério
                 </button>
             </div>
 
-            <div class="classif-list" id="classif-list">
-                <div class="empty-state">
-                    <i class="fas fa-tags"></i>
-                    <p>Carregando ministérios...</p>
+            <div class="toolbar" style="margin-bottom:.75rem;">
+                <div class="search-wrapper">
+                    <i class="fas fa-search search-icon"></i>
+                    <input type="text" id="search-ministerios" placeholder="Pesquisar ministério…" autocomplete="off">
                 </div>
+                <button type="button" id="btn-export-ministerios" class="btn-sort" title="Exportar CSV">
+                    <i class="fas fa-download" style="margin-right:.3rem;font-size:.75rem;"></i>Exportar CSV
+                </button>
+            </div>
+
+            <div class="list-table-container">
+                <table>
+                    <thead>
+                        <tr>
+                            <th style="width:2.5rem;"></th>
+                            <th>Nome</th>
+                            <th>Título</th>
+                            <th>Chave</th>
+                            <th>Ações</th>
+                        </tr>
+                    </thead>
+                    <tbody id="classif-list">
+                        <!-- Dinâmico -->
+                    </tbody>
+                </table>
             </div>
         </section>
     </main>

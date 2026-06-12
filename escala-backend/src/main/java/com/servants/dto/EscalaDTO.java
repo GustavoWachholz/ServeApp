@@ -1,5 +1,7 @@
 package com.servants.dto;
 
+import jakarta.validation.constraints.Pattern;
+
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
@@ -18,7 +20,8 @@ public class EscalaDTO {
     private LocalDateTime dataEscala;
     /** Data e hora de término do evento (opcional). */
     private LocalDateTime dataFim;
-    /** Cor (hex) do evento no calendário. */
+    /** Cor (hex) do evento no calendário. Ex.: {@code "#004b87"}. */
+    @Pattern(regexp = "^#([0-9a-fA-F]{6})$", message = "Cor inválida: use o formato hexadecimal #RRGGBB")
     private String cor;
     /** Status de preenchimento ("COMPLETO" ou "INCOMPLETO"). */
     private String status;

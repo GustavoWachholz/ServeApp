@@ -41,6 +41,10 @@ public class Usuario {
     @Column(nullable = false)
     private String role = "VOLUNTARIO";
 
+    /** Foto de perfil do usuário, em data URL Base64. Opcional. */
+    @Column(columnDefinition = "LONGTEXT")
+    private String foto;
+
     /** Construtor padrão exigido pelo JPA. */
     public Usuario() {
     }
@@ -124,6 +128,16 @@ public class Usuario {
     /** @param role define o papel/permissão do usuário ("ADMIN" ou "VOLUNTARIO"). */
     public void setRole(String role) {
         this.role = role;
+    }
+
+    /** @return a foto de perfil (data URL Base64), ou {@code null} se não houver. */
+    public String getFoto() {
+        return foto;
+    }
+
+    /** @param foto define a foto de perfil (data URL Base64). */
+    public void setFoto(String foto) {
+        this.foto = foto;
     }
 
     /**

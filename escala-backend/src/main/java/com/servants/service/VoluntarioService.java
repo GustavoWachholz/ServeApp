@@ -13,6 +13,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 /**
  * Serviço de regras de negócio para voluntários (servos): CRUD e conversão entre
@@ -112,9 +113,9 @@ public class VoluntarioService {
         voluntario.setTelefone(dto.telefone());
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
-        voluntario.setGenero(dto.genero());
-        voluntario.setMinisterios(dto.ministerios());
-        voluntario.setClassificacoes(dto.classificacoes());
+        voluntario.setGenero(normalizarGenero(dto.genero()));
+        voluntario.setMinisterios(normalizarLista(dto.ministerios(), false));
+        voluntario.setClassificacoes(normalizarLista(dto.classificacoes(), true));
 
         Voluntario atualizado = voluntarioRepository.save(voluntario);
         return convertToDTO(atualizado, buscarEscaladoIds());
@@ -163,7 +164,8 @@ public class VoluntarioService {
     }
 
     /**
-     * Converte um {@link VoluntarioDTO} em entidade {@link Voluntario}.
+     * Converte um {@link VoluntarioDTO} em entidade {@link Voluntario}, normalizando
+     * gênero e listas de strings antes de persistir.
      *
      * @param dto DTO a converter.
      * @return a entidade correspondente.
@@ -175,9 +177,46 @@ public class VoluntarioService {
         voluntario.setTelefone(dto.telefone());
         voluntario.setEmail(dto.email());
         voluntario.setDataNascimento(dto.dataNascimento());
-        voluntario.setGenero(dto.genero());
-        voluntario.setMinisterios(dto.ministerios());
-        voluntario.setClassificacoes(dto.classificacoes());
+        voluntario.setGenero(normalizarGenero(dto.genero()));
+        voluntario.setMinisterios(normalizarLista(dto.ministerios(), false));
+        voluntario.setClassificacoes(normalizarLista(dto.classificacoes(), true));
         return voluntario;
+    }
+
+    /**
+     * Normaliza o gênero: {@code null}/vazio → {@code null}; qualquer valor →
+     * trimado e em maiúsculas. Lança {@link IllegalArgumentException} se o valor
+     * não for "MASCULINO" nem "FEMININO".
+     *
+     * @param genero valor recebido do cliente.
+     * @return gênero normalizado ou {@code null}.
+     */
+    private String normalizarGenero(String genero) {
+        if (genero == null || genero.isBlank()) return null;
+        String g = genero.trim().toUpperCase();
+        if (!Set.of("MASCULINO", "FEMININO").contains(g)) {
+            throw new IllegalArgumentException(
+                    "Gênero inválido: \"" + genero + "\". Valores aceitos: MASCULINO, FEMININO.");
+        }
+        return g;
+    }
+
+    /**
+     * Normaliza uma lista de strings: remove nulos, aplica trim e, opcionalmente,
+     * converte para maiúsculas (para classificações que devem casar com chaves
+     * de {@code ConfiguracaoEscala}).
+     *
+     * @param lista      lista de entrada (pode ser {@code null}).
+     * @param uppercase  {@code true} para converter para maiúsculas.
+     * @return lista normalizada (nunca {@code null}).
+     */
+    private List<String> normalizarLista(List<String> lista, boolean uppercase) {
+        if (lista == null) return List.of();
+        Stream<String> stream = lista.stream()
+                .filter(s -> s != null)
+                .map(String::trim)
+                .filter(s -> !s.isEmpty());
+        if (uppercase) stream = stream.map(String::toUpperCase);
+        return stream.collect(Collectors.toList());
     }
 }

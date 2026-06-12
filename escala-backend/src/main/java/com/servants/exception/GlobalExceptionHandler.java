@@ -1,6 +1,8 @@
 package com.servants.exception;
 
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.MethodArgumentNotValidException;
 import org.springframework.web.bind.annotation.ControllerAdvice;
 import org.springframework.web.bind.annotation.ExceptionHandler;
 import org.springframework.web.servlet.resource.NoResourceFoundException;
@@ -8,6 +10,7 @@ import org.springframework.web.servlet.resource.NoResourceFoundException;
 import java.time.LocalDateTime;
 import java.util.LinkedHashMap;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Tratador global de exceções ({@link ControllerAdvice}) que converte exceções
@@ -19,9 +22,6 @@ public class GlobalExceptionHandler {
 
     /**
      * Trata argumentos inválidos (ex.: violação de regra de negócio) como HTTP 400.
-     *
-     * @param ex exceção capturada.
-     * @return resposta {@code 400 BAD REQUEST} com timestamp e mensagem.
      */
     @ExceptionHandler(IllegalArgumentException.class)
     public ResponseEntity<Object> handleIllegalArgumentException(IllegalArgumentException ex) {
@@ -29,6 +29,32 @@ public class GlobalExceptionHandler {
         body.put("timestamp", LocalDateTime.now());
         body.put("message", ex.getMessage());
         return ResponseEntity.status(400).body(body);
+    }
+
+    /**
+     * Trata falhas de validação de Bean (@Valid) como HTTP 400 com lista de erros por campo.
+     */
+    @ExceptionHandler(MethodArgumentNotValidException.class)
+    public ResponseEntity<Object> handleValidation(MethodArgumentNotValidException ex) {
+        String erros = ex.getBindingResult().getFieldErrors().stream()
+                .map(e -> e.getField() + ": " + e.getDefaultMessage())
+                .collect(Collectors.joining("; "));
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", erros);
+        return ResponseEntity.status(400).body(body);
+    }
+
+    /**
+     * Trata violação de constraint de banco (ex.: e-mail duplicado) como HTTP 409 CONFLICT.
+     * Garante resposta limpa mesmo quando a race condition bypassa a verificação em service.
+     */
+    @ExceptionHandler(DataIntegrityViolationException.class)
+    public ResponseEntity<Object> handleDataIntegrity(DataIntegrityViolationException ex) {
+        Map<String, Object> body = new LinkedHashMap<>();
+        body.put("timestamp", LocalDateTime.now());
+        body.put("message", "Já existe um registro com esses dados (e-mail duplicado ou constraint violada).");
+        return ResponseEntity.status(409).body(body);
     }
 
     /**

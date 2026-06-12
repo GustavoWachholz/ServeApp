@@ -13,6 +13,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
@@ -102,6 +103,7 @@ public class MinisterioService {
         return convertToDTO(salvo);
     }
 
+
     /**
      * Atualiza um ministério existente com os dados do DTO, resolvendo líder/co-líder
      * a partir de seus identificadores.
@@ -117,9 +119,9 @@ public class MinisterioService {
                 .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
 
         ministerio.setNome(dto.nome());
-        ministerio.setTipo(dto.tipo() != null ? dto.tipo() : "ESPECIFICO");
+        ministerio.setTipo(normalizarTipo(dto.tipo()));
         ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
-        ministerio.setClassificacoes(dto.classificacoes());
+        ministerio.setClassificacoes(normalizarClassificacoes(dto.classificacoes()));
         ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
         ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
 
@@ -173,11 +175,39 @@ public class MinisterioService {
         Ministerio ministerio = new Ministerio();
         ministerio.setId(dto.id());
         ministerio.setNome(dto.nome());
-        ministerio.setTipo(dto.tipo() != null ? dto.tipo() : "ESPECIFICO");
+        ministerio.setTipo(normalizarTipo(dto.tipo()));
         ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
-        ministerio.setClassificacoes(dto.classificacoes());
+        ministerio.setClassificacoes(normalizarClassificacoes(dto.classificacoes()));
         ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
         ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
         return ministerio;
+    }
+
+    /**
+     * Normaliza o tipo do ministério: {@code null}/vazio → {@code "ESPECIFICO"};
+     * qualquer valor → trimado e em maiúsculas. Lança {@link IllegalArgumentException}
+     * para valores desconhecidos.
+     */
+    private String normalizarTipo(String tipo) {
+        if (tipo == null || tipo.isBlank()) return "ESPECIFICO";
+        String t = tipo.trim().toUpperCase();
+        if (!Set.of("GERAL", "ESPECIFICO").contains(t)) {
+            throw new IllegalArgumentException(
+                    "Tipo de ministério inválido: \"" + tipo + "\". Valores aceitos: GERAL, ESPECIFICO.");
+        }
+        return t;
+    }
+
+    /**
+     * Normaliza uma lista de classificações: remove nulos/vazios, aplica trim e
+     * converte para maiúsculas (para casar com as chaves de {@code ConfiguracaoEscala}).
+     */
+    private List<String> normalizarClassificacoes(List<String> lista) {
+        if (lista == null) return List.of();
+        return lista.stream()
+                .filter(s -> s != null)
+                .map(s -> s.trim().toUpperCase())
+                .filter(s -> !s.isEmpty())
+                .collect(Collectors.toList());
     }
 }

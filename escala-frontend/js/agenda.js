@@ -12,6 +12,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
         step((generator = generator.apply(thisArg, _arguments || [])).next());
     });
 };
+/// <reference path="./auth.d.ts" />
 /** URL da API de escalas. */
 const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
 /** URL da API de configurações de escala (classificações). */
@@ -24,6 +25,8 @@ let calendar;
 let listaVoluntarios = [];
 /** Id da escala atualmente em edição (null ao criar). */
 let escalaAtualId = null;
+/** Indica falha no carregamento da lista de voluntários. */
+let voluntariosErro = false;
 /** Configuração da escala ativa (cor, organização, setor, ministérios). */
 let configAtual = null;
 /** Atribuições pré-carregadas ao editar um evento existente. */
@@ -37,9 +40,10 @@ document.addEventListener('DOMContentLoaded', () => __awaiter(void 0, void 0, vo
     classificacoesDisponiveis = yield ClassificacoesCache.carregarClassificacoes();
     popularSelectClassificacao();
     initModalControls();
-    carregarVoluntariosParaEscala();
+    yield carregarVoluntariosParaEscala();
     initCalendar();
     initAutocomplete();
+    Auth.esconderLoading();
 }));
 /**
  * Popula o {@code <select id="escala-classificacao">} com as classificações dinâmicas
@@ -74,14 +78,13 @@ function carregarVoluntariosParaEscala() {
             if (response.ok) {
                 listaVoluntarios = yield response.json();
             }
+            else {
+                voluntariosErro = true;
+            }
         }
         catch (err) {
             console.error('Erro ao carregar voluntários:', err);
-            listaVoluntarios = [
-                { id: 1, nome: 'João Silva' },
-                { id: 2, nome: 'Maria Oliveira' },
-                { id: 3, nome: 'Pedro Santos' }
-            ];
+            voluntariosErro = true;
         }
     });
 }
@@ -132,6 +135,11 @@ function initAutocomplete() {
         const termo = target.value.toLowerCase().trim();
         if (!termo) {
             listaResultados.style.display = 'none';
+            return;
+        }
+        if (voluntariosErro) {
+            listaResultados.innerHTML = '<li class="sem-resultados">Erro ao carregar voluntários. Recarregue a página.</li>';
+            listaResultados.style.display = 'block';
             return;
         }
         const jaEscalados = obterVoluntariosJaEscalados();

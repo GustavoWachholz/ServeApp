@@ -1,5 +1,7 @@
 package com.servants.dto;
 
+import jakarta.validation.constraints.Pattern;
+
 import java.util.List;
 
 /**
@@ -10,7 +12,7 @@ import java.util.List;
  * @param titulo          título usado no calendário e na imagem.
  * @param nomeOrganizacao nome da organização (título principal da imagem).
  * @param nomeSetor       nome do setor (subtítulo da imagem).
- * @param cor             cor principal (hex) da imagem.
+ * @param cor             cor principal (hex) da imagem. Ex.: {@code "#004b87"}.
  * @param ministerioIds   identificadores das áreas que viram colunas na imagem.
  */
 public record ConfiguracaoEscalaRequest(
@@ -18,6 +20,6 @@ public record ConfiguracaoEscalaRequest(
     String titulo,
     String nomeOrganizacao,
     String nomeSetor,
-    String cor,
+    @Pattern(regexp = "^#([0-9a-fA-F]{6})$", message = "Cor inválida: use o formato hexadecimal #RRGGBB") String cor,
     List<Long> ministerioIds
 ) {}

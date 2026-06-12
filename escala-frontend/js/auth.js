@@ -6,6 +6,37 @@
 (function () {
     const STORAGE_KEY = 'serve_session';
 
+    // ── Shell / iframe ─────────────────────────────────────────────────────
+    // Detecta (de forma síncrona, no <head>) se esta página está sendo exibida
+    // dentro do iframe de conteúdo do shell (app.html). Quando embarcada, a sidebar
+    // própria da página é ocultada via CSS (.embedded) e a navegação/aparência
+    // passam a ser responsabilidade do shell pai.
+    const EMBEDDED = (function () { try { return window.self !== window.top; } catch (e) { return true; } })();
+    if (EMBEDDED) document.documentElement.classList.add('embedded');
+
+    /** @returns {Document|null} documento do iframe de conteúdo do shell, se acessível. */
+    function obterFrameDoc() {
+        try { const f = document.getElementById('content-frame'); return f ? f.contentDocument : null; }
+        catch (e) { return null; }
+    }
+
+    /** @returns {Window|null} window do iframe de conteúdo do shell, se acessível. */
+    function obterFrameWin() {
+        try { const f = document.getElementById('content-frame'); return f ? f.contentWindow : null; }
+        catch (e) { return null; }
+    }
+
+    /**
+     * Redireciona a navegação. Dentro do shell (embedded) redireciona a janela de
+     * topo, para que o login/saída substituam o shell inteiro e não apenas o iframe.
+     *
+     * @param {string} url destino.
+     * @returns {void}
+     */
+    function irPara(url) {
+        (EMBEDDED ? window.top : window).location.replace(url);
+    }
+
     // ── Helpers de sessão ──────────────────────────────────────────────────
 
     /**
@@ -42,6 +73,51 @@
         return u !== null && u.role === 'ADMIN';
     }
 
+    // ── Permissões por tela ────────────────────────────────────────────────
+
+    /**
+     * Lista as permissões por tela da sessão atual.
+     *
+     * @returns {Array<Object>} array de {tela, acessar, criar, editar, excluir}.
+     */
+    function permissoes() {
+        const u = getUsuarioLogado();
+        return (u && Array.isArray(u.permissoes)) ? u.permissoes : [];
+    }
+
+    /** @returns {Object|null} a permissão da tela informada, ou null. */
+    function _perm(tela) {
+        return permissoes().find(p => p.tela === tela) || null;
+    }
+
+    /** @returns {boolean} se o usuário pode acessar a tela (admin sempre pode). */
+    function podeAcessar(tela) {
+        if (isAdmin()) return true;
+        const p = _perm(tela);
+        return !!(p && p.acessar);
+    }
+
+    /** @returns {boolean} se o usuário pode criar registros na tela (admin sempre pode). */
+    function podeCriar(tela) {
+        if (isAdmin()) return true;
+        const p = _perm(tela);
+        return !!(p && p.criar);
+    }
+
+    /** @returns {boolean} se o usuário pode editar registros na tela (admin sempre pode). */
+    function podeEditar(tela) {
+        if (isAdmin()) return true;
+        const p = _perm(tela);
+        return !!(p && p.editar);
+    }
+
+    /** @returns {boolean} se o usuário pode excluir registros na tela (admin sempre pode). */
+    function podeExcluir(tela) {
+        if (isAdmin()) return true;
+        const p = _perm(tela);
+        return !!(p && p.excluir);
+    }
+
     /**
      * Encerra a sessão: invalida o token no servidor (best-effort), limpa o
      * {@code sessionStorage} e redireciona para a tela de login.
@@ -61,7 +137,7 @@
             }
         } catch (e) { /* ignora falhas de rede no logout */ }
         sessionStorage.removeItem(STORAGE_KEY);
-        window.location.replace('login.html');
+        irPara('login.html');
     }
 
     // ── Aparência (tema e cor primária) ────────────────────────────────────
@@ -107,10 +183,19 @@
      *
      * @returns {void}
      */
+    function _atualizarIconeToggle(recolhido) {
+        const icon = document.querySelector('#sidebar-toggle i');
+        if (icon) icon.className = recolhido ? 'fas fa-bars' : 'fas fa-angles-left';
+    }
+
     function alternarSidebar() {
         const recolhido = document.documentElement.classList.toggle('sidebar-collapsed');
         localStorage.setItem(SIDEBAR_KEY, recolhido ? '1' : '0');
+        _atualizarIconeToggle(recolhido);
         window.dispatchEvent(new Event('resize'));
+        // O conteúdo (agenda/FullCalendar) vive no iframe: força o recálculo de altura/largura.
+        const fwin = obterFrameWin();
+        if (fwin) fwin.dispatchEvent(new Event('resize'));
     }
 
     /**
@@ -120,10 +205,28 @@
      * @returns {void}
      */
     function aplicarTema(tema) {
-        document.documentElement.classList.toggle('dark-mode', tema === 'dark');
-        if (document.body) document.body.classList.toggle('dark-mode', tema === 'dark');
+        const escuro = tema === 'dark';
+        document.documentElement.classList.toggle('dark-mode', escuro);
+        if (document.body) document.body.classList.toggle('dark-mode', escuro);
         const toggle = document.getElementById('theme-toggle');
-        if (toggle) toggle.checked = (tema === 'dark');
+        if (toggle) toggle.checked = escuro;
+        // Troca src das logos (fallback JS para browsers sem suporte a CSS content em <img>)
+        _trocarLogos(escuro);
+        // Propaga para o conteúdo dentro do iframe do shell (se houver)
+        const fdoc = obterFrameDoc();
+        if (fdoc) {
+            fdoc.documentElement.classList.toggle('dark-mode', escuro);
+            if (fdoc.body) fdoc.body.classList.toggle('dark-mode', escuro);
+        }
+    }
+
+    function _trocarLogos(escuro) {
+        document.querySelectorAll('img.logo-full').forEach(el => {
+            el.src = escuro ? 'assets/img/logo_dark.png' : 'assets/img/logo_t.png';
+        });
+        document.querySelectorAll('img.logo-mini').forEach(el => {
+            el.src = escuro ? 'assets/img/logo_mini_dark.png' : 'assets/img/logo_mini_t.png';
+        });
     }
 
     /**
@@ -136,6 +239,9 @@
         document.documentElement.style.setProperty('--primary-color', cor);
         const picker = document.getElementById('color-picker');
         if (picker) picker.value = cor;
+        // Propaga para o conteúdo dentro do iframe do shell (se houver)
+        const fdoc = obterFrameDoc();
+        if (fdoc) fdoc.documentElement.style.setProperty('--primary-color', cor);
     }
 
     /**
@@ -255,7 +361,21 @@
             // Token inválido/expirado → encerra sessão e volta ao login
             if (res.status === 401 && tokenAnexado) {
                 sessionStorage.removeItem(STORAGE_KEY);
-                window.location.replace('login.html');
+                irPara('login.html');
+            }
+            // Sem permissão → avisa sem bloquear a resposta para o chamador
+            if (res.status === 403 && isApi) {
+                toast('Você não tem permissão para esta ação.', 'error');
+            }
+            // 404 de rota inexistente (não de recurso) → avisa o desenvolvedor
+            if (res.status === 404 && isApi) {
+                res.clone().json().then(function (body) {
+                    if (body && typeof body.message === 'string'
+                            && body.message.indexOf('Rota não encontrada') === 0) {
+                        console.warn('[Serve] Rota inexistente:', url);
+                        toast('Endpoint não encontrado. Verifique se o backend está atualizado.', 'warning');
+                    }
+                }).catch(function () {});
             }
             return res;
         });
@@ -270,7 +390,7 @@
      */
     function exigirLogin() {
         if (!getUsuarioLogado()) {
-            window.location.replace('login.html');
+            irPara('login.html');
             return false;
         }
         return true;
@@ -285,9 +405,64 @@
     function exigirAdmin() {
         if (!exigirLogin()) return false;
         if (!isAdmin()) {
-            window.location.replace('index.html');
+            irPara(EMBEDDED ? 'app.html' : 'index.html');
             return false;
         }
+        return true;
+    }
+
+    /**
+     * Guard de tela de cadastro: exige login e permissão de acesso à tela; caso
+     * contrário redireciona para a home. Admin sempre passa.
+     *
+     * @param {string} tela chave da tela ("AGENDA", "SERVOS", "AREAS" ou "MINISTERIOS").
+     * @returns {boolean} {@code true} se o usuário pode acessar a tela.
+     */
+    function exigirPermissao(tela) {
+        if (!exigirLogin()) return false;
+        if (!podeAcessar(tela)) {
+            irPara(EMBEDDED ? 'app.html' : 'index.html');
+            return false;
+        }
+        return true;
+    }
+
+    /**
+     * Marca o papel do usuário no {@code <html>} de forma síncrona (classe {@code is-admin}),
+     * para que os itens {@code .nav-admin-only} apareçam já no primeiro paint, sem
+     * mutação por JS depois do carregamento. Deve ser chamado no {@code <head>}.
+     *
+     * @returns {void}
+     */
+    function marcarPapel() {
+        document.documentElement.classList.toggle('is-admin', isAdmin());
+    }
+
+    /** Mapeia o arquivo da página → hash usado pelo shell (app.html). */
+    const PAGINA_PARA_HASH_SHELL = {
+        'index.html': 'home',
+        'agenda.html': 'agenda',
+        'voluntarios.html': 'servos',
+        'ministerios.html': 'areas',
+        'configuracao-escala.html': 'ministerios',
+        'usuarios.html': 'usuarios',
+        'perfil.html': 'perfil'
+    };
+
+    /**
+     * Se a página de conteúdo for aberta diretamente (fora do shell) com uma sessão
+     * ativa, redireciona para o shell {@code app.html} na aba correspondente. Garante
+     * que a navegação aconteça sempre pelo shell (sidebar fixa), nunca pela versão
+     * standalone. Não faz nada quando embarcada no iframe (evita laço de redirecionamento).
+     *
+     * @returns {boolean} {@code true} se um redirecionamento foi disparado.
+     */
+    function redirecionarParaShell() {
+        if (EMBEDDED || !getUsuarioLogado()) return false;
+        const arquivo = (location.pathname.split('/').pop() || 'index.html').toLowerCase();
+        const hash = PAGINA_PARA_HASH_SHELL[arquivo];
+        if (!hash) return false;
+        window.location.replace('app.html#' + hash);
         return true;
     }
 
@@ -312,12 +487,8 @@
         const roleEl = document.querySelector('.user-role');
         if (roleEl) roleEl.textContent = isAdmin() ? 'Administrador' : 'Servo';
 
-        // Avatar dinâmico
-        const avatarEl = document.getElementById('user-avatar');
-        if (avatarEl) {
-            const nome = encodeURIComponent(usuario.nome || 'U');
-            avatarEl.src = `https://ui-avatars.com/api/?name=${nome}&background=004b87&color=fff`;
-        }
+        // Avatar dinâmico: foto do perfil quando houver, senão gerado pelo nome
+        aplicarAvatar(usuario);
 
         // Itens de navegação admin: mostrar apenas para admin
         // (estão ocultos por padrão com display:none no HTML)
@@ -334,6 +505,16 @@
             });
         }
 
+        // Itens das telas de cadastro: visíveis conforme permissão de acesso
+        aplicarVisibilidadeMenu();
+
+        // Card do usuário abre a tela "Meu Perfil"
+        const perfilCard = document.querySelector('.user-profile');
+        if (perfilCard) {
+            perfilCard.style.cursor = 'pointer';
+            perfilCard.addEventListener('click', irParaPerfil);
+        }
+
         // Botão de logout
         const logoutBtn = document.getElementById('logout-btn');
         if (logoutBtn) {
@@ -343,9 +524,20 @@
         // Botão de recolher/expandir a sidebar
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) toggleBtn.addEventListener('click', alternarSidebar);
+        _atualizarIconeToggle(document.documentElement.classList.contains('sidebar-collapsed'));
 
-        // Submenu "Cadastros": accordion + abertura automática na página ativa
+        // Submenu "Cadastros": accordion + abertura automática na página ativa + persistência
         document.querySelectorAll('.nav-group').forEach(group => {
+            const groupId = group.dataset.groupId || group.querySelector('.nav-group-toggle')?.textContent?.trim() || 'group';
+            const storageKey = `serve_nav_open_${groupId}`;
+
+            // Restaurar estado do localStorage (a menos que a página atual já force abertura)
+            const atual = window.location.pathname.split('/').pop();
+            const paginaAtiva = !!group.querySelector(`.nav-submenu a[href="${atual}"]`);
+            if (paginaAtiva || localStorage.getItem(storageKey) === 'true') {
+                group.classList.add('open');
+            }
+
             const toggle = group.querySelector('.nav-group-toggle');
             if (toggle) {
                 toggle.addEventListener('click', () => {
@@ -353,26 +545,99 @@
                     if (document.documentElement.classList.contains('sidebar-collapsed')) {
                         alternarSidebar();
                         group.classList.add('open');
+                        localStorage.setItem(storageKey, 'true');
                     } else {
                         group.classList.toggle('open');
+                        localStorage.setItem(storageKey, group.classList.contains('open') ? 'true' : 'false');
                     }
                 });
-            }
-            // Abre o grupo se a página atual estiver entre seus itens
-            const atual = window.location.pathname.split('/').pop();
-            if (group.querySelector(`.nav-submenu a[href="${atual}"]`)) {
-                group.classList.add('open');
             }
         });
     }
 
+    /**
+     * Define o avatar (#user-avatar) a partir da foto do perfil, ou gera um pela inicial
+     * do nome quando não há foto.
+     *
+     * @param {Object} usuario sessão do usuário.
+     * @returns {void}
+     */
+    function aplicarAvatar(usuario) {
+        const avatarEl = document.getElementById('user-avatar');
+        if (!avatarEl) return;
+        if (usuario.foto) {
+            avatarEl.src = usuario.foto;
+        } else {
+            const nome = encodeURIComponent(usuario.nome || 'U');
+            avatarEl.src = `https://ui-avatars.com/api/?name=${nome}&background=004b87&color=fff`;
+        }
+    }
+
+    /**
+     * Aplica a visibilidade dos itens de menu das telas de cadastro ({@code [data-tela]})
+     * conforme a permissão de acesso do usuário (admin vê todas).
+     *
+     * @returns {void}
+     */
+    function aplicarVisibilidadeMenu() {
+        const admin = isAdmin();
+        document.querySelectorAll('[data-tela]').forEach(el => {
+            // Oculto por padrão via CSS; visível recebe display explícito.
+            el.style.display = (admin || podeAcessar(el.dataset.tela)) ? 'block' : 'none';
+        });
+    }
+
+    /**
+     * Navega para a tela "Meu Perfil" — pelo hash do shell quando dentro do app.html,
+     * ou abrindo o shell na aba de perfil a partir de uma página standalone.
+     *
+     * @returns {void}
+     */
+    function irParaPerfil() {
+        if (document.getElementById('content-frame')) {
+            window.location.hash = '#perfil'; // estamos no shell (app.html)
+        } else {
+            window.location.href = 'app.html#perfil';
+        }
+    }
+
+    /**
+     * Atualiza permissões e foto da sessão a partir do servidor ({@code GET /api/usuarios/me}),
+     * para refletir mudanças feitas pelo admin sem exigir novo login. Reaplica o menu e o avatar.
+     *
+     * @async
+     * @returns {Promise<void>}
+     */
+    async function atualizarPermissoesDoServidor() {
+        const usuario = getUsuarioLogado();
+        if (!usuario) return;
+        try {
+            const res = await fetch('http://localhost:8080/api/usuarios/me');
+            if (!res.ok) return;
+            const perfil = await res.json();
+            usuario.permissoes = perfil.permissoes || [];
+            usuario.foto = perfil.foto || null;
+            salvarSessao(usuario);
+            aplicarVisibilidadeMenu();
+            aplicarAvatar(usuario);
+        } catch (e) {
+            // silencioso: mantém as permissões da sessão de login
+        }
+    }
+
     // Inicializa sidebar e aparência automaticamente quando o DOM estiver pronto
     document.addEventListener('DOMContentLoaded', function () {
-        if (getUsuarioLogado()) {
-            inicializarSidebar();
-            inicializarAparencia();
+        if (!getUsuarioLogado()) return;
+        // Dentro do shell (iframe), a sidebar/aparência são do pai; aqui só aplicamos
+        // o nome da igreja ao cabeçalho da página de conteúdo.
+        if (EMBEDDED) {
             inicializarIgreja();
+            return;
         }
+        inicializarSidebar();
+        inicializarAparencia();
+        inicializarIgreja();
+        atualizarPermissoesDoServidor();
     });
 
     // ── Configuração da Igreja (nome central + modal) ──────────────────────
@@ -402,7 +667,8 @@
     async function inicializarIgreja() {
         const dados = window.IgrejaCache ? await window.IgrejaCache.carregar() : null;
         if (dados) aplicarNomeIgreja(dados.nome);
-        if (isAdmin()) injetarConfigIgreja();
+        // O botão/modal de configuração pertencem ao shell pai; não injetar no iframe.
+        if (!EMBEDDED && isAdmin()) injetarConfigIgreja();
     }
 
     /**
@@ -533,8 +799,19 @@
             });
             if (!res.ok) throw new Error('HTTP ' + res.status);
             const salvo = await res.json().catch(() => null);
-            aplicarNomeIgreja(salvo?.nome || 'Serve');
+            const nome = salvo?.nome || 'Serve';
+            aplicarNomeIgreja(nome);
             if (window.IgrejaCache) window.IgrejaCache.invalidar();
+            // Atualiza também o cabeçalho da página exibida no iframe do shell.
+            const fdoc = obterFrameDoc();
+            if (fdoc) {
+                fdoc.querySelectorAll('.logo-title').forEach(el => {
+                    const span = el.querySelector('span');
+                    if (span) span.textContent = nome; else el.textContent = nome;
+                });
+                const fwin = obterFrameWin();
+                if (fwin && fwin.IgrejaCache) fwin.IgrejaCache.invalidar();
+            }
             document.getElementById('igreja-modal').classList.remove('show-modal');
         } catch (e) {
             if (status) {
@@ -547,6 +824,39 @@
         }
     }
 
+    // ── Sistema de Toasts ─────────────────────────────────────────────────
+
+    /**
+     * Exibe uma notificação toast flutuante no canto inferior direito da tela.
+     * Auto-fecha após {@code duracao} ms; pode ser fechado manualmente.
+     *
+     * @param {string} msg mensagem a exibir.
+     * @param {'info'|'success'|'error'|'warning'} [tipo='info'] tipo visual.
+     * @param {number} [duracao=4000] tempo em ms antes de fechar automaticamente.
+     * @returns {void}
+     */
+    function toast(msg, tipo, duracao) {
+        if (tipo === undefined) tipo = 'info';
+        if (duracao === undefined) duracao = 4000;
+        let container = document.getElementById('toast-container');
+        if (!container) {
+            container = document.createElement('div');
+            container.id = 'toast-container';
+            document.body.appendChild(container);
+        }
+        const icones = { success: 'fa-check-circle', error: 'fa-exclamation-circle',
+                         warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
+        const icone = icones[tipo] || 'fa-info-circle';
+        const t = document.createElement('div');
+        t.className = 'toast toast-' + tipo;
+        t.innerHTML = '<i class="fas ' + icone + '"></i>'
+                    + '<span>' + msg + '</span>'
+                    + '<button class="toast-close" aria-label="Fechar">&times;</button>';
+        t.querySelector('.toast-close').onclick = function () { t.remove(); };
+        container.appendChild(t);
+        setTimeout(function () { if (t.parentNode) t.remove(); }, duracao);
+    }
+
     // ── API pública ────────────────────────────────────────────────────────
 
     window.Auth = {
@@ -557,7 +867,16 @@
         logout,
         exigirLogin,
         exigirAdmin,
+        marcarPapel,
+        redirecionarParaShell,
         inicializarSidebar,
+        // Permissões
+        permissoes,
+        podeAcessar,
+        podeCriar,
+        podeEditar,
+        podeExcluir,
+        exigirPermissao,
         // Aparência
         restaurarTema,
         aplicarTema,
@@ -570,5 +889,22 @@
         // Igreja
         inicializarIgreja,
         abrirModalIgreja,
+        // Loading
+        esconderLoading,
+        // Toasts
+        toast,
     };
+
+    /**
+     * Oculta o overlay de carregamento com fade-out. Deve ser chamado após todos
+     * os dados iniciais da página terem sido carregados.
+     *
+     * @returns {void}
+     */
+    function esconderLoading() {
+        const overlay = document.getElementById('loading-overlay');
+        if (!overlay) return;
+        overlay.classList.add('fade-out');
+        setTimeout(() => { if (overlay.parentNode) overlay.parentNode.removeChild(overlay); }, 280);
+    }
 })();

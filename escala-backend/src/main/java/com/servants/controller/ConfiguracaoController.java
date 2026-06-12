@@ -2,6 +2,7 @@ package com.servants.controller;
 
 import com.servants.dto.ConfiguracaoRequest;
 import com.servants.service.UsuarioService;
+import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -30,7 +31,7 @@ public class ConfiguracaoController {
      * @return {@code 200 OK} sem corpo.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<Void> atualizarConfiguracoes(@PathVariable Long id, @RequestBody ConfiguracaoRequest request) {
+    public ResponseEntity<Void> atualizarConfiguracoes(@PathVariable Long id, @Valid @RequestBody ConfiguracaoRequest request) {
         usuarioService.atualizarConfiguracoes(id, request);
         return ResponseEntity.ok().build();
     }

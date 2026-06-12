@@ -11,64 +11,8 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
-    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.exigirAdmin();</script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirAdmin();</script>
     <style>
-        /* Estilos específicos para a tabela de voluntários que podem não estar no dashboard.css */
-        .volunteers-table-container {
-            background-color: var(--bg-card);
-            border-radius: 12px;
-            border: 1px solid var(--border-color);
-            overflow: hidden;
-            margin-top: 1rem;
-        }
-
-        table {
-            width: 100%;
-            border-collapse: collapse;
-            text-align: left;
-        }
-
-        th {
-            padding: 1.2rem 1.5rem;
-            font-size: 0.75rem;
-            text-transform: uppercase;
-            letter-spacing: 0.05rem;
-            color: var(--text-muted);
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        td {
-            padding: 1.2rem 1.5rem;
-            font-size: 0.9rem;
-            border-bottom: 1px solid var(--border-color);
-        }
-
-        tr:last-child td {
-            border-bottom: none;
-        }
-
-        tr:hover td {
-            background-color: rgba(124, 124, 138, 0.05);
-        }
-
-        .actions-cell {
-            display: flex;
-            gap: 0.8rem;
-        }
-
-        .btn-icon {
-            background: none;
-            border: none;
-            color: var(--text-muted);
-            cursor: pointer;
-            font-size: 1.1rem;
-            transition: color 0.2s;
-        }
-
-        .btn-icon:hover {
-            color: var(--primary-text);
-        }
-
         .ministry-tag {
             display: inline-block;
             padding: 0.2rem 0.6rem;
@@ -116,48 +60,6 @@
             font-weight: 500;
         }
 
-        /* ── Toolbar de busca e ordenação ── */
-        .toolbar {
-            display: flex;
-            align-items: center;
-            gap: 1rem;
-            margin-bottom: 1rem;
-            flex-wrap: wrap;
-        }
-
-        .search-wrapper {
-            position: relative;
-            flex: 1;
-            min-width: 200px;
-        }
-
-        .search-wrapper .search-icon {
-            position: absolute;
-            left: 0.85rem;
-            top: 50%;
-            transform: translateY(-50%);
-            color: var(--text-muted);
-            font-size: 0.85rem;
-            pointer-events: none;
-        }
-
-        .search-wrapper input {
-            width: 100%;
-            padding: 0.65rem 2.4rem 0.65rem 2.4rem;
-            border: 1px solid var(--border-color);
-            border-radius: 8px;
-            background-color: var(--bg-card);
-            color: var(--text-color);
-            font-size: 0.875rem;
-            transition: border-color 0.2s, box-shadow 0.2s;
-        }
-
-        .search-wrapper input:focus {
-            outline: none;
-            border-color: var(--primary-color);
-            box-shadow: 0 0 0 3px rgba(0,75,135,0.1);
-        }
-
         .btn-clear-search {
             position: absolute;
             right: 0.7rem;
@@ -191,30 +93,6 @@
             color: var(--text-muted);
             font-weight: 500;
             white-space: nowrap;
-        }
-
-        .btn-sort {
-            padding: 0.55rem 0.95rem;
-            border: 1px solid var(--border-color);
-            border-radius: 6px;
-            background: var(--bg-card);
-            color: var(--text-muted);
-            font-size: 0.8rem;
-            font-weight: 500;
-            cursor: pointer;
-            transition: all 0.2s;
-            white-space: nowrap;
-        }
-
-        .btn-sort:hover {
-            border-color: var(--primary-color);
-            color: var(--primary-color);
-        }
-
-        .btn-sort.active {
-            background-color: var(--primary-color);
-            border-color: var(--primary-color);
-            color: #fff;
         }
 
         /* ── Barra de filtros ── */
@@ -321,8 +199,8 @@
         <aside class="sidebar">
             <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
             <div class="sidebar-logo">
-                <img src="assets/img/logo.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
-                <img src="assets/img/logo_mini.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
             </div>
             <div class="user-profile">
                 <div class="avatar-wrapper">
@@ -340,13 +218,14 @@
                     <li class="nav-group open">
                         <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
                         <ul class="nav-submenu">
-                            <li><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
-                            <li class="nav-admin-only active"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                            <li class="nav-admin-only"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                            <li class="nav-admin-only"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                            <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                            <li class="active" data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                            <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                            <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
                         </ul>
                     </li>
-                    <li><a href="#"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
                 </ul>
             </nav>
 
@@ -382,6 +261,7 @@
 
         <!-- Main Content -->
         <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
             <header class="main-header">
                 <h1 class="logo-title"><span>Serve</span></h1>
             </header>
@@ -395,7 +275,7 @@
                 </div>
 
                 <!-- Toolbar: pesquisa + ordenação -->
-                <div class="toolbar">
+                <div class="toolbar" style="margin-bottom:.75rem;">
                     <div class="search-wrapper">
                         <i class="fas fa-search search-icon"></i>
                         <input type="text" id="search-input" placeholder="Pesquisar por nome, e-mail ou área…" autocomplete="off">
@@ -434,13 +314,16 @@
                     <button type="button" id="btn-clear-filters" class="btn-sort" title="Limpar filtros">
                         <i class="fas fa-filter-circle-xmark" style="margin-right:0.3rem;font-size:0.75rem;"></i>Limpar filtros
                     </button>
+                    <button type="button" id="btn-export-voluntarios" class="btn-sort" title="Exportar CSV">
+                        <i class="fas fa-download" style="margin-right:0.3rem;font-size:0.75rem;"></i>Exportar CSV
+                    </button>
                 </div>
 
                 <div class="toolbar-footer">
                     <span class="volunteers-count" id="volunteers-count"></span>
                 </div>
 
-                <div class="volunteers-table-container">
+                <div class="list-table-container">
                     <table>
                         <thead>
                             <tr>

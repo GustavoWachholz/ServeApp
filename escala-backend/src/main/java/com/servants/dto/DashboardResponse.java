@@ -17,7 +17,7 @@ public record DashboardResponse(
     String nomeUsuario,
     List<String> ministerios,
     List<AvisoDTO> avisos,
-    List<String> minhasEscalas,
+    List<MinhaEscalaDTO> minhasEscalas,
     List<AniversarianteDTO> aniversariantes,
     String tema,
     String corPrimaria

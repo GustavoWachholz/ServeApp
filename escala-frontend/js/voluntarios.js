@@ -29,14 +29,14 @@ let filtroEscala = '';
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Voluntários (API Mode) inicializado.');
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
-    carregarVoluntarios();
-    carregarOpcoesMinisterios();
+    await Promise.all([carregarVoluntarios(), carregarOpcoesMinisterios()]);
     renderClassifChips('classif-checkboxes-vol', []);
     popularFiltroMinisterios();
     initModalEvents();
     initToolbar();
     initFiltros();
     initMascaraTelefone();
+    Auth.esconderLoading();
 });
 
 /* ─────────────── Máscara de telefone ─────────────── */
@@ -240,6 +240,9 @@ function initFiltros() {
             aplicarFiltroEOrdem();
         });
     }
+
+    const btnExport = document.getElementById('btn-export-voluntarios');
+    if (btnExport) btnExport.addEventListener('click', exportarVoluntariosCSV);
 }
 
 /**
@@ -535,13 +538,13 @@ function initModalEvents() {
             } else {
                 let msg = 'Erro ao excluir voluntário.';
                 try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
-                alert(msg);
+                Auth.toast(msg, 'error');
                 btnConfirm.disabled = false;
                 btnConfirm.textContent = textoOriginal;
             }
         } catch (e) {
             console.error('Erro ao deletar:', e);
-            alert('Falha na conexão. Verifique se o servidor está rodando.');
+            Auth.toast('Falha na conexão. Verifique se o servidor está rodando.', 'error');
             btnConfirm.disabled = false;
             btnConfirm.textContent = textoOriginal;
         }
@@ -550,6 +553,43 @@ function initModalEvents() {
     if (form) {
         form.onsubmit = async (e) => {
             e.preventDefault();
+
+            // Validação visual dos campos obrigatórios
+            const camposObrigatorios = [
+                { id: 'name',  label: 'Nome' },
+                { id: 'email', label: 'E-mail' }
+            ];
+            let valido = true;
+            camposObrigatorios.forEach(({ id, label }) => {
+                const el = document.getElementById(id);
+                if (!el) return;
+                const erroId = `${id}-erro`;
+                let erroEl = document.getElementById(erroId);
+                if (!erroEl) {
+                    erroEl = document.createElement('span');
+                    erroEl.id = erroId;
+                    erroEl.className = 'field-error-msg';
+                    el.parentNode.appendChild(erroEl);
+                }
+                if (!el.value.trim()) {
+                    el.classList.add('field-invalid');
+                    erroEl.textContent = `${label} é obrigatório.`;
+                    valido = false;
+                } else {
+                    el.classList.remove('field-invalid');
+                    erroEl.textContent = '';
+                }
+                el.addEventListener('input', () => {
+                    el.classList.remove('field-invalid');
+                    erroEl.textContent = '';
+                }, { once: true });
+            });
+            if (!valido) return;
+
+            const btnSubmit = form.querySelector('button[type="submit"]');
+            const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Salvar';
+            if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Salvando…'; }
+
             const id = document.getElementById('volunteer-id').value;
             const ministerios = Array.from(document.querySelectorAll('input[name="ministries"]:checked')).map(cb => cb.value);
             const payload = {
@@ -573,10 +613,16 @@ function initModalEvents() {
                     modal.classList.remove('show-modal');
                     resetForm();
                     carregarVoluntarios();
-                } else { alert('Erro ao salvar no banco de dados.'); }
+                } else {
+                    let msg = 'Erro ao salvar no banco de dados.';
+                    try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
+                    Auth.toast(msg, 'error');
+                    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
+                }
             } catch (error) {
                 console.error('Erro na requisição:', error);
-                alert('Falha na conexão. Verifique se o servidor está rodando e tente novamente.');
+                Auth.toast('Falha na conexão. Verifique se o servidor está rodando e tente novamente.', 'error');
+                if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
             }
         };
     }
@@ -663,9 +709,9 @@ async function buscarEPresentar(id, mode) {
         }
         
         document.getElementById('volunteer-modal').classList.add('show-modal');
-    } catch (e) { 
+    } catch (e) {
         console.error('Falha crítica ao buscar dados:', e);
-        alert('Erro: Não foi possível obter os dados do servidor. Verifique a conexão com o backend.');
+        Auth.toast('Não foi possível obter os dados do servidor. Verifique a conexão com o backend.', 'error');
     }
 }
 
@@ -725,6 +771,64 @@ function resetForm() {
     if (form) form.reset();
     renderClassifChips('classif-checkboxes-vol', []);
     currentVolunteer = null;
+}
+
+/**
+ * Exporta a lista atualmente exibida de voluntários como arquivo CSV.
+ * Usa `voluntariosCache` (lista completa) porque o filtro já foi aplicado
+ * pelo `renderVoluntarios` que guarda a última renderização.
+ *
+ * @returns {void}
+ */
+function exportarVoluntariosCSV() {
+    if (!voluntariosCache.length) {
+        Auth.toast('Nenhum dado disponível para exportar.', 'warning');
+        return;
+    }
+    // Aplica os mesmos filtros usados em aplicarFiltroEOrdem, mas sem renderizar
+    const inputEl = document.getElementById('search-input');
+    const termo = normalizar(inputEl ? inputEl.value.trim() : '');
+    let lista = voluntariosCache.filter(v =>
+        normalizar(v.nome).includes(termo) ||
+        normalizar(v.email).includes(termo) ||
+        normalizar(v.telefone).includes(termo) ||
+        (v.ministerios || []).some(m => normalizar(m).includes(termo))
+    );
+    if (filtroArea)      lista = lista.filter(v => (v.ministerios || []).includes(filtroArea));
+    if (filtroMinisterio) lista = lista.filter(v => (v.classificacoes || []).includes(filtroMinisterio));
+    if (filtroEscala === 'escalados')     lista = lista.filter(v => v.escalado === true);
+    if (filtroEscala === 'nao-escalados') lista = lista.filter(v => v.escalado !== true);
+
+    const cabecalho = ['Nome', 'E-mail', 'Telefone', 'Gênero', 'Data Nascimento', 'Áreas', 'Classificações'];
+    const linhas = lista.map(v => [
+        v.nome || '',
+        v.email || '',
+        v.telefone || '',
+        generoLabel(v.genero),
+        formatarData(v.dataNascimento),
+        (v.ministerios || []).join('; '),
+        (v.classificacoes || []).join('; ')
+    ]);
+    baixarCSVVoluntarios('servos.csv', [cabecalho, ...linhas]);
+    Auth.toast(`${lista.length} servo(s) exportado(s).`, 'success');
+}
+
+/**
+ * Gera e dispara o download de um arquivo CSV.
+ *
+ * @param {string}     nome  nome do arquivo.
+ * @param {string[][]} linhas matriz de células.
+ * @returns {void}
+ */
+function baixarCSVVoluntarios(nome, linhas) {
+    const conteudo = '﻿' + linhas
+        .map(l => l.map(c => `"${String(c).replace(/"/g, '""')}"`).join(','))
+        .join('\r\n');
+    const blob = new Blob([conteudo], { type: 'text/csv;charset=utf-8;' });
+    const url  = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.href = url; link.download = nome; link.click();
+    URL.revokeObjectURL(url);
 }
 
 // Aparência, toggle de tema, color picker e botão de configurações

@@ -120,51 +120,89 @@ public class EscalaService {
     }
 
     /**
-     * Valida a regra de exclusividade: um mesmo voluntário não pode ser escalado em
-     * mais de um ministério marcado como exclusivo na mesma escala. Consulta o flag
-     * {@code exclusivoNaEscala} de cada ministério citado e agrupa as atribuições por
-     * voluntário para detectar acúmulos.
+     * Valida duas regras de integridade das atribuições:
+     * <ol>
+     *   <li><b>Exclusividade:</b> um mesmo voluntário não pode ser escalado em mais de
+     *       um ministério {@code exclusivoNaEscala} na mesma escala.</li>
+     *   <li><b>Vínculo ESPECIFICO:</b> para ministérios com {@code tipo = "ESPECIFICO"},
+     *       o voluntário escalado deve ter aquele ministério registrado em seu perfil
+     *       ({@code voluntario.ministerios}).</li>
+     * </ol>
      *
      * @param atribuicoes lista de atribuições a validar.
-     * @throws IllegalArgumentException se algum voluntário acumular ministérios exclusivos.
+     * @throws IllegalArgumentException se alguma das regras for violada.
      */
     private void validarRegraDeAtribuicoes(List<AtribuicaoDTO> atribuicoes) {
         if (atribuicoes == null || atribuicoes.isEmpty()) return;
 
-        // 1. Busca o flag exclusivoNaEscala de cada ministério citado diretamente no banco
+        // 1. Carrega metadados de todos os ministérios citados em uma única query
         Set<String> nomesMinisterios = atribuicoes.stream()
                 .map(AtribuicaoDTO::getFuncao)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
 
-        Map<String, Boolean> exclusivoMap = ministerioRepository
+        Map<String, Ministerio> ministerioMap = ministerioRepository
                 .findByNomeIn(nomesMinisterios)
                 .stream()
-                .collect(Collectors.toMap(Ministerio::getNome, Ministerio::isExclusivoNaEscala));
+                .collect(Collectors.toMap(Ministerio::getNome, m -> m));
 
-        // 2. Por voluntário, conta quantos ministérios exclusivos ele possui nesta escala
+        // 2. Agrupa atribuições por voluntário para checar as duas regras
         Map<Long, List<AtribuicaoDTO>> porVoluntario = atribuicoes.stream()
                 .collect(Collectors.groupingBy(AtribuicaoDTO::getVoluntarioId));
 
         for (Map.Entry<Long, List<AtribuicaoDTO>> entry : porVoluntario.entrySet()) {
+            Long voluntarioId = entry.getKey();
             List<AtribuicaoDTO> funcoesDoVoluntario = entry.getValue();
 
+            // Nome do voluntário (para mensagem de erro legível)
+            String nomeVoluntario = funcoesDoVoluntario.get(0).getVoluntarioNome();
+            if (nomeVoluntario == null || nomeVoluntario.isBlank()) {
+                nomeVoluntario = voluntarioRepository.findById(voluntarioId)
+                        .map(Voluntario::getNome)
+                        .orElse(String.valueOf(voluntarioId));
+            }
+
+            // Regra 1: não pode acumular dois ministérios exclusivos
             List<String> exclusivosAtribuidos = funcoesDoVoluntario.stream()
-                    .filter(f -> Boolean.TRUE.equals(exclusivoMap.get(f.getFuncao())))
+                    .filter(f -> {
+                        Ministerio m = ministerioMap.get(f.getFuncao());
+                        return m != null && m.isExclusivoNaEscala();
+                    })
                     .map(AtribuicaoDTO::getFuncao)
                     .collect(Collectors.toList());
 
             if (exclusivosAtribuidos.size() > 1) {
-                String nome = funcoesDoVoluntario.get(0).getVoluntarioNome();
-                if (nome == null || nome.isBlank()) {
-                    nome = voluntarioRepository.findById(entry.getKey())
-                            .map(Voluntario::getNome)
-                            .orElse(String.valueOf(entry.getKey()));
-                }
                 throw new IllegalArgumentException(
-                        "O voluntário " + nome + " está escalado em dois ministérios exclusivos: "
+                        "O voluntário " + nomeVoluntario + " está escalado em dois ministérios exclusivos: "
                         + String.join(" e ", exclusivosAtribuidos)
                         + ". Ministérios exclusivos não podem ser acumulados na mesma escala.");
+            }
+
+            // Regra 2: ministério ESPECIFICO exige vínculo no perfil do voluntário
+            List<String> especificosNaoVinculados = funcoesDoVoluntario.stream()
+                    .filter(f -> {
+                        Ministerio m = ministerioMap.get(f.getFuncao());
+                        return m != null && "ESPECIFICO".equals(m.getTipo());
+                    })
+                    .map(AtribuicaoDTO::getFuncao)
+                    .collect(Collectors.toList());
+
+            if (!especificosNaoVinculados.isEmpty()) {
+                Voluntario voluntario = voluntarioRepository.findById(voluntarioId)
+                        .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado: " + voluntarioId));
+
+                List<String> ministeriosDoVoluntario = voluntario.getMinisterios();
+                List<String> semVinculo = especificosNaoVinculados.stream()
+                        .filter(funcao -> !ministeriosDoVoluntario.contains(funcao))
+                        .collect(Collectors.toList());
+
+                if (!semVinculo.isEmpty()) {
+                    throw new IllegalArgumentException(
+                            "O voluntário " + voluntario.getNome()
+                            + " não está vinculado ao ministério \""
+                            + String.join("\", \"", semVinculo)
+                            + "\". Adicione o voluntário ao ministério antes de escalá-lo.");
+                }
             }
         }
     }

@@ -1,50 +1,52 @@
 package com.servants.config;
 
 import com.servants.security.AuthInterceptor;
+import com.servants.security.RateLimitInterceptor;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.web.servlet.config.annotation.CorsRegistry;
 import org.springframework.web.servlet.config.annotation.InterceptorRegistry;
 import org.springframework.web.servlet.config.annotation.WebMvcConfigurer;
 
 /**
- * Configuração Web MVC: registra as regras de CORS e o interceptor de autenticação
- * que protege os endpoints {@code /api/**}.
+ * Configuração Web MVC: CORS configurável via propriedade, interceptor de
+ * autenticação JWT e rate limiter no endpoint de login.
  */
 @Configuration
 public class WebConfig implements WebMvcConfigurer {
 
     private final AuthInterceptor authInterceptor;
+    private final RateLimitInterceptor rateLimitInterceptor;
 
     /**
-     * @param authInterceptor interceptor que aplica autenticação/autorização.
+     * Origins CORS permitidas. Defina via {@code CORS_ORIGINS} (env var) ou
+     * {@code serve.cors.origins} (application.properties).
+     * Padrão dev: qualquer localhost.
      */
-    public WebConfig(AuthInterceptor authInterceptor) {
+    @Value("${serve.cors.origins:http://localhost:*}")
+    private String corsOrigins;
+
+    public WebConfig(AuthInterceptor authInterceptor, RateLimitInterceptor rateLimitInterceptor) {
         this.authInterceptor = authInterceptor;
+        this.rateLimitInterceptor = rateLimitInterceptor;
     }
 
-    /**
-     * Configura CORS permitindo qualquer origem, os métodos REST usados e credenciais,
-     * para que o frontend possa consumir a API.
-     *
-     * @param registry registro de mapeamentos CORS fornecido pelo Spring.
-     */
     @Override
     public void addCorsMappings(CorsRegistry registry) {
         registry.addMapping("/**")
-                .allowedOriginPatterns("*")
+                .allowedOriginPatterns(corsOrigins)
                 .allowedMethods("GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS")
                 .allowedHeaders("*")
                 .allowCredentials(true);
     }
 
-    /**
-     * Registra o {@link AuthInterceptor} para todas as rotas {@code /api/**}, exceto
-     * os endpoints públicos de autenticação (login, cadastro e logout).
-     *
-     * @param registry registro de interceptors fornecido pelo Spring.
-     */
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
+        // Rate limiter aplicado apenas ao login (brute force protection)
+        registry.addInterceptor(rateLimitInterceptor)
+                .addPathPatterns("/api/auth/login");
+
+        // Autenticação JWT em todos os endpoints protegidos
         registry.addInterceptor(authInterceptor)
                 .addPathPatterns("/api/**")
                 .excludePathPatterns(

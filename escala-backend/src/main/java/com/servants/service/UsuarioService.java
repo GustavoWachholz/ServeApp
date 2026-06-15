@@ -10,6 +10,8 @@ import com.servants.dto.UsuarioListItemDTO;
 import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.Usuario;
 import com.servants.model.Voluntario;
+import com.servants.repository.EscalaAtribuicaoRepository;
+import com.servants.repository.PermissaoTelaRepository;
 import com.servants.repository.UsuarioRepository;
 import com.servants.repository.VoluntarioRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
@@ -21,6 +23,7 @@ import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.UUID;
 
 /**
  * Serviço de autenticação e gestão de contas de usuário: login, cadastro e
@@ -33,23 +36,21 @@ public class UsuarioService {
     private final VoluntarioRepository voluntarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissaoService permissaoService;
+    private final PermissaoTelaRepository permissaoTelaRepository;
+    private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
 
-    /**
-     * Injeta os repositórios, o codificador de senhas e o serviço de permissões.
-     *
-     * @param usuarioRepository    repositório de usuários.
-     * @param voluntarioRepository repositório de voluntários.
-     * @param passwordEncoder      codificador BCrypt para hash/validação de senhas.
-     * @param permissaoService     serviço de permissões por tela.
-     */
     public UsuarioService(UsuarioRepository usuarioRepository,
                           VoluntarioRepository voluntarioRepository,
                           PasswordEncoder passwordEncoder,
-                          PermissaoService permissaoService) {
+                          PermissaoService permissaoService,
+                          PermissaoTelaRepository permissaoTelaRepository,
+                          EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
         this.usuarioRepository = usuarioRepository;
         this.voluntarioRepository = voluntarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissaoService = permissaoService;
+        this.permissaoTelaRepository = permissaoTelaRepository;
+        this.escalaAtribuicaoRepository = escalaAtribuicaoRepository;
     }
 
     /**
@@ -73,26 +74,107 @@ public class UsuarioService {
      * @throws IllegalArgumentException se já existir um usuário com o mesmo e-mail.
      */
     @Transactional
-    public Usuario cadastrar(CadastroRequest request) {
+    public Usuario cadastrar(CadastroRequest request, String ip) {
         if (usuarioRepository.findByEmail(request.email()).isPresent()) {
             throw new IllegalArgumentException("Já existe um cadastro com o e-mail: " + request.email());
         }
+        if (request.consentimento() == null || !request.consentimento()) {
+            throw new IllegalArgumentException("O aceite da Política de Privacidade é obrigatório.");
+        }
 
-        // Cria o usuário de acesso
         Usuario usuario = new Usuario(request.email(), passwordEncoder.encode(request.senha()));
         usuario.setNome(request.nome());
         usuario.setRole("VOLUNTARIO");
+        usuario.setDataConsentimento(java.time.LocalDateTime.now());
+        usuario.setVersaoPolitica("1.0");
+        usuario.setIpConsentimento(ip);
+
+        usuario.setVoluntario(resolverServoParaCadastro(request.nome(), request.email()));
         usuarioRepository.save(usuario);
 
-        // Cria o perfil de voluntário automaticamente (caso ainda não exista para esse e-mail)
-        if (voluntarioRepository.findByEmail(request.email()).isEmpty()) {
-            Voluntario voluntario = new Voluntario();
-            voluntario.setNome(request.nome());
-            voluntario.setEmail(request.email());
-            voluntarioRepository.save(voluntario);
+        return usuario;
+    }
+
+    /**
+     * Resolve o servo a vincular a um novo cadastro: se existir exatamente um servo de
+     * mesmo nome (ignorando caixa) e ainda não vinculado a outra conta, vincula a ele;
+     * se não existir nenhum, cria um servo novo com os dados informados. Em caso de nome
+     * ambíguo (mais de um servo) ou servo já vinculado, retorna {@code null} — o admin
+     * resolve o vínculo manualmente.
+     *
+     * @param nome  nome informado no cadastro.
+     * @param email e-mail informado no cadastro.
+     * @return o servo a vincular, ou {@code null} se o vínculo automático não se aplicar.
+     */
+    private Voluntario resolverServoParaCadastro(String nome, String email) {
+        List<Voluntario> mesmoNome = voluntarioRepository.findAllByNomeIgnoreCase(nome.trim());
+
+        if (mesmoNome.size() == 1) {
+            Voluntario servo = mesmoNome.get(0);
+            if (usuarioRepository.findByVoluntarioId(servo.getId()).isPresent()) {
+                return null; // já pertence a outra conta
+            }
+            if (servo.getEmail() == null || servo.getEmail().isBlank()) {
+                servo.setEmail(email);
+                voluntarioRepository.save(servo);
+            }
+            return servo;
         }
 
-        return usuario;
+        if (mesmoNome.isEmpty()) {
+            return voluntarioRepository.findByEmail(email).orElseGet(() -> {
+                Voluntario servo = new Voluntario();
+                servo.setNome(nome);
+                servo.setEmail(email);
+                return voluntarioRepository.save(servo);
+            });
+        }
+
+        return null; // nome ambíguo
+    }
+
+    /**
+     * Resolve o servo associado a um usuário: prioriza o vínculo explícito e, na sua
+     * ausência, faz o casamento por e-mail (compatibilidade com contas antigas).
+     *
+     * @param usuario o usuário.
+     * @return o servo vinculado/associado, ou {@code null}.
+     */
+    private Voluntario resolverVoluntario(Usuario usuario) {
+        if (usuario.getVoluntario() != null) return usuario.getVoluntario();
+        return voluntarioRepository.findByEmail(usuario.getEmail()).orElse(null);
+    }
+
+    /**
+     * Vincula (ou desvincula) um servo a uma conta de usuário. Usado pelo admin.
+     *
+     * @param usuarioId    id do usuário.
+     * @param voluntarioId id do servo a vincular; {@code null} desvincula.
+     * @throws ResourceNotFoundException se o usuário ou o servo não existirem.
+     * @throws IllegalArgumentException  se o servo já estiver vinculado a outra conta.
+     */
+    @Transactional
+    public void vincularServo(Long usuarioId, Long voluntarioId) {
+        Usuario usuario = usuarioRepository.findById(usuarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + usuarioId));
+
+        if (voluntarioId == null) {
+            usuario.setVoluntario(null);
+            usuarioRepository.save(usuario);
+            return;
+        }
+
+        Voluntario voluntario = voluntarioRepository.findById(voluntarioId)
+                .orElseThrow(() -> new ResourceNotFoundException("Servo não encontrado com ID: " + voluntarioId));
+
+        usuarioRepository.findByVoluntarioId(voluntarioId).ifPresent(outro -> {
+            if (!outro.getId().equals(usuarioId)) {
+                throw new IllegalArgumentException("Este servo já está vinculado a outro usuário.");
+            }
+        });
+
+        usuario.setVoluntario(voluntario);
+        usuarioRepository.save(usuario);
     }
 
     /**
@@ -121,9 +203,11 @@ public class UsuarioService {
     public List<UsuarioListItemDTO> listarTodos() {
         List<UsuarioListItemDTO> lista = new ArrayList<>();
         for (Usuario u : usuarioRepository.findAll()) {
+            Voluntario v = resolverVoluntario(u);
             lista.add(new UsuarioListItemDTO(
                     u.getId(), u.getNome(), u.getEmail(), u.getRole(), u.getFoto(),
-                    permissaoService.listarDTO(u.getId())));
+                    permissaoService.listarDTO(u.getId()),
+                    v != null ? v.getId() : null, v != null ? v.getNome() : null));
         }
         return lista;
     }
@@ -140,7 +224,7 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
 
-        Voluntario voluntario = voluntarioRepository.findByEmail(usuario.getEmail()).orElse(null);
+        Voluntario voluntario = resolverVoluntario(usuario);
         String telefone = voluntario != null ? voluntario.getTelefone() : null;
         String genero = voluntario != null ? voluntario.getGenero() : null;
         String nascimento = (voluntario != null && voluntario.getDataNascimento() != null)
@@ -149,7 +233,9 @@ public class UsuarioService {
         return new PerfilDTO(
                 usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getRole(),
                 usuario.getFoto(), telefone, genero, nascimento,
-                permissaoService.listarDTO(usuario.getId()));
+                permissaoService.listarDTO(usuario.getId()),
+                voluntario != null ? voluntario.getId() : null,
+                voluntario != null ? voluntario.getNome() : null);
     }
 
     /**
@@ -169,21 +255,39 @@ public class UsuarioService {
 
         usuario.setNome(request.nome());
         if (request.foto() != null) {
-            usuario.setFoto(request.foto().isBlank() ? null : request.foto());
+            String foto = request.foto();
+            if (!foto.isBlank()) {
+                if (!foto.startsWith("data:image/")) {
+                    throw new IllegalArgumentException("Formato de foto inválido.");
+                }
+                if (foto.length() > 4_000_000) {
+                    throw new IllegalArgumentException("A foto não pode ultrapassar 3 MB.");
+                }
+            }
+            usuario.setFoto(foto.isBlank() ? null : foto);
         }
         usuarioRepository.save(usuario);
 
-        Voluntario voluntario = voluntarioRepository.findByEmail(usuario.getEmail())
-                .orElseGet(() -> {
-                    Voluntario v = new Voluntario();
-                    v.setEmail(usuario.getEmail());
-                    return v;
-                });
+        Voluntario voluntario = usuario.getVoluntario();
+        if (voluntario == null) {
+            voluntario = voluntarioRepository.findByEmail(usuario.getEmail())
+                    .orElseGet(() -> {
+                        Voluntario v = new Voluntario();
+                        v.setEmail(usuario.getEmail());
+                        return v;
+                    });
+        }
         voluntario.setNome(request.nome());
         voluntario.setTelefone(request.telefone());
         voluntario.setGenero(request.genero());
         voluntario.setDataNascimento(parseData(request.dataNascimento()));
         voluntarioRepository.save(voluntario);
+
+        // Auto-cura o vínculo explícito se ainda não existia
+        if (usuario.getVoluntario() == null) {
+            usuario.setVoluntario(voluntario);
+            usuarioRepository.save(usuario);
+        }
     }
 
     /**
@@ -203,7 +307,101 @@ public class UsuarioService {
             throw new IllegalArgumentException("A senha atual está incorreta.");
         }
         usuario.setSenha(passwordEncoder.encode(request.senhaNova()));
+        // Invalida todos os tokens emitidos antes deste momento (LGPD Art. 46 — logout efetivo)
+        usuario.setInvalidacaoTokensAntes(java.time.LocalDateTime.now());
         usuarioRepository.save(usuario);
+    }
+
+    /**
+     * Invalida todos os tokens de uma conta marcando a data/hora atual como limite inferior.
+     * Chamado explicitamente pelo logout e pela exclusão de conta.
+     */
+    @Transactional
+    public void revogarSessoes(Long userId) {
+        usuarioRepository.findById(userId).ifPresent(u -> {
+            u.setInvalidacaoTokensAntes(java.time.LocalDateTime.now());
+            usuarioRepository.save(u);
+        });
+    }
+
+    /**
+     * Registra a data/hora do último login bem-sucedido (LGPD Art. 37 — rastreabilidade).
+     */
+    @Transactional
+    public void registrarUltimoLogin(Long userId) {
+        usuarioRepository.findById(userId).ifPresent(u -> {
+            u.setUltimoLogin(java.time.LocalDateTime.now());
+            usuarioRepository.save(u);
+        });
+    }
+
+    /**
+     * Exclui ou anonimiza uma conta de usuário (LGPD Art. 18 VI).
+     *
+     * <p>Regras de autorização:</p>
+     * <ul>
+     *   <li>Admin pode excluir qualquer conta que não seja ADMIN.</li>
+     *   <li>O próprio usuário pode excluir a própria conta (exceto se for ADMIN).</li>
+     * </ul>
+     *
+     * <p>Estratégia de exclusão:</p>
+     * <ul>
+     *   <li>Se o servo vinculado não tem histórico de escalas → exclusão física completa.</li>
+     *   <li>Se tem histórico → dados da conta anonimizados; servo mantido (dados zerados).</li>
+     * </ul>
+     *
+     * @param id               id da conta a excluir.
+     * @param requestingUserId id de quem faz a requisição.
+     * @param isAdmin          se o solicitante é ADMIN.
+     * @throws ResourceNotFoundException se o usuário não existir.
+     * @throws IllegalArgumentException  se a operação não for permitida.
+     */
+    @Transactional
+    public void excluirConta(Long id, Long requestingUserId, boolean isAdmin) {
+        Usuario usuario = usuarioRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
+
+        if ("ADMIN".equals(usuario.getRole())) {
+            throw new IllegalArgumentException("Contas de administrador não podem ser excluídas por este fluxo.");
+        }
+        if (!isAdmin && !id.equals(requestingUserId)) {
+            throw new IllegalArgumentException("Sem permissão para excluir esta conta.");
+        }
+
+        Voluntario voluntario = resolverVoluntario(usuario);
+        boolean temHistorico = voluntario != null
+                && !escalaAtribuicaoRepository.findDistinctVoluntarioIds().isEmpty()
+                && escalaAtribuicaoRepository.findDistinctVoluntarioIds().contains(voluntario.getId());
+
+        permissaoTelaRepository.deleteByUsuarioId(id);
+        usuario.setVoluntario(null);
+        usuarioRepository.save(usuario);
+
+        if (temHistorico) {
+            // Anonimização — preserva o histórico de escalas
+            String sufixo = UUID.randomUUID().toString().replace("-", "").substring(0, 8);
+            usuario.setNome("Usuário Excluído");
+            usuario.setEmail("excluido_" + id + "_" + sufixo + "@anonimo.local");
+            usuario.setSenha(passwordEncoder.encode(UUID.randomUUID().toString()));
+            usuario.setFoto(null);
+            usuario.setDataConsentimento(null);
+            usuario.setVersaoPolitica(null);
+            usuario.setIpConsentimento(null);
+            usuarioRepository.save(usuario);
+
+            voluntario.setNome("Servo Anônimo");
+            voluntario.setEmail(null);
+            voluntario.setTelefone(null);
+            voluntario.setGenero(null);
+            voluntario.setDataNascimento(null);
+            voluntarioRepository.save(voluntario);
+        } else {
+            if (voluntario != null) {
+                escalaAtribuicaoRepository.deleteByVoluntarioId(voluntario.getId());
+                voluntarioRepository.delete(voluntario);
+            }
+            usuarioRepository.delete(usuario);
+        }
     }
 
     /**

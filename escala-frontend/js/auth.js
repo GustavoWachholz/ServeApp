@@ -446,7 +446,8 @@
         'ministerios.html': 'areas',
         'configuracao-escala.html': 'ministerios',
         'usuarios.html': 'usuarios',
-        'perfil.html': 'perfil'
+        'perfil.html': 'perfil',
+        'auditoria.html': 'auditoria'
     };
 
     /**
@@ -562,15 +563,39 @@
      * @param {Object} usuario sessão do usuário.
      * @returns {void}
      */
+    /**
+     * Gera um avatar SVG de iniciais localmente, sem chamada a serviços externos.
+     * Retorna um data URL que pode ser atribuído diretamente ao `src` de um `<img>`.
+     *
+     * @param {string} nome  nome completo (usa até 2 iniciais).
+     * @param {string} [cor] cor de fundo hex (padrão: cor da sessão ou #004b87).
+     * @returns {string} data URL SVG.
+     */
+    function avatarLocal(nome, cor) {
+        const bg = cor
+            || (document.documentElement.style.getPropertyValue('--primary-color') || '').trim()
+            || '#004b87';
+        const iniciais = (nome || '?')
+            .trim()
+            .split(/\s+/)
+            .filter(Boolean)
+            .slice(0, 2)
+            .map(p => p.charAt(0).toUpperCase())
+            .join('');
+        // Escapa caracteres XML para evitar SVG inválido
+        const safe = iniciais.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        const svg = '<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64">'
+            + '<rect width="64" height="64" rx="32" fill="' + bg + '"/>'
+            + '<text x="32" y="32" font-family="Inter,Arial,sans-serif" font-size="24" font-weight="600"'
+            + ' fill="white" text-anchor="middle" dominant-baseline="central">' + safe + '</text>'
+            + '</svg>';
+        return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);
+    }
+
     function aplicarAvatar(usuario) {
         const avatarEl = document.getElementById('user-avatar');
         if (!avatarEl) return;
-        if (usuario.foto) {
-            avatarEl.src = usuario.foto;
-        } else {
-            const nome = encodeURIComponent(usuario.nome || 'U');
-            avatarEl.src = `https://ui-avatars.com/api/?name=${nome}&background=004b87&color=fff`;
-        }
+        avatarEl.src = usuario.foto || avatarLocal(usuario.nome);
     }
 
     /**
@@ -891,6 +916,8 @@
         abrirModalIgreja,
         // Loading
         esconderLoading,
+        // Avatar local
+        avatarLocal,
         // Toasts
         toast,
     };

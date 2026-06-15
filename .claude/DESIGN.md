@@ -163,7 +163,32 @@ Definidas em `:root` no `dashboard.css`. Mudam automaticamente no tema escuro (c
 | `.list-table-container td` | `0.9rem`, border-bottom, `padding:1.2rem 1.5rem` |
 | `.list-table-container tr:hover td` | Background sutil `rgba(124,124,138,0.05)` |
 | `.actions-cell` | `display:flex; gap:0.8rem` dentro de `<td>` |
-| `.btn-icon` (dentro de `.list-table-container`) | `background:none; border:none; color:--text-muted; font-size:1.1rem` |
+
+#### Botões de ação na linha (padrão único)
+Todas as telas de listagem (Usuários, Servos, Áreas, Ministérios) usam **botões rotulados** (ícone + texto) no estilo `.btn-sort`, **não** ícone-só. O conjunto padrão por linha é **Exibir** + **Excluir**:
+O rótulo fica em `<span class="btn-label">` e o botão sempre traz `title` (tooltip), para o colapso responsivo:
+```html
+<td class="actions-cell">
+  <button class="btn-sort btn-view" data-id="${id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
+  <button class="btn-sort btn-sort-danger btn-delete-row" data-id="${id}" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>
+</td>
+```
+- **Exibir** abre o modal de detalhes (onde a edição acontece, gated por `Auth.podeEditar`).
+- **Excluir** dispara a confirmação de exclusão; renderizado apenas se `Auth.podeExcluir(tela)`.
+- `.btn-sort-danger` — variante vermelha (`#ef4444`) do `.btn-sort`, mesma forma/altura.
+- `.list-table-container .btn-sort i` recebe `margin-right:0.4rem; font-size:0.8rem` (respiro do ícone).
+- A tela Usuários usa o mesmo estilo com um único botão **Gerenciar** (`<i class="fas fa-sliders"></i><span class="btn-label">Gerenciar</span>`).
+
+##### Colapso responsivo (ícone-só em tabela estreita)
+`.list-table-container` define `container-type: inline-size`; uma **container query** colapsa os botões quando a tabela fica estreita:
+```css
+@container (max-width: 560px) {
+  .list-table-container .btn-sort .btn-label { display: none; }
+  .list-table-container .btn-sort { padding: 0.5rem 0.6rem; }
+  .list-table-container .btn-sort i { margin-right: 0; }
+}
+```
+Nesse estado o botão vira somente-ícone (o `title` mantém a dica). **Importante:** `.btn-sort` usa `transition: border-color, color, background-color` (e **não** `transition: all`) — animar `padding`/largura impede o `@container` de aplicar o padding compacto.
 
 ### Skeleton loading (durante fetch)
 Inserir `<tr class="skeleton-row">` no `tbody` enquanto carrega:

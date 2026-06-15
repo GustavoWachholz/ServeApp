@@ -23,9 +23,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderLista();
     initToolbar();
     wireEditarListeners();
+    aplicarPermissoesMinisterios();
     Auth.inicializarAparencia();
     Auth.esconderLoading();
 });
+
+function aplicarPermissoesMinisterios() {
+    if (!Auth.podeCriar('MINISTERIOS')) {
+        const el = document.getElementById('btn-novo-ministerio');
+        if (el) el.style.display = 'none';
+    }
+}
 
 /**
  * Carrega os ministérios (áreas) da API para {@link todosMinisterios}.
@@ -103,12 +111,8 @@ function renderLista(filtro) {
             <td><span class="classif-key">${escapeHtml(c.classificacao)}</span></td>
             <td>
                 <div class="actions-cell">
-                    <button class="btn-icon" onclick="abrirModalEditar('${c.classificacao}')" title="Editar">
-                        <i class="fas fa-edit"></i>
-                    </button>
-                    <button class="btn-icon" onclick="abrirModalExcluir('${c.classificacao}')" title="Excluir">
-                        <i class="fas fa-trash"></i>
-                    </button>
+                    <button class="btn-sort" onclick="abrirModalEditar('${c.classificacao}')" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
+                    ${Auth.podeExcluir('MINISTERIOS') ? `<button class="btn-sort btn-sort-danger" onclick="abrirModalExcluir('${c.classificacao}')" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
                 </div>
             </td>
         </tr>
@@ -222,8 +226,11 @@ function abrirModalEditar(key) {
     document.getElementById('editar-min-grid').innerHTML = renderMinGrid(selecionados);
 
     setStatus('editar-status', '', '');
-    document.getElementById('editar-btn-salvar').disabled    = false;
-    document.getElementById('editar-btn-salvar').textContent = 'Salvar';
+    const btnSalvarEditar = document.getElementById('editar-btn-salvar');
+    btnSalvarEditar.disabled    = false;
+    btnSalvarEditar.textContent = 'Salvar';
+    // "Exibir" abre este modal; sem permissão de editar, fica somente leitura.
+    btnSalvarEditar.style.display = Auth.podeEditar('MINISTERIOS') ? '' : 'none';
 
     atualizarPreviewEditar();
     document.getElementById('modal-editar').classList.add('show-modal');

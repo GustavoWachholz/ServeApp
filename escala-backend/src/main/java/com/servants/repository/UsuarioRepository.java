@@ -19,4 +19,13 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * @return {@link Optional} com o usuário, ou vazio se não existir.
      */
     Optional<Usuario> findByEmail(String email);
+
+    /**
+     * Busca o usuário vinculado a um determinado servo (voluntário), se houver.
+     * Usado para garantir a unicidade do vínculo (um servo ↔ um usuário).
+     *
+     * @param voluntarioId id do voluntário.
+     * @return {@link Optional} com o usuário vinculado, ou vazio.
+     */
+    Optional<Usuario> findByVoluntarioId(Long voluntarioId);
 }

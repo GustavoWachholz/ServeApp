@@ -1,7 +1,7 @@
 # progress.md — Registro de Progresso do Projeto Serve
 
 Leia este arquivo apenas quando solicitado pelo usuário.
-Última atualização: 2026-06-12
+Última atualização: 2026-06-15
 
 ---
 
@@ -240,10 +240,126 @@ Implementações concluídas durante esta fase:
 
 ---
 
-## Estado Atual (2026-06-12)
+---
 
-Todas as fases do plano de ação original (Fases 1–4) estão concluídas.
-O plano de melhorias de UX (sidebar, home, agenda, config igreja) também está concluído.
+## Sessão 6 — Controle de Permissões, Tela Usuários e Perfil (2026-06-15)
+
+Plano registrado em `.claude/plans/synchronous-jumping-jellyfish.md`.
+
+### Fase 1 — Backend: modelo de permissões + interceptor
+
+- `model/PermissaoTela.java` — entidade `permissoes_tela` (usuario_id, tela, acessar/criar/editar/excluir, unique constraint)
+- `repository/PermissaoTelaRepository.java`
+- `dto/PermissaoDTO.java`
+- `service/PermissaoService.java` — `mapaDoUsuario`, `listarDTO`, `pode`, `salvar` (upsert)
+- `security/AuthInterceptor.java` refatorado: ADMIN passa tudo; não-admin nas 4 telas controladas verifica `permissaoService.pode()`; `/api/usuarios/**` liberado para o controller decidir; demais escritas exigem ADMIN
+
+### Fase 2 — Backend: gestão de Usuários e Perfil
+
+- `model/Usuario.java` — campo `foto` (LONGTEXT)
+- `dto/UsuarioListItemDTO.java`, `dto/PerfilDTO.java`, `dto/PermissoesUpdateRequest.java`, `dto/PerfilUpdateRequest.java`, `dto/SenhaUpdateRequest.java`
+- `dto/UsuarioResponseDTO.java` — adicionados `foto` e `List<PermissaoDTO> permissoes`
+- `service/UsuarioService.java` — `listarTodos`, `buscarPerfil`, `atualizarPerfil`, `alterarSenha`
+- `controller/UsuarioController.java` — `GET /api/usuarios`, `GET /api/usuarios/me`, `GET /api/usuarios/{id}`, `PUT /api/usuarios/{id}/permissoes`, `PUT /api/usuarios/{id}/perfil`, `PUT /api/usuarios/{id}/senha`
+- `controller/AuthController.java` — login/cadastro agora retornam `foto` + `permissoes`
+
+### Fase 3 — Frontend: permissões no auth.js
+
+- `js/auth.js` — `permissoes()`, `podeAcessar/podeCriar/podeEditar/podeExcluir(tela)`, `exigirPermissao(tela)`, `aplicarAvatar`, `aplicarVisibilidadeMenu`, `irParaPerfil`, `atualizarPermissoesDoServidor` (GET /me no carregamento)
+- `css/dashboard.css` — `li[data-tela] { display: none }` + `html.is-admin li[data-tela] { display: block }` para flash-free
+- Todas as sidebars: `<li data-tela="…">` nos 4 itens de cadastro; `<li class="nav-admin-only">` para Usuários
+- `js/shell.js` — `'usuarios.html': 'usuarios'`, `'perfil.html': 'perfil'` adicionados
+
+### Fase 4 — Frontend: tela Usuários (admin)
+
+- `usuarios.html` — tabela de usuários com avatar, badge de papel, botão "Gerenciar"; modal com perfil read-only + editor de permissões em grid (Acessar + Criar/Editar/Excluir por tela)
+- `js/usuarios.js` — `carregarUsuarios`, `renderUsuarios`, `initSearch`, `abrirModal`, `renderPermRows` (toggles desabilitados quando Acessar off), `salvarPermissoes`
+
+### Fase 5 — Frontend: tela Meu Perfil (self)
+
+- `perfil.html` — formulário de dados pessoais (nome, telefone, gênero, nascimento) + upload de foto com preview + seção de alteração de senha; guard `exigirLogin()`
+- `js/perfil.js` — `carregarPerfil` (GET /me), `redimensionarImagem` (canvas, max 256px, JPEG 0.85), `initPerfilForm`, `initSenhaForm` com validação inline; erro 400 em senha atual exibido inline
+
+### Fase 6 — Frontend: botões por permissão + verificação
+
+**Guards de página:**
+- `voluntarios.html` → `exigirPermissao('SERVOS')`
+- `ministerios.html` → `exigirPermissao('AREAS')`
+- `configuracao-escala.html` → `exigirPermissao('MINISTERIOS')`
+- `agenda.html` mantém `exigirLogin()` (agenda é leitura pública; edição controlada por permissão)
+
+**Botões condicionais em JS:**
+- `voluntarios.js` — `btn-edit` na linha só renderizado se `podeEditar('SERVOS')`; `aplicarPermissoesServos()` oculta Novo/Editar/Excluir conforme permissão
+- `ministerios.js` — mesmo padrão para `AREAS`
+- `configuracao-escala.js` — botões de editar/excluir inline condicionais; `btn-novo-ministerio` oculto se !podeCriar
+- `agenda.ts` — `editable`/`selectable` FullCalendar baseados em `podeEditar`/`podeCriar`; `eventClick` verifica `podeEditar`; `btn-nova-escala` oculto se !podeCriar
+
+**Compilação:**
+- `npx tsc` — sem erros
+- `mvnw.cmd clean compile -q` — sem erros
+
+---
+
+## Sessão 7 — Botões responsivos + Vínculo Usuário↔Servo (2026-06-15)
+
+Plano registrado em `PLANO DE ACAO.md` (ordem: F1 → F3 → F2; F2 Auditoria ainda pendente).
+
+### F1 — Botões de ação responsivos (ícone+texto → só ícone)
+- `css/dashboard.css` — `.list-table-container` com `container-type: inline-size`; `@container (max-width:560px)` esconde `.btn-label`, compacta padding e zera margem do ícone. `.btn-sort` passou a usar `transition: border-color, color, background-color` (não `transition: all`) — animar padding impedia o `@container` de aplicar o padding compacto.
+- `js/voluntarios.js`, `js/ministerios.js`, `js/configuracao-escala.js`, `js/usuarios.js` — rótulo em `<span class="btn-label">` + atributo `title`.
+- Verificado no preview: largo (924px) mostra texto; estreito (204px) colapsa para ícone (botão 36px), nas 4 telas.
+
+### F3 — Vínculo Usuário↔Servo
+**Backend:**
+- `model/Usuario.java` — `@ManyToOne Voluntario voluntario` (FK `voluntario_id`, único).
+- `repository/VoluntarioRepository.java` — `findAllByNomeIgnoreCase`; `UsuarioRepository.findByVoluntarioId`.
+- `dto/VincularServoRequest.java`; `PerfilDTO`/`UsuarioListItemDTO` ganharam `voluntarioId`/`voluntarioNome`.
+- `service/UsuarioService.java` — `cadastrar` vincula por nome (1 match não vinculado) ou cria servo novo; `vincularServo` (com unicidade); `buscarPerfil`/`listarTodos`/`atualizarPerfil` resolvem servo pelo vínculo explícito (fallback e-mail).
+- `controller/UsuarioController.java` — `PUT /api/usuarios/{id}/vincular-servo` (admin).
+- `config/DataInitializer.java` — backfill: liga contas sem servo por e-mail (idempotente).
+
+**Frontend:**
+- `usuarios.html` + `js/usuarios.js` — bloco "Servo vinculado" no modal: `select` de servos (preenchido via `GET /api/voluntarios`), preseleciona o servo vinculado, botão "Salvar" → `PUT .../vincular-servo`.
+
+**Verificação (API + preview, dados de teste removidos via MySQL):**
+- Cadastro nome sem correspondência → cria servo e vincula (PASS).
+- Cadastro nome = servo existente não vinculado → vincula ao existente, sem duplicar (PASS).
+- Unicidade: vincular servo já usado → 400 (PASS).
+- Backfill ligou a conta real `gustavoawm13@live.com` ao servo "Gustavo Wachholz"; modal preseleciona corretamente (PASS).
+- `mvnw clean compile` e `node --check` sem erros.
+
+---
+
+## Sessão 8 — F2 Auditoria + Fase 7 LGPD sub-fases (2026-06-15)
+
+### F2 — Tela de Auditoria ✅
+
+**Backend:**
+- `model/RegistroAuditoria.java` — tabela `auditoria` (id, dataHora, usuarioId, usuarioNome, modulo, acao, descricao, entidadeId, metodoHttp, caminho, statusHttp, ip).
+- `repository/AuditoriaRepository.java` — `JpaRepository + JpaSpecificationExecutor`.
+- `dto/RegistroAuditoriaDTO.java` — record de saída.
+- `service/AuditoriaService.java` — constantes de módulo/ação, `registrar(...)` (nunca lança exceção), `listar(filtros, pageable)` via `Specification`.
+- `security/AuditInterceptor.java` — `HandlerInterceptor.afterCompletion`: captura POST/PUT/DELETE/PATCH em todas as rotas auditáveis; deriva módulo/ação do caminho e método HTTP; subrotas `/api/usuarios/{id}/senha`, `/permissoes`, `/perfil`, `/vincular-servo` com ações específicas.
+- `controller/AuditoriaController.java` — `GET /api/auditoria` (admin-only); parâmetros: `modulo, acao, usuarioId, de, ate, page, size`; paginado, ordem DESC dataHora.
+- `config/WebConfig.java` — `AuditInterceptor` registrado após o `AuthInterceptor`, mesmo escopo de paths.
+- `controller/AuthController.java` — captura explícita: `AUTENTICACAO/LOGIN` (sucesso), `AUTENTICACAO/LOGIN_FALHOU` (401), `AUTENTICACAO/LOGOUT`, `USUARIOS/CRIAR` (cadastro). Injetado `AuditoriaService`.
+
+**Frontend:**
+- `auditoria.html` — layout completo: sidebar (admin-only, item Auditoria active), toolbar de filtros (Módulo, Ação, Usuário, De/Até), tabela (Data/Hora · Usuário · Módulo · Ação · Descrição · Status), paginação.
+- `js/auditoria.js` — fetch com filtros, renderização com badges coloridos por módulo/ação, skeleton, estado vazio/erro, paginação inteligente.
+- `js/shell.js` + `js/auth.js` — `auditoria.html` → `auditoria` adicionado ao mapeamento de hash.
+- Sidebar de Auditoria adicionada em: `app.html`, `index.html`, `agenda.html`, `voluntarios.html`, `ministerios.html`, `configuracao-escala.html`, `relatorios.html`, `usuarios.html`, `perfil.html`, `auditoria.html`.
+
+**Verificação (preview):** filtros renderizados (11 opções módulo, 10 ações), tabela com 6 colunas corretas, sidebar mostrando item Auditoria, paginação oculta sem dados — tudo confirmado via `preview_eval`.
+
+**PLANO DE ACAO.md:** F2 marcada ✅; Fase 7 dividida em sub-fases 7-A (Alta 🔴), 7-B (Média 🟡), 7-C (Baixa 🟢).
+
+---
+
+## Estado Atual (2026-06-15)
+
+Todas as fases do plano de controle de permissões estão concluídas (Fases 1–6).
+Do PLANO DE ACAO.md: F1 (botões responsivos) e F3 (vínculo usuário↔servo) concluídos; **F2 (auditoria) pendente**.
 
 ### Funcionalidades implementadas e funcionando
 - CRUD completo: Voluntários, Ministérios, Escalas, Avisos, Classificações
@@ -260,3 +376,9 @@ O plano de melhorias de UX (sidebar, home, agenda, config igreja) também está 
 - Validação visual inline nos formulários principais
 - `start.bat` para inicialização segura do backend
 - Tipagem TypeScript completa para o namespace `Auth`
+- **Controle de permissões granular por tela e ação** (acessar/criar/editar/excluir)
+- **Tela "Usuários"** (admin): listagem + gerenciamento de permissões por usuário
+- **Tela "Meu Perfil"** (self): edição de dados, foto e senha com validação inline
+- **Botões de ação condicionais** nas 4 telas CRUD baseados em permissões do usuário
+- **Botões de ação responsivos** (colapsam para ícone-só em tabela estreita, via container query)
+- **Vínculo Usuário↔Servo**: automático no cadastro (por nome) e gerenciável pelo admin na tela Usuários

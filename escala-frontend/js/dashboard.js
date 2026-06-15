@@ -12,6 +12,13 @@ const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
 /** URL da API de avisos. */
 const AVISOS_API_URL = 'http://localhost:8080/api/avisos';
 
+/** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /** Período ativo dos compromissos: 'semana' (Seg–Dom) ou 'mes'. */
 let periodoAtual = 'semana';
 /** Todas as escalas futuras (ordenadas), usadas no modal "Ver todos". */
@@ -119,8 +126,8 @@ function criarCardAviso(aviso) {
         : '';
 
     card.innerHTML = `
-        <h4 style='margin-bottom:.4rem;'>${aviso.titulo}</h4>
-        <p style='font-size:.875rem;line-height:1.5;white-space:pre-wrap;'>${aviso.texto}</p>
+        <h4 style='margin-bottom:.4rem;'>${esc(aviso.titulo)}</h4>
+        <p style='font-size:.875rem;line-height:1.5;white-space:pre-wrap;'>${esc(aviso.texto)}</p>
         ${validade}
         ${adminBtns}
     `;
@@ -281,9 +288,9 @@ function renderMinhasEscalas(lista) {
         const card = document.createElement('div');
         card.className = 'card card-escala';
         card.innerHTML = `
-            <h4>${item.titulo}</h4>
-            <p><i class="fas fa-calendar-check"></i> ${formatarDataHora(item.dataEscala)}</p>
-            <p style='font-size:.8rem;color:var(--text-muted);margin-top:.3rem;'><i class="fas fa-hand-holding-heart"></i> ${item.funcao}</p>
+            <h4>${esc(item.titulo)}</h4>
+            <p><i class="fas fa-calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
+            <p style='font-size:.8rem;color:var(--text-muted);margin-top:.3rem;'><i class="fas fa-hand-holding-heart"></i> ${esc(item.funcao)}</p>
         `;
         container.appendChild(card);
     });
@@ -398,8 +405,8 @@ function criarCardCompromisso(item) {
     card.className = 'card card-escala';
     if (item.cor) card.style.borderLeft = `5px solid ${item.cor}`;
     card.innerHTML = `
-        <h4>${item.title || item.titulo}</h4>
-        <p><i class="far fa-calendar-check"></i> ${formatarDataHora(item.dataEscala)}</p>
+        <h4>${esc(item.title || item.titulo)}</h4>
+        <p><i class="far fa-calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
     `;
     return card;
 }
@@ -459,8 +466,8 @@ function createBirthdayCard(item) {
         <div style="display: flex; align-items: center; gap: 0.8rem;">
             <i class="fas fa-cake-candles" style="color: var(--primary-color)"></i>
             <div>
-                <h4>${nome}</h4>
-                <p>${data}</p>
+                <h4>${esc(nome)}</h4>
+                <p>${esc(data)}</p>
             </div>
         </div>
     `;

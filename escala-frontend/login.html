@@ -78,6 +78,13 @@
                             <input type="password" id="reg-senha2" name="senha2" placeholder="Repita a senha" required>
                         </div>
 
+                        <div class="input-group" style="flex-direction:row; align-items:flex-start; gap:0.5rem;">
+                            <input type="checkbox" id="reg-consentimento" name="consentimento" style="margin-top:3px; flex-shrink:0; width:16px; height:16px; accent-color:#004b87; cursor:pointer;">
+                            <label for="reg-consentimento" style="font-size:0.85rem; color:#555; cursor:pointer; line-height:1.4;">
+                                Li e aceito a <a href="privacidade.html" target="_blank" style="color:#004b87; text-decoration:underline;">Política de Privacidade</a> e concordo com o tratamento dos meus dados.
+                            </label>
+                        </div>
+
                         <p id="msg-erro-registro" style="display:none; color:#ef4444; font-size:0.875rem; margin-bottom:0.5rem; background:#fef2f2; padding:0.6rem 0.8rem; border-radius:6px; border:1px solid #fecaca;"></p>
 
                         <button type="submit" class="btn-submit">Criar Conta</button>

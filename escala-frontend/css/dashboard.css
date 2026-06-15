@@ -167,11 +167,26 @@ select.field-invalid {
     font-size: 0.8rem;
     font-weight: 500;
     cursor: pointer;
-    transition: all 0.2s;
+    /* Transição apenas das cores (hover/active); evita animar padding/largura, o que
+       impedia o colapso responsivo via @container de aplicar o padding compacto. */
+    transition: border-color 0.2s, color 0.2s, background-color 0.2s;
     white-space: nowrap;
 }
 .btn-sort:hover { border-color: var(--primary-color); color: var(--primary-color); }
 .btn-sort.active { background-color: var(--primary-color); border-color: var(--primary-color); color: #fff; }
+/* Variante destrutiva (Excluir) — mantém a forma do .btn-sort, mas em vermelho */
+.btn-sort.btn-sort-danger { color: #ef4444; }
+.btn-sort.btn-sort-danger:hover { border-color: #ef4444; color: #ef4444; }
+/* Ícone com leve respiro do texto dentro de botões de ação rotulados na tabela */
+.list-table-container .btn-sort i { margin-right: 0.4rem; font-size: 0.8rem; }
+
+/* Colapso responsivo: quando a tabela fica estreita, os botões de ação rotulados
+   (Exibir/Excluir/Gerenciar) voltam ao formato somente-ícone, preservando o title. */
+@container (max-width: 560px) {
+    .list-table-container .btn-sort .btn-label { display: none; }
+    .list-table-container .btn-sort { padding: 0.5rem 0.6rem; }
+    .list-table-container .btn-sort i { margin-right: 0; }
+}
 
 /* ── Tabela padrão de listagem ──────────────────────────────────── */
 .list-table-container {
@@ -180,6 +195,8 @@ select.field-invalid {
     border: 1px solid var(--border-color);
     overflow: hidden;
     margin-top: 1rem;
+    /* Estabelece contexto de container query para o colapso dos botões acima */
+    container-type: inline-size;
 }
 .list-table-container table {
     width: 100%;

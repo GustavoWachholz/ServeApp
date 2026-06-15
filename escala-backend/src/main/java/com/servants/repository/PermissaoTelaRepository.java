@@ -30,4 +30,6 @@ public interface PermissaoTelaRepository extends JpaRepository<PermissaoTela, Lo
      * @return {@link Optional} com a permissão, ou vazio se não existir.
      */
     Optional<PermissaoTela> findByUsuarioIdAndTela(Long usuarioId, String tela);
+
+    void deleteByUsuarioId(Long usuarioId);
 }

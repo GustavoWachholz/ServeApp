@@ -21,7 +21,8 @@
         'ministerios.html': 'areas',
         'configuracao-escala.html': 'ministerios',
         'usuarios.html': 'usuarios',
-        'perfil.html': 'perfil'
+        'perfil.html': 'perfil',
+        'auditoria.html': 'auditoria'
     };
 
     /** Mapeia o hash da URL → arquivo da página. */

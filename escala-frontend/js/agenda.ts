@@ -53,6 +53,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     await carregarVoluntariosParaEscala();
     initCalendar();
     initAutocomplete();
+    if (!(window as any).Auth?.podeCriar('AGENDA')) {
+        const el = document.getElementById('btn-nova-escala');
+        if (el) el.style.display = 'none';
+    }
     Auth.esconderLoading();
 });
 
@@ -768,8 +772,8 @@ function initCalendar() {
                     failureCallback(error);
                 });
         },
-        editable: (window as any).Auth?.isAdmin() ?? false,
-        selectable: (window as any).Auth?.isAdmin() ?? false,
+        editable: (window as any).Auth?.podeEditar('AGENDA') ?? false,
+        selectable: (window as any).Auth?.podeCriar('AGENDA') ?? false,
 
         dateClick: function(info: any) {
             // Clicar no dia abre a visão do dia (criação de escala é só pelo botão "Nova Escala")
@@ -777,7 +781,7 @@ function initCalendar() {
         },
 
         eventClick: function(info: any) {
-            if (!(window as any).Auth?.isAdmin()) return; // somente admin edita escalas
+            if (!(window as any).Auth?.podeEditar('AGENDA')) return;
             resetModal();
             (document.getElementById('modal-title') as HTMLElement).textContent = 'Editar Escala';
             

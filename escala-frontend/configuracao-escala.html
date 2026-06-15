@@ -9,7 +9,7 @@
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
-    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirAdmin();</script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirPermissao('MINISTERIOS');</script>
     <style>
         /* ── Chave de identificação na tabela ── */
         .classif-key {
@@ -179,7 +179,7 @@
         </div>
         <div class="user-profile">
             <div class="avatar-wrapper">
-                <img src="https://ui-avatars.com/api/?name=User&background=004b87&color=fff" alt="Avatar" id="user-avatar">
+                <img src="" alt="Avatar" id="user-avatar">
             </div>
             <div class="user-info">
                 <h3><span id="user-name-display">Carregando...</span></h3>
@@ -201,6 +201,7 @@
                 </li>
                 <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
                 <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
             </ul>
         </nav>
 
@@ -236,7 +237,7 @@
         <section class="dashboard-section">
             <div class="section-header">
                 <h2>MINISTÉRIOS</h2>
-                <button class="btn-primary" onclick="abrirModalCriar()">
+                <button class="btn-primary" id="btn-novo-ministerio" onclick="abrirModalCriar()">
                     <i class="fas fa-plus"></i> Novo Ministério
                 </button>
             </div>

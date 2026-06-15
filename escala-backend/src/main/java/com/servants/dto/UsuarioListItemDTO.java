@@ -11,6 +11,9 @@ import java.util.List;
  * @param role       papel ("ADMIN" ou "VOLUNTARIO").
  * @param foto       foto de perfil (data URL Base64), ou {@code null}.
  * @param permissoes permissões por tela do usuário.
+ * @param voluntarioId   id do servo vinculado, ou {@code null}.
+ * @param voluntarioNome nome do servo vinculado, ou {@code null}.
  */
 public record UsuarioListItemDTO(Long id, String nome, String email, String role, String foto,
-                                 List<PermissaoDTO> permissoes) {}
+                                 List<PermissaoDTO> permissoes,
+                                 Long voluntarioId, String voluntarioNome) {}

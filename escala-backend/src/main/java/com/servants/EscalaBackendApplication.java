@@ -2,6 +2,7 @@ package com.servants;
 
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
+import org.springframework.scheduling.annotation.EnableScheduling;
 
 /**
  * Classe de entrada (bootstrap) da aplicação Spring Boot do backend de escalas.
@@ -9,6 +10,7 @@ import org.springframework.boot.autoconfigure.SpringBootApplication;
  * componentes e configuração baseada em propriedades.
  */
 @SpringBootApplication
+@EnableScheduling
 public class EscalaBackendApplication {
 
 	/**

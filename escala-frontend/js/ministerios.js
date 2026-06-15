@@ -3,6 +3,13 @@
  * listagem em tabela, CRUD via modal e seleção de classificações e líderes.
  */
 
+/** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /** URL da API de ministérios. */
 const MINISTERIOS_API_URL = 'http://localhost:8080/api/ministerios';
 /** URL da API de voluntários (para popular os selects de líder/co-líder). */
@@ -26,8 +33,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderClassifChips('classif-checkboxes-min', []);
     await Promise.all([fetchVoluntarios(), fetchMinisterios()]);
     initMinisteriosToolbar();
+    aplicarPermissoesAreas();
     Auth.esconderLoading();
 });
+
+function aplicarPermissoesAreas() {
+    if (!Auth.podeCriar('AREAS')) {
+        const el = document.getElementById('btn-new-ministerio');
+        if (el) el.style.display = 'none';
+    }
+    if (!Auth.podeEditar('AREAS')) {
+        const el = document.getElementById('btn-switch-to-edit');
+        if (el) el.style.display = 'none';
+    }
+    if (!Auth.podeExcluir('AREAS')) {
+        ['btn-delete-ministerio', 'btn-form-delete'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
+}
 
 /**
  * Renderiza os chips de classificação (selecionáveis) em um container.
@@ -223,8 +248,8 @@ function renderMinisteriosTable(ministerios) {
             <td><span style="${badgeStyle}">${tipoLabel}</span></td>
             <td>${resolveName(m, 'lider') || 'Sem Líder'}</td>
             <td class="actions-cell">
-                <button class="btn-icon btn-view" data-id="${m.id || m._id}" title="Ver Detalhes"><i class="fas fa-eye"></i></button>
-                <button class="btn-icon btn-edit" data-id="${m.id || m._id}" title="Editar"><i class="fas fa-edit"></i></button>
+                <button class="btn-sort btn-view" data-id="${m.id || m._id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
+                ${Auth.podeExcluir('AREAS') ? `<button class="btn-sort btn-sort-danger btn-delete-row" data-id="${m.id || m._id}" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
             </td>
         `;
         list.appendChild(tr);
@@ -278,9 +303,14 @@ function initModalEvents() {
 
     list.addEventListener('click', (e) => {
         const btnView = e.target.closest('.btn-view');
-        const btnEdit = e.target.closest('.btn-edit');
-        if (btnView) viewMinisterio(btnView.getAttribute('data-id'));
-        if (btnEdit) editMinisterio(btnEdit.getAttribute('data-id'));
+        const btnDel  = e.target.closest('.btn-delete-row');
+        if (btnView) {
+            viewMinisterio(btnView.getAttribute('data-id'));
+        } else if (btnDel) {
+            const id = btnDel.getAttribute('data-id');
+            currentMinisterio = ministeriosGlobal.find(m => String(m.id || m._id) === String(id));
+            openConfirmModal();
+        }
     });
 
     btnEditMode.onclick = () => {
@@ -459,7 +489,7 @@ function renderViewMode(m) {
     if (m.membros && m.membros.length > 0) {
         m.membros.forEach(mem => {
             const tr = document.createElement('tr');
-            tr.innerHTML = `<td>${mem.nome}</td><td style="text-align: right;">${mem.vezesEscalado || 0}</td>`;
+            tr.innerHTML = `<td>${esc(mem.nome)}</td><td style="text-align: right;">${mem.vezesEscalado || 0}</td>`;
             list.appendChild(tr);
         });
     } else {

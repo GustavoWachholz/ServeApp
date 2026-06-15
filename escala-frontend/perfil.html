@@ -1,0 +1,251 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Meu Perfil - Serve</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirLogin();</script>
+    <style>
+        .perfil-container {
+            max-width: 640px;
+        }
+
+        .perfil-foto-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 1.5rem;
+            margin-bottom: 1.75rem;
+            padding-bottom: 1.75rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+
+        .perfil-foto-preview {
+            width: 88px;
+            height: 88px;
+            border-radius: 50%;
+            object-fit: cover;
+            background: var(--bg-main);
+            flex-shrink: 0;
+        }
+
+        .perfil-foto-actions {
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .perfil-foto-actions label.btn-sort {
+            cursor: pointer;
+        }
+
+        #foto-input {
+            display: none;
+        }
+
+        .senha-section {
+            margin-top: 2rem;
+            padding-top: 2rem;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .senha-section h3 {
+            font-size: 0.85rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.06rem;
+            color: var(--text-muted);
+            margin-bottom: 1.25rem;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 1rem;
+        }
+
+        @media (max-width: 520px) {
+            .form-row { grid-template-columns: 1fr; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li class="nav-group">
+                        <button type="button" class="nav-group-toggle"><i class="fas fa-folder-open"></i> <span>Cadastros</span><i class="fas fa-chevron-down nav-caret"></i></button>
+                        <ul class="nav-submenu">
+                            <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda / Escalas</span></a></li>
+                            <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                            <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                            <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                        </ul>
+                    </li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header"><span>Aparência</span></div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+                <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
+                <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <section class="dashboard-section perfil-container">
+                <div class="section-header">
+                    <h2>MEU PERFIL</h2>
+                </div>
+
+                <!-- Foto -->
+                <div class="perfil-foto-wrapper">
+                    <img id="perfil-foto-preview" class="perfil-foto-preview"
+                         src="" alt="Foto de perfil">
+                    <div class="perfil-foto-actions">
+                        <label for="foto-input" class="btn-sort">
+                            <i class="fas fa-camera" style="margin-right:.35rem;"></i> Alterar foto
+                        </label>
+                        <input type="file" id="foto-input" accept="image/*">
+                        <button type="button" id="btn-remover-foto" class="btn-sort" style="display:none;">
+                            <i class="fas fa-trash" style="margin-right:.35rem;"></i> Remover foto
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Dados pessoais -->
+                <form id="perfil-form" novalidate>
+                    <div class="form-group">
+                        <label for="perfil-nome">Nome</label>
+                        <input type="text" id="perfil-nome" placeholder="Seu nome completo" autocomplete="name">
+                        <span class="field-error-msg" id="err-nome"></span>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="perfil-email">E-mail</label>
+                        <input type="email" id="perfil-email" readonly style="opacity:.6;cursor:not-allowed;">
+                    </div>
+
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label for="perfil-telefone">Telefone</label>
+                            <input type="tel" id="perfil-telefone" placeholder="(00) 00000-0000" autocomplete="tel">
+                        </div>
+                        <div class="form-group">
+                            <label for="perfil-genero">Gênero</label>
+                            <select id="perfil-genero">
+                                <option value="">Não informado</option>
+                                <option value="Masculino">Masculino</option>
+                                <option value="Feminino">Feminino</option>
+                                <option value="Outro">Outro</option>
+                            </select>
+                        </div>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="perfil-nascimento">Data de nascimento</label>
+                        <input type="date" id="perfil-nascimento">
+                    </div>
+
+                    <div style="display:flex;justify-content:flex-end;margin-top:1.5rem;">
+                        <button type="submit" class="btn-primary" id="btn-salvar-perfil">
+                            <i class="fas fa-save"></i> Salvar dados
+                        </button>
+                    </div>
+                </form>
+
+                <!-- Alterar senha -->
+                <div class="senha-section">
+                    <h3>Alterar senha</h3>
+                    <form id="senha-form" novalidate>
+                        <div class="form-group">
+                            <label for="senha-atual">Senha atual</label>
+                            <input type="password" id="senha-atual" placeholder="Digite sua senha atual" autocomplete="current-password">
+                            <span class="field-error-msg" id="err-senha-atual"></span>
+                        </div>
+                        <div class="form-row">
+                            <div class="form-group">
+                                <label for="senha-nova">Nova senha</label>
+                                <input type="password" id="senha-nova" placeholder="Mínimo 6 caracteres" autocomplete="new-password">
+                                <span class="field-error-msg" id="err-senha-nova"></span>
+                            </div>
+                            <div class="form-group">
+                                <label for="senha-confirmar">Confirmar nova senha</label>
+                                <input type="password" id="senha-confirmar" placeholder="Repita a nova senha" autocomplete="new-password">
+                                <span class="field-error-msg" id="err-senha-confirmar"></span>
+                            </div>
+                        </div>
+                        <div style="display:flex;justify-content:flex-end;margin-top:1.5rem;">
+                            <button type="submit" class="btn-primary" id="btn-alterar-senha">
+                                <i class="fas fa-key"></i> Alterar senha
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </section>
+
+            <!-- Excluir conta -->
+            <section class="card" id="secao-excluir-conta" style="border:1px solid #fecaca; background:#fff5f5; display:none;">
+                <div class="card-body" style="padding:1.5rem;">
+                    <h3 style="color:#dc2626; margin-bottom:0.5rem;"><i class="fas fa-triangle-exclamation"></i> Excluir minha conta</h3>
+                    <p style="font-size:0.9rem; color:#6b7280; margin-bottom:1rem;">
+                        Esta ação é permanente. Se você possuir histórico de escalas, seus dados pessoais serão anonimizados.
+                        Caso contrário, a conta e o perfil serão removidos completamente.
+                    </p>
+                    <button type="button" class="btn-danger" id="btn-excluir-conta">
+                        <i class="fas fa-trash"></i> Excluir minha conta
+                    </button>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <canvas id="resize-canvas" style="display:none;"></canvas>
+    <script src="js/perfil.js"></script>
+</body>
+</html>

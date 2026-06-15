@@ -36,6 +36,7 @@ let atribuicoesParaCarregar = [];
  * controles do modal, busca voluntários, monta o calendário e o autocomplete.
  */
 document.addEventListener('DOMContentLoaded', () => __awaiter(void 0, void 0, void 0, function* () {
+    var _a;
     console.log('Agenda inicializada (Autocomplete Mode).');
     classificacoesDisponiveis = yield ClassificacoesCache.carregarClassificacoes();
     popularSelectClassificacao();
@@ -43,6 +44,11 @@ document.addEventListener('DOMContentLoaded', () => __awaiter(void 0, void 0, vo
     yield carregarVoluntariosParaEscala();
     initCalendar();
     initAutocomplete();
+    if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.podeCriar('AGENDA'))) {
+        const el = document.getElementById('btn-nova-escala');
+        if (el)
+            el.style.display = 'none';
+    }
     Auth.esconderLoading();
 }));
 /**
@@ -713,16 +719,16 @@ function initCalendar() {
                 failureCallback(error);
             });
         },
-        editable: (_b = (_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()) !== null && _b !== void 0 ? _b : false,
-        selectable: (_d = (_c = window.Auth) === null || _c === void 0 ? void 0 : _c.isAdmin()) !== null && _d !== void 0 ? _d : false,
+        editable: (_b = (_a = window.Auth) === null || _a === void 0 ? void 0 : _a.podeEditar('AGENDA')) !== null && _b !== void 0 ? _b : false,
+        selectable: (_d = (_c = window.Auth) === null || _c === void 0 ? void 0 : _c.podeCriar('AGENDA')) !== null && _d !== void 0 ? _d : false,
         dateClick: function (info) {
             // Clicar no dia abre a visão do dia (criação de escala é só pelo botão "Nova Escala")
             calendar.changeView('timeGridDay', info.dateStr);
         },
         eventClick: function (info) {
             var _a;
-            if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.isAdmin()))
-                return; // somente admin edita escalas
+            if (!((_a = window.Auth) === null || _a === void 0 ? void 0 : _a.podeEditar('AGENDA')))
+                return;
             resetModal();
             document.getElementById('modal-title').textContent = 'Editar Escala';
             const event = info.event;

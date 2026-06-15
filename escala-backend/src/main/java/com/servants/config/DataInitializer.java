@@ -1,7 +1,11 @@
 package com.servants.config;
 
 import com.servants.model.Usuario;
+import com.servants.model.Voluntario;
 import com.servants.repository.UsuarioRepository;
+import com.servants.repository.VoluntarioRepository;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.CommandLineRunner;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -18,7 +22,10 @@ import org.springframework.transaction.annotation.Transactional;
 @Component
 public class DataInitializer implements CommandLineRunner {
 
+    private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
+
     private final UsuarioRepository usuarioRepository;
+    private final VoluntarioRepository voluntarioRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbc;
 
@@ -32,9 +39,11 @@ public class DataInitializer implements CommandLineRunner {
      * @param jdbc              template JDBC usado na limpeza ordenada das tabelas.
      */
     public DataInitializer(UsuarioRepository usuarioRepository,
+                           VoluntarioRepository voluntarioRepository,
                            PasswordEncoder passwordEncoder,
                            JdbcTemplate jdbc) {
         this.usuarioRepository = usuarioRepository;
+        this.voluntarioRepository = voluntarioRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbc = jdbc;
     }
@@ -53,6 +62,32 @@ public class DataInitializer implements CommandLineRunner {
         if (resetOnStartup) {
             limparDados();
         }
+
+        vincularServosPorEmail();
+    }
+
+    // ── Backfill de vínculo Usuário↔Servo ──────────────────────────────────────
+
+    /**
+     * Vincula, uma única vez, cada usuário sem servo associado ({@code voluntario == null})
+     * a um servo de mesmo e-mail, quando existir. Idempotente: nas execuções seguintes
+     * apenas os ainda não vinculados são considerados. Não cria servos novos.
+     */
+    private void vincularServosPorEmail() {
+        int vinculados = 0;
+        for (Usuario u : usuarioRepository.findAll()) {
+            if (u.getVoluntario() != null || u.getEmail() == null) continue;
+            Voluntario servo = voluntarioRepository.findByEmail(u.getEmail()).orElse(null);
+            // Só vincula se o servo ainda não pertencer a outra conta
+            if (servo != null && usuarioRepository.findByVoluntarioId(servo.getId()).isEmpty()) {
+                u.setVoluntario(servo);
+                usuarioRepository.save(u);
+                vinculados++;
+            }
+        }
+        if (vinculados > 0) {
+            log.info("[DataInitializer] Vínculos Usuário↔Servo criados por e-mail: " + vinculados);
+        }
     }
 
     // ── Admin ─────────────────────────────────────────────────────────────────
@@ -67,12 +102,17 @@ public class DataInitializer implements CommandLineRunner {
             boolean alterado = false;
             if (!admin.getSenha().startsWith("$2a$") && !admin.getSenha().startsWith("$2b$")) {
                 admin.setSenha(passwordEncoder.encode(admin.getSenha()));
-                System.out.println("[DataInitializer] Senha do admin migrada para BCrypt.");
+                log.info("[DataInitializer] Senha do admin migrada para BCrypt.");
                 alterado = true;
             }
             if (!"ADMIN".equals(admin.getRole())) {
                 admin.setRole("ADMIN");
-                System.out.println("[DataInitializer] Role do admin atualizada para ADMIN.");
+                log.info("[DataInitializer] Role do admin atualizada para ADMIN.");
+                alterado = true;
+            }
+            if (admin.getNome() == null || admin.getNome().isBlank()) {
+                admin.setNome("Administrador");
+                log.info("[DataInitializer] Nome do admin preenchido.");
                 alterado = true;
             }
             if (alterado) {
@@ -85,7 +125,7 @@ public class DataInitializer implements CommandLineRunner {
             admin.setTema("light");
             admin.setCorPrimaria("#004b87");
             usuarioRepository.save(admin);
-            System.out.println("[DataInitializer] Usuário 'admin@admin.com' criado com sucesso.");
+            log.info("[DataInitializer] Usuário 'admin@admin.com' criado com sucesso.");
         });
     }
 
@@ -97,7 +137,7 @@ public class DataInitializer implements CommandLineRunner {
      * ministérios (com FKs de líder zeradas), voluntários e, por fim, usuários não-admin.
      */
     private void limparDados() {
-        System.out.println("[DataInitializer] Iniciando limpeza de dados (reset-on-startup=true)...");
+        log.info("[DataInitializer] Iniciando limpeza de dados (reset-on-startup=true)...");
 
         // 1. Dependentes de escalas e voluntários/ministérios
         jdbc.execute("DELETE FROM escala_atribuicoes");
@@ -121,6 +161,6 @@ public class DataInitializer implements CommandLineRunner {
         // 5. Usuários não-admin
         jdbc.execute("DELETE FROM usuarios WHERE role != 'ADMIN'");
 
-        System.out.println("[DataInitializer] Limpeza concluída. Sistema pronto para testes.");
+        log.info("[DataInitializer] Limpeza concluída. Sistema pronto para testes.");
     }
 }

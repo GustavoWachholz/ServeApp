@@ -1,5 +1,7 @@
 package com.servants.security;
 
+import com.servants.model.Usuario;
+import com.servants.repository.UsuarioRepository;
 import com.servants.service.PermissaoService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
@@ -8,6 +10,8 @@ import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
 
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.util.Optional;
 import java.util.Set;
 
@@ -31,14 +35,13 @@ public class AuthInterceptor implements HandlerInterceptor {
 
     private final JwtService jwtService;
     private final PermissaoService permissaoService;
+    private final UsuarioRepository usuarioRepository;
 
-    /**
-     * @param jwtService       serviço de geração e validação de JWT.
-     * @param permissaoService serviço de permissões por tela.
-     */
-    public AuthInterceptor(JwtService jwtService, PermissaoService permissaoService) {
+    public AuthInterceptor(JwtService jwtService, PermissaoService permissaoService,
+                           UsuarioRepository usuarioRepository) {
         this.jwtService = jwtService;
         this.permissaoService = permissaoService;
+        this.usuarioRepository = usuarioRepository;
     }
 
     @Override
@@ -59,6 +62,22 @@ public class AuthInterceptor implements HandlerInterceptor {
         Long userId = Long.parseLong(claims.getSubject());
         String role = claims.get("role", String.class);
         String nome = claims.get("nome", String.class);
+
+        // Verifica se a conta existe e se o token não foi revogado (logout/troca de senha)
+        Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
+        if (usuarioOpt.isEmpty()) {
+            response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+            return false;
+        }
+        LocalDateTime invalidacaoAntes = usuarioOpt.get().getInvalidacaoTokensAntes();
+        if (invalidacaoAntes != null) {
+            LocalDateTime iat = claims.getIssuedAt().toInstant()
+                    .atZone(ZoneId.systemDefault()).toLocalDateTime();
+            if (iat.isBefore(invalidacaoAntes)) {
+                response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
+                return false;
+            }
+        }
 
         // Propaga para controllers (evita reler o token)
         request.setAttribute("userId", userId);

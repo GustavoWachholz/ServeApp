@@ -5,6 +5,7 @@ import com.servants.dto.PerfilUpdateRequest;
 import com.servants.dto.PermissoesUpdateRequest;
 import com.servants.dto.SenhaUpdateRequest;
 import com.servants.dto.UsuarioListItemDTO;
+import com.servants.dto.VincularServoRequest;
 import com.servants.service.PermissaoService;
 import com.servants.service.UsuarioService;
 import jakarta.servlet.http.HttpServletRequest;
@@ -73,6 +74,18 @@ public class UsuarioController {
     }
 
     /**
+     * {@code PUT /api/usuarios/{id}/vincular-servo} — vincula/desvincula um servo. Somente ADMIN.
+     */
+    @PutMapping("/{id}/vincular-servo")
+    public ResponseEntity<Void> vincularServo(@PathVariable Long id,
+                                              @RequestBody VincularServoRequest body,
+                                              HttpServletRequest request) {
+        if (!isAdmin(request)) return ResponseEntity.status(403).build();
+        usuarioService.vincularServo(id, body.voluntarioId());
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
      * {@code PUT /api/usuarios/{id}/perfil} — atualiza o perfil. Somente o próprio usuário.
      */
     @PutMapping("/{id}/perfil")
@@ -93,6 +106,19 @@ public class UsuarioController {
                                              HttpServletRequest request) {
         if (!id.equals(userId(request))) return ResponseEntity.status(403).build();
         usuarioService.alterarSenha(id, body);
+        return ResponseEntity.noContent().build();
+    }
+
+    /**
+     * {@code DELETE /api/usuarios/{id}} — exclui ou anonimiza uma conta.
+     * Admin pode excluir qualquer conta não-admin; o próprio usuário pode excluir a si mesmo.
+     */
+    @DeleteMapping("/{id}")
+    public ResponseEntity<Void> excluirConta(@PathVariable Long id, HttpServletRequest request) {
+        Long requestingUserId = userId(request);
+        boolean admin = isAdmin(request);
+        if (!admin && !id.equals(requestingUserId)) return ResponseEntity.status(403).build();
+        usuarioService.excluirConta(id, requestingUserId, admin);
         return ResponseEntity.noContent().build();
     }
 

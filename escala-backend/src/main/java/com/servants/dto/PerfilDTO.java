@@ -18,7 +18,10 @@ import java.util.List;
  * @param genero         gênero do voluntário vinculado, ou {@code null}.
  * @param dataNascimento data de nascimento (ISO {@code yyyy-MM-dd}), ou {@code null}.
  * @param permissoes     permissões por tela do usuário.
+ * @param voluntarioId   id do servo vinculado, ou {@code null} se não houver vínculo.
+ * @param voluntarioNome nome do servo vinculado, ou {@code null}.
  */
 public record PerfilDTO(Long id, String nome, String email, String role, String foto,
                         String telefone, String genero, String dataNascimento,
-                        List<PermissaoDTO> permissoes) {}
+                        List<PermissaoDTO> permissoes,
+                        Long voluntarioId, String voluntarioNome) {}

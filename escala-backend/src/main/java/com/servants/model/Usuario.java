@@ -1,6 +1,7 @@
 package com.servants.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 import java.util.Objects;
 
 /**
@@ -44,6 +45,26 @@ public class Usuario {
     /** Foto de perfil do usuário, em data URL Base64. Opcional. */
     @Column(columnDefinition = "LONGTEXT")
     private String foto;
+
+    /** Data/hora em que o titular aceitou a Política de Privacidade (LGPD Art. 8). */
+    private LocalDateTime dataConsentimento;
+
+    /** Versão da política de privacidade aceita (ex.: "1.0"). */
+    @Column(length = 20)
+    private String versaoPolitica;
+
+    /** IP do titular no momento do aceite, para rastreabilidade (LGPD Art. 8 §5). */
+    @Column(length = 60)
+    private String ipConsentimento;
+
+    /**
+     * Servo (voluntário) vinculado a esta conta. Cada servo pertence a no máximo um
+     * usuário ({@code unique}). O vínculo é definido no cadastro (por nome) ou pelo
+     * admin na tela de Usuários. {@code null} quando a conta não tem servo associado.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "voluntario_id", unique = true)
+    private Voluntario voluntario;
 
     /** Construtor padrão exigido pelo JPA. */
     public Usuario() {
@@ -138,6 +159,33 @@ public class Usuario {
     /** @param foto define a foto de perfil (data URL Base64). */
     public void setFoto(String foto) {
         this.foto = foto;
+    }
+
+    /** Data/hora a partir da qual todos os tokens emitidos antes são considerados inválidos (logout/troca de senha). */
+    private LocalDateTime invalidacaoTokensAntes;
+
+    /** Data/hora do último login bem-sucedido (rastreabilidade LGPD Art. 37). */
+    private LocalDateTime ultimoLogin;
+
+    public LocalDateTime getDataConsentimento() { return dataConsentimento; }
+    public void setDataConsentimento(LocalDateTime dataConsentimento) { this.dataConsentimento = dataConsentimento; }
+    public String getVersaoPolitica() { return versaoPolitica; }
+    public void setVersaoPolitica(String versaoPolitica) { this.versaoPolitica = versaoPolitica; }
+    public String getIpConsentimento() { return ipConsentimento; }
+    public void setIpConsentimento(String ipConsentimento) { this.ipConsentimento = ipConsentimento; }
+    public LocalDateTime getInvalidacaoTokensAntes() { return invalidacaoTokensAntes; }
+    public void setInvalidacaoTokensAntes(LocalDateTime invalidacaoTokensAntes) { this.invalidacaoTokensAntes = invalidacaoTokensAntes; }
+    public LocalDateTime getUltimoLogin() { return ultimoLogin; }
+    public void setUltimoLogin(LocalDateTime ultimoLogin) { this.ultimoLogin = ultimoLogin; }
+
+    /** @return o servo (voluntário) vinculado a esta conta, ou {@code null}. */
+    public Voluntario getVoluntario() {
+        return voluntario;
+    }
+
+    /** @param voluntario define o servo (voluntário) vinculado a esta conta. */
+    public void setVoluntario(Voluntario voluntario) {
+        this.voluntario = voluntario;
     }
 
     /**

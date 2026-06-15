@@ -102,7 +102,11 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 | `ConfiguracaoEscala` | `configuracao_escala` | classificações de funções |
 | `ConfiguracaoIgreja` | `configuracao_igreja` | singleton id=1, nome/contato/redes |
 | `Aviso` | `avisos` | quadro de avisos com validade |
-| `Usuario` | `usuarios` | login/JWT, papel ADMIN ou USER |
+| `Usuario` | `usuarios` | login/JWT, papel ADMIN ou USER; FK `voluntario_id` (único) liga a conta ao `Voluntario` |
+| `PermissaoTela` | `permissoes_tela` | permissão por tela/ação (acessar/criar/editar/excluir) por usuário |
+| `RegistroAuditoria` | `auditoria` | log de operações: dataHora, usuarioId/Nome (snapshot), modulo, acao, descricao, entidadeId, metodoHttp, caminho, statusHttp, ip |
+
+**Vínculo Usuário↔Servo:** cada `Usuario` pode ter um `Voluntario` vinculado (`voluntario_id`, único). No cadastro o sistema vincula automaticamente a um servo de mesmo nome (1 correspondência não vinculada) ou cria um servo novo. O admin gerencia o vínculo na tela Usuários (`PUT /api/usuarios/{id}/vincular-servo`). `buscarPerfil`/`atualizarPerfil` resolvem o servo pelo vínculo explícito, com fallback por e-mail.
 
 ---
 
@@ -149,6 +153,11 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 | `GET /api/relatorios/frequencia?de=&ate=` | Relatório de frequência |
 | `GET/PUT /api/igreja` | Config da igreja (singleton) |
 | `GET/PUT /api/configuracao-escala` | Classificações de funções |
+| `GET /api/usuarios` `GET /api/usuarios/me` `GET /api/usuarios/{id}` | Lista (admin) / perfil próprio / perfil (admin ou próprio) |
+| `PUT /api/usuarios/{id}/permissoes` | Atualiza permissões (admin) |
+| `PUT /api/usuarios/{id}/perfil` `PUT /api/usuarios/{id}/senha` | Edita perfil / troca senha (só o próprio) |
+| `PUT /api/usuarios/{id}/vincular-servo` | Vincula/desvincula servo (admin); body `{voluntarioId}` (null desvincula) |
+| `GET /api/auditoria` | Lista registros de auditoria paginados (admin); params: `modulo, acao, usuarioId, de, ate, page, size` |
 
 ---
 

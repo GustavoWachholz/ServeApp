@@ -95,12 +95,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             if (msgErroRegistro) msgErroRegistro.style.display = 'none';
 
+            const consentimento = document.getElementById('reg-consentimento')?.checked;
+
             if (senha !== senha2) {
                 mostrarErro(msgErroRegistro, 'As senhas não coincidem.');
                 return;
             }
             if (senha.length < 8) {
                 mostrarErro(msgErroRegistro, 'A senha deve ter no mínimo 8 caracteres.');
+                return;
+            }
+            if (!consentimento) {
+                mostrarErro(msgErroRegistro, 'É necessário aceitar a Política de Privacidade para criar uma conta.');
                 return;
             }
 
@@ -110,7 +116,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${API_BASE}/cadastro`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome, email, senha })
+                    body: JSON.stringify({ nome, email, senha, consentimento: true })
                 });
 
                 if (res.status === 201) {

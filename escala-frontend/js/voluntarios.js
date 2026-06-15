@@ -3,6 +3,13 @@
  * ordenação, CRUD via modal e vínculo a áreas e classificações.
  */
 
+/** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 /** URL da API de voluntários. */
 const API_URL = 'http://localhost:8080/api/voluntarios';
 /** URL da API de ministérios (áreas), usada para popular os checkboxes do formulário. */
@@ -36,8 +43,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     initToolbar();
     initFiltros();
     initMascaraTelefone();
+    aplicarPermissoesServos();
     Auth.esconderLoading();
 });
+
+function aplicarPermissoesServos() {
+    if (!Auth.podeCriar('SERVOS')) {
+        const el = document.getElementById('btn-new-volunteer');
+        if (el) el.style.display = 'none';
+    }
+    if (!Auth.podeEditar('SERVOS')) {
+        const el = document.getElementById('btn-switch-to-edit');
+        if (el) el.style.display = 'none';
+    }
+    if (!Auth.podeExcluir('SERVOS')) {
+        ['btn-delete-volunteer', 'btn-form-delete'].forEach(id => {
+            const el = document.getElementById(id);
+            if (el) el.style.display = 'none';
+        });
+    }
+}
 
 /* ─────────────── Máscara de telefone ─────────────── */
 /**
@@ -290,9 +315,11 @@ function normalizar(str) {
  * @returns {string} HTML com o termo destacado.
  */
 function destacar(texto, termo) {
-    if (!termo) return texto;
-    const regex = new RegExp(`(${termo.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi');
-    return texto.replace(regex, '<mark>$1</mark>');
+    const escaped = esc(texto);
+    if (!termo) return escaped;
+    const escapedTerm = esc(termo).replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    const regex = new RegExp(`(${escapedTerm})`, 'gi');
+    return escaped.replace(regex, '<mark>$1</mark>');
 }
 
 /**
@@ -384,12 +411,8 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
             </td>
             <td>${tel}</td>
             <td class="actions-cell">
-                <button class="btn-icon btn-view" data-id="${id}" title="Ver Detalhes">
-                    <i class="fas fa-eye"></i>
-                </button>
-                <button class="btn-icon btn-edit" data-id="${id}" title="Editar">
-                    <i class="fas fa-edit"></i>
-                </button>
+                <button class="btn-sort btn-view" data-id="${id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
+                ${Auth.podeExcluir('SERVOS') ? `<button class="btn-sort btn-sort-danger btn-delete-row" data-id="${id}" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
             </td>
         `;
         list.appendChild(tr);
@@ -474,6 +497,12 @@ function initModalEvents() {
         }
     });
 
+    const birthdateInput = document.getElementById('birthdate');
+    if (birthdateInput) {
+        birthdateInput.addEventListener('change', () =>
+            verificarMenoridade('birthdate', 'birthdate-menor-aviso'));
+    }
+
     if (btnNew) {
         btnNew.onclick = () => {
             resetForm();
@@ -487,9 +516,14 @@ function initModalEvents() {
     if (list) {
         list.addEventListener('click', (e) => {
             const btnView = e.target.closest('.btn-view');
-            const btnEdit = e.target.closest('.btn-edit');
-            if (btnView) buscarEPresentar(btnView.getAttribute('data-id'), 'view');
-            else if (btnEdit) buscarEPresentar(btnEdit.getAttribute('data-id'), 'edit');
+            const btnDel  = e.target.closest('.btn-delete-row');
+            if (btnView) {
+                buscarEPresentar(btnView.getAttribute('data-id'), 'view');
+            } else if (btnDel) {
+                const id = btnDel.getAttribute('data-id');
+                currentVolunteer = voluntariosCache.find(v => String(v.id || v._id) === String(id));
+                abrirConfirmacao();
+            }
         });
     }
 
@@ -729,11 +763,33 @@ function preencherFormulario(v) {
     document.getElementById('phone').value = formatarTelefone(v.telefone || '');
     document.getElementById('genero').value = v.genero || '';
     document.getElementById('birthdate').value = v.dataNascimento || '';
+    verificarMenoridade('birthdate', 'birthdate-menor-aviso');
     const checkboxes = document.querySelectorAll('input[name="ministries"]');
     checkboxes.forEach(cb => {
         cb.checked = (v.ministerios || []).includes(cb.value);
     });
     renderClassifChips('classif-checkboxes-vol', v.classificacoes || []);
+}
+
+function verificarMenoridade(inputId, warnId) {
+    const input = document.getElementById(inputId);
+    if (!input) return;
+    let warnEl = document.getElementById(warnId);
+    if (!warnEl) {
+        warnEl = document.createElement('span');
+        warnEl.id = warnId;
+        warnEl.style.cssText = 'font-size:.8rem;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:.3rem .6rem;margin-top:.3rem;display:none;';
+        warnEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Voluntário menor de 18 anos. Obtenha o consentimento do responsável legal antes de salvar (LGPD Art. 14).';
+        input.parentNode.appendChild(warnEl);
+    }
+    const val = input.value;
+    if (!val) { warnEl.style.display = 'none'; return; }
+    const nasc = new Date(val + 'T00:00:00');
+    const hoje = new Date();
+    let idade = hoje.getFullYear() - nasc.getFullYear();
+    const dm = hoje.getMonth() - nasc.getMonth();
+    if (dm < 0 || (dm === 0 && hoje.getDate() < nasc.getDate())) idade--;
+    warnEl.style.display = (idade >= 0 && idade < 18) ? 'block' : 'none';
 }
 
 /**

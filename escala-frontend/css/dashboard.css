@@ -986,3 +986,97 @@ html.embedded .sidebar { display: none; }
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.2);
 }
 
+/* ════════════════════════════════════════════════════════════════════════
+   MOBILE (≤768px) — sidebar em overlay com backdrop, tabelas com rolagem
+   horizontal, cabeçalhos empilhados, calendário compacto e ajustes de
+   toque. Tudo aqui é adicional/condicional — o layout desktop não muda.
+   ════════════════════════════════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+    /* ── Layout geral / overflow ──────────────────────────────────────── */
+    html, body { overflow-x: hidden; }
+    .main-content { padding: 1.25rem 1rem 2rem; }
+    .main-header { margin-bottom: 1.75rem; }
+    .logo-title { font-size: 1.6rem; }
+
+    /* ── Sidebar: ícones por padrão; abre em overlay com backdrop ──────── */
+    html:not(.mobile-nav-open) .sidebar { width: 64px !important; }
+    html:not(.mobile-nav-open) .sidebar span:not(.slider):not(.switch),
+    html:not(.mobile-nav-open) .sidebar .user-info,
+    html:not(.mobile-nav-open) .sidebar .nav-caret,
+    html:not(.mobile-nav-open) .sidebar .settings-popover { display: none !important; }
+    html:not(.mobile-nav-open) .sidebar .sidebar-logo .logo-full { display: none !important; }
+    html:not(.mobile-nav-open) .sidebar .sidebar-logo .logo-mini { display: block !important; }
+    html:not(.mobile-nav-open) .sidebar .user-profile { justify-content: center; padding: 1rem 0; }
+    html:not(.mobile-nav-open) .sidebar .sidebar-nav li a,
+    html:not(.mobile-nav-open) .sidebar .nav-group-toggle,
+    html:not(.mobile-nav-open) .sidebar .sidebar-footer .sidebar-btn { justify-content: center; gap: 0; }
+    html:not(.mobile-nav-open) .sidebar .sidebar-nav li.active a { margin-left: 0; padding-left: 1rem; border-left: none; }
+    html:not(.mobile-nav-open) .sidebar .nav-submenu { max-height: none; overflow: visible; }
+    html:not(.mobile-nav-open) .sidebar .nav-submenu li a { padding-left: 1rem; }
+    html:not(.mobile-nav-open) .sidebar-toggle { position: relative; top: auto; right: auto; align-self: center; margin: 0.6rem auto 0; }
+    html:not(.mobile-nav-open) .sidebar-logo { padding: 0.4rem 0; }
+
+    /* Estado aberto: overlay cobrindo ~70% da largura, sempre com labels visíveis */
+    html.mobile-nav-open .sidebar {
+        position: fixed !important;
+        top: 0 !important;
+        left: 0 !important;
+        height: 100vh !important;
+        width: 70vw !important;
+        max-width: 300px !important;
+        z-index: 1000 !important;
+        box-shadow: 4px 0 24px rgba(0,0,0,0.3);
+    }
+    html.mobile-nav-open .sidebar span:not(.slider):not(.switch),
+    html.mobile-nav-open .sidebar .user-info,
+    html.mobile-nav-open .sidebar .nav-caret { display: revert !important; }
+
+    /* Backdrop escurecido — fecha a sidebar ao tocar fora dela */
+    .sidebar-backdrop {
+        display: none;
+        position: fixed;
+        inset: 0;
+        background: rgba(0, 0, 0, 0.5);
+        z-index: 999;
+    }
+    html.mobile-nav-open .sidebar-backdrop { display: block; }
+
+    /* ── Cabeçalhos de seção: título empilhado sobre os controles ──────── */
+    .section-header {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 0.65rem;
+    }
+
+    /* ── Tabelas: rolagem horizontal em vez de corte de colunas ────────── */
+    .list-table-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
+    .list-table-container table { min-width: 480px; }
+
+    /* ── Toolbars e grupos de botões: permitem quebra de linha ─────────── */
+    .toolbar { gap: 0.6rem; }
+    .periodo-toggle { flex-wrap: wrap; }
+
+    /* ── Calendário (FullCalendar) ──────────────────────────────────────── */
+    #calendar-container { padding: 0.75rem 0.5rem; }
+    .fc .fc-toolbar.fc-header-toolbar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+    .fc .fc-toolbar-chunk { justify-content: center; flex-wrap: wrap; }
+    .fc .fc-toolbar-title { font-size: 1.05rem; text-align: center; }
+    .fc .fc-button { padding: 0.35rem 0.55rem; font-size: 0.72rem; }
+    .fc .fc-col-header-cell-cushion { font-size: 0.62rem; padding: 0.55rem 0.1rem; letter-spacing: 0; }
+    .fc .fc-daygrid-day-number { font-size: 0.78rem; padding: 4px 6px; }
+
+    /* ── Cards: uma coluna por linha ─────────────────────────────────────── */
+    .cards-container { grid-template-columns: 1fr; }
+
+    /* ── Alvos de toque confortáveis (~44px) ─────────────────────────────── */
+    .btn-primary, .btn-secondary, .btn-danger { min-height: 44px; }
+    .btn-sort, .periodo-btn { min-height: 40px; }
+
+    /* ── Modal: rodapé empilhado em telas estreitas ──────────────────────── */
+    .modal-footer { flex-direction: column-reverse; gap: 0.75rem; align-items: stretch; }
+    .modal-footer .footer-right { flex-direction: column; width: 100%; }
+    .modal-footer .footer-right button,
+    .modal-footer > button { width: 100%; }
+}
+

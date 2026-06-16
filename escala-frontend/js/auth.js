@@ -163,6 +163,9 @@
     /** Chave de armazenamento do estado recolhido da sidebar. */
     const SIDEBAR_KEY = 'serve_sidebar_collapsed';
 
+    /** Breakpoint mobile: abaixo dele a sidebar abre em overlay (não persistido). */
+    const MOBILE_QUERY = '(max-width: 768px)';
+
     /**
      * Aplica o estado recolhido/expandido da sidebar ao {@code <html>} de forma
      * síncrona (lendo o localStorage). Deve ser chamado no {@code <head>} para evitar flash.
@@ -188,7 +191,38 @@
         if (icon) icon.className = recolhido ? 'fas fa-bars' : 'fas fa-angles-left';
     }
 
+    /**
+     * Fecha a sidebar mobile (overlay) — usada pelo backdrop, pelos links de
+     * navegação e pelo próprio botão de toggle.
+     *
+     * @returns {void}
+     */
+    function fecharSidebarMobile() {
+        document.documentElement.classList.remove('mobile-nav-open');
+        _atualizarIconeToggle(true);
+    }
+
+    /**
+     * Indica se a sidebar está visualmente compacta (só ícones) no momento: no
+     * mobile é o estado padrão (overlay fechado); no desktop é o estado persistido.
+     *
+     * @returns {boolean}
+     */
+    function _sidebarRecolhidaVisualmente() {
+        if (window.matchMedia(MOBILE_QUERY).matches) {
+            return !document.documentElement.classList.contains('mobile-nav-open');
+        }
+        return document.documentElement.classList.contains('sidebar-collapsed');
+    }
+
     function alternarSidebar() {
+        // No mobile, a sidebar abre em overlay (estado transitório, não persistido);
+        // no desktop, mantém o comportamento original de recolher/expandir persistido.
+        if (window.matchMedia(MOBILE_QUERY).matches) {
+            const aberto = document.documentElement.classList.toggle('mobile-nav-open');
+            _atualizarIconeToggle(!aberto);
+            return;
+        }
         const recolhido = document.documentElement.classList.toggle('sidebar-collapsed');
         localStorage.setItem(SIDEBAR_KEY, recolhido ? '1' : '0');
         _atualizarIconeToggle(recolhido);
@@ -525,7 +559,22 @@
         // Botão de recolher/expandir a sidebar
         const toggleBtn = document.getElementById('sidebar-toggle');
         if (toggleBtn) toggleBtn.addEventListener('click', alternarSidebar);
-        _atualizarIconeToggle(document.documentElement.classList.contains('sidebar-collapsed'));
+        _atualizarIconeToggle(_sidebarRecolhidaVisualmente());
+
+        // ── Mobile: backdrop e fechamento ao navegar ────────────────────────
+        let backdrop = document.getElementById('sidebar-backdrop');
+        if (!backdrop) {
+            backdrop = document.createElement('div');
+            backdrop.id = 'sidebar-backdrop';
+            backdrop.className = 'sidebar-backdrop';
+            document.body.appendChild(backdrop);
+        }
+        backdrop.addEventListener('click', fecharSidebarMobile);
+        document.querySelectorAll('.sidebar-nav a').forEach(a => {
+            a.addEventListener('click', () => {
+                if (document.documentElement.classList.contains('mobile-nav-open')) fecharSidebarMobile();
+            });
+        });
 
         // Submenu "Cadastros": accordion + abertura automática na página ativa + persistência
         document.querySelectorAll('.nav-group').forEach(group => {
@@ -542,8 +591,8 @@
             const toggle = group.querySelector('.nav-group-toggle');
             if (toggle) {
                 toggle.addEventListener('click', () => {
-                    // Recolhida: a sidebar expande em vez de abrir o accordion
-                    if (document.documentElement.classList.contains('sidebar-collapsed')) {
+                    // Recolhida (ou compacta no mobile): expande a sidebar em vez do accordion
+                    if (_sidebarRecolhidaVisualmente()) {
                         alternarSidebar();
                         group.classList.add('open');
                         localStorage.setItem(storageKey, 'true');

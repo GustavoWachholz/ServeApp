@@ -159,6 +159,11 @@
         /* ── Status HTTP ── */
         .status-ok    { color: #16a34a; font-weight: 600; font-size: 0.78rem; }
         .status-err   { color: #dc2626; font-weight: 600; font-size: 0.78rem; }
+        @media (max-width: 768px) {
+            .list-table-container table { min-width: 760px; }
+            .audit-filter-item select,
+            .audit-filter-item input[type="date"] { min-width: 130px; }
+        }
         .status-warn  { color: #ea580c; font-weight: 600; font-size: 0.78rem; }
     </style>
 </head>

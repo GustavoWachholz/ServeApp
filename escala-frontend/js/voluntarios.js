@@ -35,6 +35,8 @@ let filtroEscala = '';
 /** Inicializa a tela: carrega classificações, voluntários, opções e liga eventos. */
 document.addEventListener('DOMContentLoaded', async () => {
     console.log('Módulo de Voluntários (API Mode) inicializado.');
+    // No mobile, a lista já abre ordenada alfabeticamente (mais fácil de escanear).
+    if (window.matchMedia('(max-width: 768px)').matches) ordemAtual = 'alpha';
     classificacoesDisponiveis = await ClassificacoesCache.carregarClassificacoes();
     await Promise.all([carregarVoluntarios(), carregarOpcoesMinisterios()]);
     renderClassifChips('classif-checkboxes-vol', []);
@@ -460,6 +462,19 @@ function initToolbar() {
             aplicarFiltroEOrdem();
         });
     });
+    // Reflete a ordenação atual nos botões (ex.: 'alpha' como padrão no mobile)
+    [btnCadastro, btnAlpha].forEach(b => b && b.classList.toggle('active', b.dataset.sort === ordemAtual));
+
+    // Botão "Filtros" (mobile): revela/oculta o painel de ordenação + filtros
+    const btnToggleFilters = document.getElementById('btn-toggle-filters');
+    const secao = document.querySelector('.dashboard-section');
+    if (btnToggleFilters && secao) {
+        btnToggleFilters.addEventListener('click', () => {
+            const aberto = secao.classList.toggle('filters-open');
+            btnToggleFilters.classList.toggle('active', aberto);
+            btnToggleFilters.setAttribute('aria-expanded', aberto ? 'true' : 'false');
+        });
+    }
 }
 
 /**

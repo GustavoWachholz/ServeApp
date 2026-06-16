@@ -192,10 +192,26 @@
             opacity: 1;
         }
 
+        /* Botão "Filtros" só existe no mobile (desktop mostra tudo) */
+        .btn-filters-toggle { display: none; }
+
         @media (max-width: 768px) {
             .sort-group { flex-wrap: wrap; }
             .filter-bar { gap: 0.6rem; }
             .filter-item select { min-width: 130px; }
+
+            /* No mobile só a busca + botão "Filtros" ficam visíveis; ordenação e
+               filtros entram num painel revelado ao tocar em "Filtros". */
+            .btn-filters-toggle { display: inline-flex; align-items: center; gap: 0.4rem; }
+            .toolbar .sort-group { display: none; }
+            .filter-bar { display: none; }
+            .filters-open .sort-group,
+            .filters-open .filter-bar { display: flex; }
+
+            /* Painel aberto: layout modular, controles empilhados em largura total */
+            .filters-open .filter-bar { flex-direction: column; align-items: stretch; }
+            .filters-open .filter-item { width: 100%; }
+            .filters-open .filter-item select { width: 100%; min-width: 0; }
         }
     </style>
 </head>
@@ -290,6 +306,9 @@
                             <i class="fas fa-times"></i>
                         </button>
                     </div>
+                    <button type="button" id="btn-toggle-filters" class="btn-sort btn-filters-toggle" aria-expanded="false">
+                        <i class="fas fa-sliders"></i> Filtros
+                    </button>
                     <div class="sort-group">
                         <span class="sort-label">Ordenar:</span>
                         <button id="sort-cadastro" class="btn-sort active" data-sort="cadastro">
@@ -330,7 +349,7 @@
                     <span class="volunteers-count" id="volunteers-count"></span>
                 </div>
 
-                <div class="list-table-container">
+                <div class="list-table-container mobile-compact">
                     <table>
                         <thead>
                             <tr>

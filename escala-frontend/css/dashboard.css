@@ -1106,6 +1106,17 @@ html.embedded .sidebar { display: none; }
     .list-table-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
     .list-table-container table { min-width: 480px; }
 
+    /* ── Listas compactas (Servos, Áreas, Ministérios, Usuários): exibem só
+       a 1ª coluna (nome) e a última (ações), sem rolagem horizontal. ────── */
+    .list-table-container.mobile-compact { overflow-x: visible; }
+    .list-table-container.mobile-compact table { min-width: 0; width: 100%; }
+    .list-table-container.mobile-compact th:not(:first-child):not(:last-child),
+    .list-table-container.mobile-compact td:not(:first-child):not(:last-child) { display: none; }
+    .list-table-container.mobile-compact th:last-child,
+    .list-table-container.mobile-compact td:last-child { text-align: right; white-space: nowrap; }
+    .list-table-container.mobile-compact th:first-child,
+    .list-table-container.mobile-compact td:first-child { width: 100%; }
+
     /* ── Toolbars e grupos de botões: permitem quebra de linha ─────────── */
     .toolbar { gap: 0.6rem; }
     .periodo-toggle { flex-wrap: wrap; }

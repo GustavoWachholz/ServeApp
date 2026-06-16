@@ -67,11 +67,12 @@ function renderUsuarios(lista) {
         const nomeSeguro = u.nome || '—';
         const avatarSrc = u.foto || Auth.avatarLocal(u.nome);
         const avatar = `<img class="user-avatar-sm" src="${avatarSrc}" alt="${nomeSeguro}">`;
+        const papelTexto = u.role === 'ADMIN' ? 'Administrador' : 'Voluntário';
         const badge = u.role === 'ADMIN'
             ? `<span class="role-badge admin">Administrador</span>`
             : `<span class="role-badge user">Voluntário</span>`;
         return `<tr>
-            <td><div class="user-cell">${avatar}<span>${escHtml(nomeSeguro)}</span></div></td>
+            <td><div class="user-cell">${avatar}<div class="user-cell-text"><span class="user-name">${escHtml(nomeSeguro)}</span><span class="user-role-mobile">${papelTexto}</span></div></div></td>
             <td>${escHtml(u.email)}</td>
             <td>${badge}</td>
             <td><button type="button" class="btn-sort" onclick="abrirModal(${u.id})" title="Gerenciar"><i class="fas fa-sliders"></i><span class="btn-label">Gerenciar</span></button></td>

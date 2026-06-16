@@ -167,8 +167,15 @@
         .save-status.success { color: #059669; }
         .save-status.error   { color: #ef4444; }
 
+        /* Mobile: lista compacta — só Nome (2ª col, pois a 1ª é o handle) + Ações */
         @media (max-width: 768px) {
-            .list-table-container table { min-width: 560px; }
+            .list-table-container { overflow-x: visible; }
+            .list-table-container table { min-width: 0; width: 100%; }
+            .list-table-container th:nth-child(1), .list-table-container td:nth-child(1),
+            .list-table-container th:nth-child(3), .list-table-container td:nth-child(3),
+            .list-table-container th:nth-child(4), .list-table-container td:nth-child(4) { display: none; }
+            .list-table-container th:nth-child(2), .list-table-container td:nth-child(2) { width: 100%; }
+            .list-table-container th:last-child, .list-table-container td:last-child { text-align: right; white-space: nowrap; }
         }
     </style>
 </head>

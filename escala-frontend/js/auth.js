@@ -40,13 +40,13 @@
     // ── Helpers de sessão ──────────────────────────────────────────────────
 
     /**
-     * Lê o usuário logado a partir do {@code sessionStorage}.
+     * Lê o usuário logado a partir do {@code localStorage}.
      *
      * @returns {Object|null} o objeto de sessão, ou {@code null} se não houver/for inválido.
      */
     function getUsuarioLogado() {
         try {
-            const raw = sessionStorage.getItem(STORAGE_KEY);
+            const raw = localStorage.getItem(STORAGE_KEY);
             return raw ? JSON.parse(raw) : null;
         } catch (e) {
             return null;
@@ -54,13 +54,13 @@
     }
 
     /**
-     * Persiste o objeto de sessão do usuário no {@code sessionStorage}.
+     * Persiste o objeto de sessão do usuário no {@code localStorage}.
      *
      * @param {Object} usuario dados de sessão a salvar.
      * @returns {void}
      */
     function salvarSessao(usuario) {
-        sessionStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
     }
 
     /**
@@ -120,7 +120,7 @@
 
     /**
      * Encerra a sessão: invalida o token no servidor (best-effort), limpa o
-     * {@code sessionStorage} e redireciona para a tela de login.
+     * {@code localStorage} e redireciona para a tela de login.
      *
      * @async
      * @returns {Promise<void>}
@@ -136,7 +136,7 @@
                 });
             }
         } catch (e) { /* ignora falhas de rede no logout */ }
-        sessionStorage.removeItem(STORAGE_KEY);
+        localStorage.removeItem(STORAGE_KEY);
         irPara('login.html');
     }
 
@@ -279,7 +279,7 @@
     }
 
     /**
-     * Persiste as preferências de aparência: atualiza o {@code sessionStorage}
+     * Persiste as preferências de aparência: atualiza o {@code localStorage}
      * imediatamente e envia ao backend de forma assíncrona (best-effort).
      *
      * @async
@@ -394,7 +394,7 @@
         return originalFetch(input, init).then(function (res) {
             // Token inválido/expirado → encerra sessão e volta ao login
             if (res.status === 401 && tokenAnexado) {
-                sessionStorage.removeItem(STORAGE_KEY);
+                localStorage.removeItem(STORAGE_KEY);
                 irPara('login.html');
             }
             // Sem permissão → avisa sem bloquear a resposta para o chamador

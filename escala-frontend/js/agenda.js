@@ -14,9 +14,9 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 };
 /// <reference path="./auth.d.ts" />
 /** URL da API de escalas. */
-const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
+const ESCALAS_API_URL = '/api/escalas';
 /** URL da API de configurações de escala (classificações). */
-const CONFIG_ESCALA_API_URL = 'http://localhost:8080/api/configuracao-escala';
+const CONFIG_ESCALA_API_URL = '/api/configuracao-escala';
 /** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis = [];
 /** Instância do FullCalendar. */
@@ -80,7 +80,7 @@ function popularSelectClassificacao() {
 function carregarVoluntariosParaEscala() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch('http://localhost:8080/api/voluntarios');
+            const response = yield fetch('/api/voluntarios');
             if (response.ok) {
                 listaVoluntarios = yield response.json();
             }
@@ -583,7 +583,7 @@ function salvarEscala() {
         };
         if (id)
             payload.id = parseInt(id);
-        const url = id ? `http://localhost:8080/api/escalas/${id}` : 'http://localhost:8080/api/escalas';
+        const url = id ? `/api/escalas/${id}` : '/api/escalas';
         const method = id ? 'PUT' : 'POST';
         try {
             const response = yield fetch(url, {
@@ -689,7 +689,7 @@ function initCalendar() {
         },
         events: function (fetchInfo, successCallback, failureCallback) {
             // Garanta o uso da URL absoluta do backend
-            fetch('http://localhost:8080/api/escalas')
+            fetch('/api/escalas')
                 .then(response => {
                 if (!response.ok) {
                     throw new Error('Falha ao buscar escalas do backend');

@@ -3,7 +3,7 @@
  * Permite filtrar por período e exibe a tabela ordenada por total de escalas.
  */
 
-const RELATORIOS_API_URL = 'http://localhost:8080/api/relatorios';
+const RELATORIOS_API_URL = '/api/relatorios';
 
 let relatorioCache = { dados: null, de: null, ate: null };
 

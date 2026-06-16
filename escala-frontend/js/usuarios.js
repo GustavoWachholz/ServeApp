@@ -1,4 +1,4 @@
-const API_URL = 'http://localhost:8080/api/usuarios';
+const API_URL = '/api/usuarios';
 
 const TELAS = [
     { key: 'AGENDA',      label: 'Agenda / Escalas' },
@@ -7,7 +7,7 @@ const TELAS = [
     { key: 'MINISTERIOS', label: 'Ministérios' },
 ];
 
-const VOLUNTARIOS_URL = 'http://localhost:8080/api/voluntarios';
+const VOLUNTARIOS_URL = '/api/voluntarios';
 
 let usuariosCache = [];
 let servosCache = [];

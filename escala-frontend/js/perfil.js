@@ -1,4 +1,4 @@
-const PERFIL_API = 'http://localhost:8080/api/usuarios';
+const PERFIL_API = '/api/usuarios';
 
 const MAX_FOTO_PX = 256;
 

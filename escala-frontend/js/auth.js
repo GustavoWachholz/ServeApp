@@ -130,7 +130,7 @@
         // Invalida o token no servidor (best-effort)
         try {
             if (sessao && sessao.token) {
-                await originalFetch('http://localhost:8080/api/auth/logout', {
+                await originalFetch('/api/auth/logout', {
                     method: 'POST',
                     headers: { 'Authorization': 'Bearer ' + sessao.token }
                 });
@@ -260,7 +260,7 @@
         sessao.corPrimaria = cor;
         salvarSessao(sessao);
         try {
-            await originalFetch(`http://localhost:8080/api/configuracoes/${sessao.id}`, {
+            await originalFetch(`/api/configuracoes/${sessao.id}`, {
                 method: 'PUT',
                 headers: {
                     'Content-Type': 'application/json',
@@ -326,7 +326,7 @@
 
     // ── Interceptação de fetch ──────────────────────────────────────────────
     // Anexa o token em toda chamada à API e trata 401 (sessão expirada).
-    const API_MARKER = 'localhost:8080/api/';
+    const API_MARKER = '/api/';
     const originalFetch = window.fetch.bind(window);
 
     /**
@@ -637,7 +637,7 @@
         const usuario = getUsuarioLogado();
         if (!usuario) return;
         try {
-            const res = await fetch('http://localhost:8080/api/usuarios/me');
+            const res = await fetch('/api/usuarios/me');
             if (!res.ok) return;
             const perfil = await res.json();
             usuario.permissoes = perfil.permissoes || [];
@@ -817,7 +817,7 @@
             site:      val('igreja-site')
         };
         try {
-            const res = await fetch('http://localhost:8080/api/igreja', {
+            const res = await fetch('/api/igreja', {
                 method: 'PUT',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

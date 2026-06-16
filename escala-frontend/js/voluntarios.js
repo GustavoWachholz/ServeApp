@@ -11,9 +11,9 @@ function esc(s) {
 }
 
 /** URL da API de voluntários. */
-const API_URL = 'http://localhost:8080/api/voluntarios';
+const API_URL = '/api/voluntarios';
 /** URL da API de ministérios (áreas), usada para popular os checkboxes do formulário. */
-const MINISTERIOS_URL = 'http://localhost:8080/api/ministerios';
+const MINISTERIOS_URL = '/api/ministerios';
 
 /** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
 let classificacoesDisponiveis = [];

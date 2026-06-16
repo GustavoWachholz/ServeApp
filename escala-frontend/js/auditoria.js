@@ -3,7 +3,7 @@
  * Consome GET /api/auditoria com filtros opcionais e exibe resultado paginado.
  */
 (function () {
-    const API = 'http://localhost:8080/api';
+    const API = '/api';
 
     let paginaAtual = 0;
     let totalPaginas = 0;

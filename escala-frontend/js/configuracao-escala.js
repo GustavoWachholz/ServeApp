@@ -5,9 +5,9 @@
  */
 
 /** URL da API de configurações de escala (classificações). */
-const API_CONFIG = 'http://localhost:8080/api/configuracao-escala';
+const API_CONFIG = '/api/configuracao-escala';
 /** URL da API de ministérios (áreas) exibidas como colunas. */
-const API_MINS   = 'http://localhost:8080/api/ministerios';
+const API_MINS   = '/api/ministerios';
 
 /** Cache de todos os ministérios (áreas) disponíveis para seleção. */
 let todosMinisterios  = [];

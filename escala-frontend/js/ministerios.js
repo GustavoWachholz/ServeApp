@@ -11,9 +11,9 @@ function esc(s) {
 }
 
 /** URL da API de ministérios. */
-const MINISTERIOS_API_URL = 'http://localhost:8080/api/ministerios';
+const MINISTERIOS_API_URL = '/api/ministerios';
 /** URL da API de voluntários (para popular os selects de líder/co-líder). */
-const VOLUNTARIOS_API_URL = 'http://localhost:8080/api/voluntarios';
+const VOLUNTARIOS_API_URL = '/api/voluntarios';
 
 /** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
 let classificacoesDisponiveis = [];

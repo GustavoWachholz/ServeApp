@@ -6,11 +6,11 @@
  */
 
 /** URL da API do dashboard. */
-const DASHBOARD_API_URL = 'http://localhost:8080/api/dashboard';
+const DASHBOARD_API_URL = '/api/dashboard';
 /** URL da API de escalas. */
-const ESCALAS_API_URL = 'http://localhost:8080/api/escalas';
+const ESCALAS_API_URL = '/api/escalas';
 /** URL da API de avisos. */
-const AVISOS_API_URL = 'http://localhost:8080/api/avisos';
+const AVISOS_API_URL = '/api/avisos';
 
 /** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
 function esc(s) {

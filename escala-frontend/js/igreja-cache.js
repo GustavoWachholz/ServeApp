@@ -10,7 +10,7 @@
  */
 window.IgrejaCache = (() => {
     /** URL da API de configuração da igreja. */
-    const API_URL = 'http://localhost:8080/api/igreja';
+    const API_URL = '/api/igreja';
     /** Promise cacheada do carregamento (null até o primeiro fetch ou após invalidar). */
     let _promise = null;
 

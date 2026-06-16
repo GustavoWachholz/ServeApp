@@ -4,7 +4,7 @@
  */
 
 /** URL base dos endpoints de autenticação. */
-const API_BASE = 'http://localhost:8080/api/auth';
+const API_BASE = '/api/auth';
 
 /**
  * Inicialização da tela de login: redireciona se já houver sessão, fixa os listeners

@@ -13,9 +13,9 @@ declare const ClassificacoesCache: any;
 /// <reference path="./auth.d.ts" />
 
 /** URL da API de escalas. */
-const ESCALAS_API_URL        = 'http://localhost:8080/api/escalas';
+const ESCALAS_API_URL        = '/api/escalas';
 /** URL da API de configurações de escala (classificações). */
-const CONFIG_ESCALA_API_URL  = 'http://localhost:8080/api/configuracao-escala';
+const CONFIG_ESCALA_API_URL  = '/api/configuracao-escala';
 
 /** Representação enxuta de um voluntário no contexto da agenda. */
 interface Voluntario {
@@ -88,7 +88,7 @@ function popularSelectClassificacao(): void {
  */
 async function carregarVoluntariosParaEscala() {
     try {
-        const response = await fetch('http://localhost:8080/api/voluntarios');
+        const response = await fetch('/api/voluntarios');
         if (response.ok) {
             listaVoluntarios = await response.json();
         } else {
@@ -634,7 +634,7 @@ async function salvarEscala(incluirEquipe = false) {
 
     if (id) payload.id = parseInt(id);
 
-    const url = id ? `http://localhost:8080/api/escalas/${id}` : 'http://localhost:8080/api/escalas';
+    const url = id ? `/api/escalas/${id}` : '/api/escalas';
     const method = id ? 'PUT' : 'POST';
 
     try {
@@ -742,7 +742,7 @@ function initCalendar() {
         },
         events: function(fetchInfo: any, successCallback: Function, failureCallback: Function) {
             // Garanta o uso da URL absoluta do backend
-            fetch('http://localhost:8080/api/escalas')
+            fetch('/api/escalas')
                 .then(response => {
                     if (!response.ok) {
                         throw new Error('Falha ao buscar escalas do backend');

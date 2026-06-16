@@ -267,7 +267,7 @@ function initExcluirConta() {
                 return;
             }
             if (!res.ok) throw new Error();
-            sessionStorage.removeItem('serve_session');
+            localStorage.removeItem('serve_session');
             window.location.replace('login.html');
         } catch {
             Auth.toast('Erro ao excluir a conta.', 'error');
@@ -278,5 +278,5 @@ function initExcluirConta() {
 }
 
 function sessao() {
-    return JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    return JSON.parse(localStorage.getItem('serve_session') || '{}');
 }

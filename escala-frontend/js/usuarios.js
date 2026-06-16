@@ -21,7 +21,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 async function carregarServos() {
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     try {
         const res = await fetch(VOLUNTARIOS_URL, {
             headers: { 'Authorization': 'Bearer ' + session.token }
@@ -44,7 +44,7 @@ async function carregarUsuarios() {
         </tr>`
     ).join('');
 
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     try {
         const res = await fetch(API_URL, {
             headers: { 'Authorization': 'Bearer ' + session.token }
@@ -122,7 +122,7 @@ async function abrirModal(id) {
 
     modal.classList.add('show-modal');
 
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     try {
         const res = await fetch(`${API_URL}/${id}`, {
             headers: { 'Authorization': 'Bearer ' + session.token }
@@ -236,7 +236,7 @@ async function salvarPermissoes(id) {
 
     const btn = document.getElementById('btn-salvar-permissoes');
     btn.disabled = true;
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     try {
         const res = await fetch(`${API_URL}/${id}/permissoes`, {
             method: 'PUT',
@@ -279,7 +279,7 @@ async function salvarVinculo(id) {
 
     const btn = document.getElementById('btn-salvar-vinculo');
     btn.disabled = true;
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     try {
         const res = await fetch(`${API_URL}/${id}/vincular-servo`, {
             method: 'PUT',
@@ -313,7 +313,7 @@ async function confirmarExclusao(id) {
     const nome = document.getElementById('modal-nome').textContent;
     if (!confirm(`Tem certeza que deseja excluir a conta de "${nome}"?\n\nEsta ação é irreversível. Se o usuário tiver histórico de escalas, os dados serão anonimizados.`)) return;
 
-    const session = JSON.parse(sessionStorage.getItem('serve_session') || '{}');
+    const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     const btn = document.getElementById('btn-excluir-usuario');
     btn.disabled = true;
     try {

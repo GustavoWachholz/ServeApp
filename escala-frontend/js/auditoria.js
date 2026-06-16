@@ -232,7 +232,7 @@
 
     function obterToken() {
         try {
-            const raw = sessionStorage.getItem('serve_session');
+            const raw = localStorage.getItem('serve_session');
             return raw ? JSON.parse(raw).token : null;
         } catch (_) { return null; }
     }

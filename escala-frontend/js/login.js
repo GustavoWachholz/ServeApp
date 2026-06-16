@@ -1,6 +1,6 @@
 /**
  * login.js — Lógica da tela de autenticação: alterna entre as views de login e
- * cadastro, envia as credenciais à API e persiste a sessão em {@code sessionStorage}.
+ * cadastro, envia as credenciais à API e persiste a sessão em {@code localStorage}.
  */
 
 /** URL base dos endpoints de autenticação. */
@@ -12,7 +12,7 @@ const API_BASE = '/api/auth';
  */
 document.addEventListener('DOMContentLoaded', () => {
     // Se já estiver logado, redireciona direto
-    if (sessionStorage.getItem('serve_session')) {
+    if (localStorage.getItem('serve_session')) {
         window.location.replace('app.html');
         return;
     }
@@ -67,7 +67,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
                 if (res.ok) {
                     const usuario = await res.json();
-                    sessionStorage.setItem('serve_session', JSON.stringify(usuario));
+                    localStorage.setItem('serve_session', JSON.stringify(usuario));
                     window.location.replace('app.html');
                 } else if (res.status === 401) {
                     mostrarErro(msgErro, 'E-mail ou senha incorretos.');
@@ -122,7 +122,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 if (res.status === 201) {
                     // Cadastro feito — faz login automático
                     const usuario = await res.json();
-                    sessionStorage.setItem('serve_session', JSON.stringify(usuario));
+                    localStorage.setItem('serve_session', JSON.stringify(usuario));
                     window.location.replace('app.html');
                 } else if (res.status === 409) {
                     const msg = await res.text();

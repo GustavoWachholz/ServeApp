@@ -576,6 +576,15 @@
             });
         });
 
+        // Bottom nav: hambúrguer abre/recolhe a sidebar; itens de navegação fecham o overlay
+        const bottomMenuBtn = document.getElementById('bottomnav-menu');
+        if (bottomMenuBtn) bottomMenuBtn.addEventListener('click', alternarSidebar);
+        document.querySelectorAll('.bottom-nav a').forEach(a => {
+            a.addEventListener('click', () => {
+                if (document.documentElement.classList.contains('mobile-nav-open')) fecharSidebarMobile();
+            });
+        });
+
         // Submenu "Cadastros": accordion + abertura automática na página ativa + persistência
         document.querySelectorAll('.nav-group').forEach(group => {
             const groupId = group.dataset.groupId || group.querySelector('.nav-group-toggle')?.textContent?.trim() || 'group';
@@ -642,9 +651,8 @@
     }
 
     function aplicarAvatar(usuario) {
-        const avatarEl = document.getElementById('user-avatar');
-        if (!avatarEl) return;
-        avatarEl.src = usuario.foto || avatarLocal(usuario.nome);
+        const src = usuario.foto || avatarLocal(usuario.nome);
+        document.querySelectorAll('.js-user-avatar').forEach(el => { el.src = src; });
     }
 
     /**
@@ -656,8 +664,14 @@
     function aplicarVisibilidadeMenu() {
         const admin = isAdmin();
         document.querySelectorAll('[data-tela]').forEach(el => {
-            // Oculto por padrão via CSS; visível recebe display explícito.
-            el.style.display = (admin || podeAcessar(el.dataset.tela)) ? 'block' : 'none';
+            const visivel = admin || podeAcessar(el.dataset.tela);
+            if (el.closest('.bottom-nav')) {
+                // Itens da bottom nav usam classe (display:flex via CSS) em vez de display inline.
+                el.classList.toggle('nav-visivel', visivel);
+            } else {
+                // Oculto por padrão via CSS; visível recebe display explícito.
+                el.style.display = visivel ? 'block' : 'none';
+            }
         });
     }
 

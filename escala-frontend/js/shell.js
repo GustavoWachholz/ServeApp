@@ -32,7 +32,7 @@
     }, {});
 
     const PAGINA_PADRAO = 'index.html';
-    const links = Array.from(document.querySelectorAll('.sidebar a[data-page]'));
+    const links = Array.from(document.querySelectorAll('.sidebar a[data-page], .bottom-nav [data-page]'));
 
     /**
      * Resolve o arquivo da página a partir do hash atual da URL.
@@ -56,6 +56,7 @@
         links.forEach(a => {
             const li = a.closest('li');
             if (li) li.classList.toggle('active', a.dataset.page === arquivo);
+            if (a.closest('.bottom-nav')) a.classList.toggle('active', a.dataset.page === arquivo);
         });
         document.querySelectorAll('.nav-group').forEach(g => {
             if (g.querySelector(`a[data-page="${arquivo}"]`)) g.classList.add('open');

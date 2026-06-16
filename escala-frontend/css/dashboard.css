@@ -541,7 +541,9 @@ input:checked + .slider:before { transform: translateX(20px); }
 .card-escala { border-left: 4px solid var(--primary-color); }
 .card-aviso { border-left: 4px solid var(--secondary-color); }
 
-@media (max-width: 992px) {
+/* Auto-recolhimento da sidebar em tablets. Limitado a ≥769px: no mobile (≤768px)
+   a sidebar é overlay completo, então não pode virar régua de ícones aqui. */
+@media (min-width: 769px) and (max-width: 992px) {
     .sidebar { width: 80px; }
     .sidebar span:not(.slider):not(.switch), .user-info, .settings-popover, .sidebar-logo { display: none; }
     .user-profile { padding: 1.5rem; justify-content: center; }
@@ -602,22 +604,26 @@ html.dark-mode img.logo-mini { content: url('../assets/img/logo_mini_dark.png');
 .nav-group.open .nav-submenu { max-height: 500px; }
 .nav-submenu li a { padding-left: 2.4rem; font-size: 0.84rem; }
 
-/* ── Sidebar recolhida (só ícones) — controlada por classe no <html> ── */
-:root.sidebar-collapsed .sidebar { width: 80px; }
-:root.sidebar-collapsed .sidebar span:not(.slider):not(.switch),
-:root.sidebar-collapsed .user-info,
-:root.sidebar-collapsed .nav-caret { display: none; }
-/* !important para vencer o "display:block" inline do <img> da logo grande */
-:root.sidebar-collapsed .sidebar-logo .logo-full { display: none !important; }
-:root.sidebar-collapsed .sidebar-logo .logo-mini { display: block !important; }
-:root.sidebar-collapsed .user-profile { justify-content: center; padding: 1.5rem 0; }
-:root.sidebar-collapsed .sidebar-nav li a,
-:root.sidebar-collapsed .nav-group-toggle,
-:root.sidebar-collapsed .sidebar-footer .sidebar-btn { justify-content: center; gap: 0; }
-:root.sidebar-collapsed .sidebar-nav li.active a { margin-left: 0; padding-left: 1rem; border-left: none; }
-/* No modo recolhido o submenu fica sempre visível como ícones (sem accordion) */
-:root.sidebar-collapsed .nav-submenu { max-height: none; overflow: visible; }
-:root.sidebar-collapsed .nav-submenu li a { padding-left: 1rem; }
+/* ── Sidebar recolhida (só ícones) — controlada por classe no <html> ──
+   Só vale no desktop/tablet (≥769px): no mobile a sidebar é sempre overlay
+   completo, então o estado recolhido persistido não pode comprimi-la. */
+@media (min-width: 769px) {
+    :root.sidebar-collapsed .sidebar { width: 80px; }
+    :root.sidebar-collapsed .sidebar span:not(.slider):not(.switch),
+    :root.sidebar-collapsed .user-info,
+    :root.sidebar-collapsed .nav-caret { display: none; }
+    /* !important para vencer o "display:block" inline do <img> da logo grande */
+    :root.sidebar-collapsed .sidebar-logo .logo-full { display: none !important; }
+    :root.sidebar-collapsed .sidebar-logo .logo-mini { display: block !important; }
+    :root.sidebar-collapsed .user-profile { justify-content: center; padding: 1.5rem 0; }
+    :root.sidebar-collapsed .sidebar-nav li a,
+    :root.sidebar-collapsed .nav-group-toggle,
+    :root.sidebar-collapsed .sidebar-footer .sidebar-btn { justify-content: center; gap: 0; }
+    :root.sidebar-collapsed .sidebar-nav li.active a { margin-left: 0; padding-left: 1rem; border-left: none; }
+    /* No modo recolhido o submenu fica sempre visível como ícones (sem accordion) */
+    :root.sidebar-collapsed .nav-submenu { max-height: none; overflow: visible; }
+    :root.sidebar-collapsed .nav-submenu li a { padding-left: 1rem; }
+}
 
 /* ── Visibilidade de itens admin (síncrona via .is-admin no <html>) ──────────
    Ocultos por padrão e revelados antes do primeiro paint quando o usuário é

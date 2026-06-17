@@ -585,33 +585,6 @@
             });
         });
 
-        // Submenu "Cadastros": accordion + abertura automática na página ativa + persistência
-        document.querySelectorAll('.nav-group').forEach(group => {
-            const groupId = group.dataset.groupId || group.querySelector('.nav-group-toggle')?.textContent?.trim() || 'group';
-            const storageKey = `serve_nav_open_${groupId}`;
-
-            // Restaurar estado do localStorage (a menos que a página atual já force abertura)
-            const atual = window.location.pathname.split('/').pop();
-            const paginaAtiva = !!group.querySelector(`.nav-submenu a[href="${atual}"]`);
-            if (paginaAtiva || localStorage.getItem(storageKey) === 'true') {
-                group.classList.add('open');
-            }
-
-            const toggle = group.querySelector('.nav-group-toggle');
-            if (toggle) {
-                toggle.addEventListener('click', () => {
-                    // Recolhida (ou compacta no mobile): expande a sidebar em vez do accordion
-                    if (_sidebarRecolhidaVisualmente()) {
-                        alternarSidebar();
-                        group.classList.add('open');
-                        localStorage.setItem(storageKey, 'true');
-                    } else {
-                        group.classList.toggle('open');
-                        localStorage.setItem(storageKey, group.classList.contains('open') ? 'true' : 'false');
-                    }
-                });
-            }
-        });
     }
 
     /**

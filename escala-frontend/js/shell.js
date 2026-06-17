@@ -58,9 +58,6 @@
             if (li) li.classList.toggle('active', a.dataset.page === arquivo);
             if (a.closest('.bottom-nav')) a.classList.toggle('active', a.dataset.page === arquivo);
         });
-        document.querySelectorAll('.nav-group').forEach(g => {
-            if (g.querySelector(`a[data-page="${arquivo}"]`)) g.classList.add('open');
-        });
     }
 
     // Cliques no menu apenas atualizam o hash; o hashchange (abaixo) faz a navegação,

@@ -1,7 +1,7 @@
 const API_URL = '/api/usuarios';
 
 const TELAS = [
-    { key: 'AGENDA',      label: 'Agenda / Escalas' },
+    { key: 'AGENDA',      label: 'Agenda' },
     { key: 'SERVOS',      label: 'Servos' },
     { key: 'AREAS',       label: 'Áreas' },
     { key: 'MINISTERIOS', label: 'Ministérios' },

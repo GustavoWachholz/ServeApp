@@ -15,6 +15,17 @@ declare namespace Auth {
      */
     function toast(msg: string, tipo?: 'success' | 'error' | 'warning' | 'info'): void;
 
+    /**
+     * Exibe um modal de confirmação e retorna uma Promise<boolean>.
+     * Resolve com true se o usuário confirmar, false se cancelar ou fechar.
+     */
+    function confirmar(opcoes?: {
+        titulo?: string;
+        mensagem?: string;
+        textoBotaoConfirmar?: string;
+        perigoso?: boolean;
+    }): Promise<boolean>;
+
     /** Oculta o overlay de carregamento. */
     function esconderLoading(): void;
 

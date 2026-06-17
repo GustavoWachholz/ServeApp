@@ -9,7 +9,8 @@ Este arquivo deve ser lido no início de **toda** conversa sobre este projeto.
 **Serve** é um sistema de gestão de escalas para voluntários de igrejas.
 - Backend: Java 25 + Spring Boot 4.0.6 + Hibernate 7 + MySQL 8
 - Frontend: HTML/CSS + Vanilla JS + TypeScript (`agenda.ts` → compilado para `agenda.js`)
-- Autenticação: JWT stateless, token armazenado em `sessionStorage` com chave `serve_session`
+- Autenticação: JWT stateless assinado (HMAC-SHA256, `JwtService`), token persistido em `localStorage` com chave `serve_session`
+- Em produção: hospedado em `serveapp.com.br` (EC2 + RDS + nginx/TLS) — comandos em `DEPLOY.md`
 - Pasta raiz: `C:\Users\Gustavo\Documents\Projects\Serve\ServeApp\`
 
 ---
@@ -29,16 +30,20 @@ ServeApp/
 │       ├── config/          # SecurityConfig, WebConfig, DataInitializer
 │       └── exception/       # GlobalExceptionHandler, ResourceNotFoundException
 ├── escala-frontend/         # Frontend estático
-│   ├── app.html             # Shell principal (iframe host)
+│   ├── app.html             # Shell principal (iframe host + bottom-nav mobile)
 │   ├── index.html           # Dashboard (home)
 │   ├── agenda.html          # Calendário FullCalendar
-│   ├── voluntarios.html     # CRUD de voluntários
-│   ├── ministerios.html     # CRUD de ministérios/áreas
-│   ├── configuracao-escala.html  # Classificações
+│   ├── voluntarios.html     # CRUD de voluntários (Servos)
+│   ├── ministerios.html     # CRUD de ministérios/áreas (Áreas)
+│   ├── configuracao-escala.html  # Classificações (Ministérios)
 │   ├── relatorios.html      # Relatório de frequência
-│   ├── login.html           # Login e cadastro
+│   ├── usuarios.html        # Gestão de usuários e permissões (admin)
+│   ├── perfil.html          # Meu Perfil (dados, foto, senha, excluir conta)
+│   ├── auditoria.html       # Trilha de auditoria (admin)
+│   ├── privacidade.html     # Política de Privacidade (LGPD)
+│   ├── login.html           # Login e cadastro (com aceite de consentimento)
 │   ├── js/                  # JavaScript / TypeScript
-│   │   ├── auth.js          # Guard, sidebar, tema, toast, cache de Igreja
+│   │   ├── auth.js          # Guard, sidebar/bottom-nav, tema, toast, permissões, cache de Igreja
 │   │   ├── auth.d.ts        # Declarações TypeScript do namespace Auth
 │   │   ├── shell.js         # Navegação via iframe (app.html)
 │   │   ├── agenda.ts/.js    # Calendário + wizard de escalas
@@ -47,14 +52,18 @@ ServeApp/
 │   │   ├── ministerios.js   # CRUD ministérios
 │   │   ├── relatorios.js    # Relatório de frequência
 │   │   ├── configuracao-escala.js
+│   │   ├── usuarios.js      # Tela Usuários: permissões + vínculo com servo
+│   │   ├── perfil.js        # Meu Perfil: dados, upload de foto, senha, exclusão
+│   │   ├── auditoria.js     # Lista de auditoria com filtros e paginação
 │   │   ├── classificacoes-cache.js  # Cache singleton de classificações
 │   │   ├── igreja-cache.js          # Cache singleton da config da igreja
 │   │   ├── login.js
 │   │   ├── types.ts/.js     # Tipos compartilhados (EscalaDTO, AtribuicaoDTO…)
 │   │   └── image-template.js
 │   └── css/
-│       ├── dashboard.css    # Estilos globais do app (sidebar, modais, skeleton…)
+│       ├── dashboard.css    # Estilos globais do app (sidebar, bottom-nav, modais, skeleton…)
 │       └── login.css
+├── DEPLOY.md                # Comandos de deploy (EC2/RDS/nginx/certbot)
 └── start.bat                # Inicia o backend com timezone correto
 ```
 
@@ -79,10 +88,13 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 - Timezone: sempre rodar com `-Duser.timezone=America/Sao_Paulo`; o backend usa `LocalDate`/`LocalDateTime` sem timezone
 
 ### Segurança
-- `AuthInterceptor` exige token válido em **todas** as rotas `/api/**`
-- `Auth.isAdmin()` verifica `role === 'ADMIN'` no payload do JWT (sessionStorage)
-- Rate limiting em `/api/auth/login`: 10 tentativas por 60 s por IP
+- `JwtService` emite/valida JWT assinado (HMAC-SHA256); stateless, sobrevive a restart. Configurável: `serve.jwt.secret` (env `JWT_SECRET`) e `serve.jwt.expiration-ms` (padrão 8 h = 28800000)
+- Revogação efetiva: `Usuario.invalidacaoTokensAntes` invalida tokens emitidos antes da troca de senha / exclusão de conta
+- `AuthInterceptor` exige token válido em **todas** as rotas `/api/**` (exceto `/api/auth/**`); `AuditInterceptor` registra escritas em seguida
+- `Auth.isAdmin()` verifica `role === 'ADMIN'` no payload do JWT (lido de `localStorage`)
+- Rate limiting em `/api/auth/login`: 10 tentativas por 60 s por IP (`RateLimitInterceptor`)
 - CORS liberado para `http://localhost:*` em desenvolvimento
+- LGPD: cadastro exige aceite de consentimento; avatar de iniciais gerado **localmente** (sem envio do nome a serviço externo)
 
 ### Padrões de código
 - Controllers retornam `ResponseEntity<?>` com status HTTP correto
@@ -102,7 +114,7 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 | `ConfiguracaoEscala` | `configuracao_escala` | classificações de funções |
 | `ConfiguracaoIgreja` | `configuracao_igreja` | singleton id=1, nome/contato/redes |
 | `Aviso` | `avisos` | quadro de avisos com validade |
-| `Usuario` | `usuarios` | login/JWT, papel ADMIN ou USER; FK `voluntario_id` (único) liga a conta ao `Voluntario` |
+| `Usuario` | `usuarios` | login/JWT, papel ADMIN ou VOLUNTARIO; `foto` (LONGTEXT); consentimento LGPD (`dataConsentimento`, `versaoPolitica`, `ipConsentimento`); `invalidacaoTokensAntes`, `ultimoLogin`; FK `voluntario_id` (único) liga a conta ao `Voluntario` |
 | `PermissaoTela` | `permissoes_tela` | permissão por tela/ação (acessar/criar/editar/excluir) por usuário |
 | `RegistroAuditoria` | `auditoria` | log de operações: dataHora, usuarioId/Nome (snapshot), modulo, acao, descricao, entidadeId, metodoHttp, caminho, statusHttp, ip |
 
@@ -119,12 +131,19 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 
 ### auth.js — ponto central
 Carregado em **todas** as páginas. Fornece:
-- `Auth.requireLogin()` — redireciona para login se sem token
-- `Auth.isAdmin()` — verifica papel no token
+- `Auth.exigirLogin()` / `Auth.exigirAdmin()` / `Auth.exigirPermissao(tela)` — guards de rota (chamados inline no `<head>`)
+- `Auth.isAdmin()` / `Auth.podeAcessar|podeCriar|podeEditar|podeExcluir(tela)` — checagens de papel/permissão a partir do JWT
 - `Auth.toast(msg, tipo)` — sistema de toast centralizado (`'success'|'error'|'warning'|'info'`)
 - `Auth.esconderLoading()` — remove overlay de carregamento
-- Inicialização automática: sidebar, tema escuro/claro, nome da igreja, submenu Cadastros
+- `Auth.avatarLocal(nome)` — gera avatar de iniciais em SVG (sem serviço externo — LGPD)
+- Sessão (token + papel + permissões + preferências) persistida em `localStorage` na chave `serve_session`
+- Inicialização automática: sidebar/bottom-nav, tema escuro/claro, nome da igreja, submenu Cadastros
 - Persistência de tema e estado da sidebar em `localStorage`
+
+### Navegação mobile (≤768px)
+- A sidebar lateral é substituída por uma **bottom-nav** (Menu/Agenda/Home/Ministérios/Perfil); o hambúrguer abre a sidebar como overlay
+- Listas de CRUD ficam **compactas** (só Nome + Ações, sem rolagem horizontal) via classe `.mobile-compact`; em Servos os filtros ficam ocultos atrás de um botão "Filtros"
+- Detalhes do padrão visual em `.claude/DESIGN.md` (seção Responsividade)
 
 ### TypeScript
 - Apenas `agenda.ts` usa TypeScript; compilar com `npx tsc` na pasta `escala-frontend/`
@@ -157,7 +176,10 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 | `PUT /api/usuarios/{id}/permissoes` | Atualiza permissões (admin) |
 | `PUT /api/usuarios/{id}/perfil` `PUT /api/usuarios/{id}/senha` | Edita perfil / troca senha (só o próprio) |
 | `PUT /api/usuarios/{id}/vincular-servo` | Vincula/desvincula servo (admin); body `{voluntarioId}` (null desvincula) |
+| `DELETE /api/usuarios/{id}` | Exclui/anonimiza a conta (admin ou o próprio) — LGPD Art. 18 |
 | `GET /api/auditoria` | Lista registros de auditoria paginados (admin); params: `modulo, acao, usuarioId, de, ate, page, size` |
+
+> Consentimento LGPD não tem endpoint próprio: é capturado no `POST /api/auth/cadastro` (campo `consentimento` no `CadastroRequest`) e gravado em `Usuario`.
 
 ---
 
@@ -176,8 +198,10 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 
 ## Arquivos Importantes de Referência
 
-- `DOCUMENTACAO.md` — documentação técnica completa (gerada em sessão anterior)
-- `.claude/DESIGN.md` — padrão visual completo do frontend (tokens, layout, tabelas, modais, botões, forms)
+- `DOCUMENTACAO.md` — documentação técnica completa (referência de funções por camada)
+- `DEPLOY.md` — comandos e infraestrutura de deploy (EC2, RDS, nginx, certbot)
+- `.claude/DESIGN.md` — padrão visual completo do frontend (tokens, layout, tabelas, modais, botões, forms, responsividade)
 - `.claude/progress.md` — registro de todo o progresso implementado (ler apenas quando solicitado)
+- `PLANO DE ACAO.md` / `../PLANO-DE-ACAO.md` — planos de ação (incluindo conformidade LGPD — Fase 7 concluída)
 - `start.bat` — script de inicialização do backend
-- `application.properties` — configuração do banco, JWT, CORS e rate limiting
+- `application.properties` — configuração do banco, JWT (`serve.jwt.*`), CORS e rate limiting

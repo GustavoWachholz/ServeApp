@@ -1,7 +1,7 @@
 # DESIGN.md — Padrão Visual do Frontend (Serve)
 
 Documento de referência para manter consistência visual entre todas as telas do sistema.
-Última atualização: 2026-06-12
+Última atualização: 2026-06-16
 
 ---
 
@@ -45,7 +45,7 @@ Definidas em `:root` no `dashboard.css`. Mudam automaticamente no tema escuro (c
 └─────────────────────────────────────────────────┘
 ```
 
-- **Shell (`app.html`):** sidebar permanente + `<iframe id="page-frame">` com as páginas internas
+- **Shell (`app.html`):** sidebar permanente + `<iframe id="content-frame">` com as páginas internas (+ bottom-nav no mobile)
 - **Standalone:** cada página também funciona sozinha (abre direto no browser)
 - **Sidebar recolhida:** classe `.sidebar-collapsed` em `<html>` → largura ~80px, só ícones
 
@@ -339,19 +339,19 @@ Inserir `<tr class="skeleton-row">` no `tbody` enquanto carrega:
 
 ## 12. Tema Escuro
 
-- Ativado pela classe `dark` em `<html>`
-- Persistido em `localStorage` com chave `serve_theme`
+- Ativado pela classe `dark-mode` em `<html>`
+- Persistido junto da sessão (`serve_session.tema` no `localStorage`) e sincronizado com o backend
 - Toggle: `#theme-toggle` (switch no popover de Configurações da sidebar)
-- Gerenciado inteiramente por `auth.js` → `Auth.restaurarTema()`
+- Gerenciado inteiramente por `auth.js` → `Auth.restaurarTema()` (aplicado no `<head>`, sem flash)
 
 ---
 
 ## 13. Cor Primária Customizável
 
-- Armazenada em `localStorage` com chave `serve_primary_color`
+- Armazenada junto da sessão (`serve_session.corPrimaria` no `localStorage`)
 - Aplicada como `--primary-color` via `document.documentElement.style.setProperty`
 - Input: `#color-picker` no popover de Configurações
-- Gerenciado por `auth.js` → `Auth.restaurarTema()`
+- Gerenciado por `auth.js` → `Auth.restaurarTema()` / `Auth.aplicarCor()`
 
 ---
 
@@ -369,7 +369,7 @@ Inserir `<tr class="skeleton-row">` no `tbody` enquanto carrega:
 
 ## 15. Modo Embedded (iframe no shell)
 
-- Quando a página é carregada dentro de `app.html`, a classe `.embedded` é injetada em `<body>` pelo `auth.js`
+- Quando a página é carregada dentro de `app.html`, a classe `.embedded` é injetada em `<html>` pelo `auth.js` (detecção síncrona `window.self !== window.top`)
 - `.embedded .sidebar`, `.embedded .main-header` → `display:none` (sidebar e header do shell já fazem esse papel)
 - Não duplicar sidebar ou header quando em modo embedded
 
@@ -377,9 +377,26 @@ Inserir `<tr class="skeleton-row">` no `tbody` enquanto carrega:
 
 ## 16. Responsividade
 
-- Sidebar recolhe automaticamente em `@media (max-width:992px)` (classe `.sidebar-collapsed` via CSS)
-- Manualmente recolhível em qualquer resolução via botão `#sidebar-toggle`
+### Faixas de breakpoint
+- **Tablet (769px–992px):** sidebar recolhe automaticamente para régua de ícones (80px). A regra é `@media (min-width:769px) and (max-width:992px)` — **não** pode incluir o mobile, senão quebra o overlay.
+- **Desktop (≥769px):** estado recolhido/expandido manual via `#sidebar-toggle`, persistido em `localStorage` (`serve_sidebar_collapsed`). Conteúdo centralizado com `max-width` no `.main-content`.
+- **Mobile (≤768px):** a sidebar lateral some; entra a **bottom-nav** + sidebar em **overlay**.
+
+### Bottom navigation (mobile, só no shell `app.html`)
+- `<nav class="bottom-nav">` fixa no rodapé com 5 posições: **Menu** (hambúrguer → abre a sidebar em overlay), **Agenda**, **Home** (central, destacada), **Ministérios**, **Perfil** (avatar do usuário).
+- Itens restritos por permissão (`[data-tela]`) só aparecem com `.nav-visivel` (aplicado por `auth.js`); ocultos por padrão para evitar flash.
+- Estado do overlay: classe `html.mobile-nav-open` (transitório, não persistido) + `#sidebar-backdrop`.
+
+### Listas compactas (mobile)
+- `.list-table-container.mobile-compact` exibe **apenas a 1ª coluna (nome) e a última (ações)**, escondendo as do meio (`:not(:first-child):not(:last-child)`) e removendo a rolagem horizontal. Usada em Servos, Áreas, Usuários.
+- Quando o nome não é a 1ª coluna (ex.: `configuracao-escala.html`, cuja 1ª coluna é o handle de arrastar), usa-se uma regra `nth-child` local na própria página.
+- **Servos** (`voluntarios.html`): no mobile só a busca fica visível; ordenação e filtros ficam ocultos atrás do botão **"Filtros"** (`.filters-open` revela o painel). Ordenação padrão no mobile é alfabética.
+- **Usuários** (`usuarios.html`): o "Papel" aparece como subtítulo sob o nome (`.user-role-mobile`), só no mobile.
+
+### Geral
+- Manualmente recolhível em qualquer resolução ≥769px via botão `#sidebar-toggle`
 - `.toolbar` e `.filter-bar` têm `flex-wrap:wrap` — empilham em telas estreitas
+- Botões de ação das listas colapsam para ícone-só via **container query** (`@container (max-width:560px)` — ver seção 6)
 
 ---
 

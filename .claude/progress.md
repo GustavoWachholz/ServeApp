@@ -1,7 +1,7 @@
 # progress.md — Registro de Progresso do Projeto Serve
 
 Leia este arquivo apenas quando solicitado pelo usuário.
-Última atualização: 2026-06-15
+Última atualização: 2026-06-16
 
 ---
 
@@ -356,10 +356,39 @@ Plano registrado em `PLANO DE ACAO.md` (ordem: F1 → F3 → F2; F2 Auditoria ai
 
 ---
 
-## Estado Atual (2026-06-15)
+## Sessão 9 — Mobile UX, migração para localStorage e deploy (2026-06-16)
+
+### Bottom-nav + sidebar overlay (mobile)
+- `app.html` — `<nav class="bottom-nav">` com 5 posições (Menu, Agenda, Home central, Ministérios, Perfil/avatar); itens restritos por permissão revelados via `.nav-visivel`.
+- `css/dashboard.css` — barra fixa no rodapé (mobile), sidebar vira overlay (`html.mobile-nav-open` + backdrop); conteúdo centralizado por `max-width` no desktop.
+- `js/auth.js` — hambúrguer (`#bottomnav-menu`) abre/fecha o overlay; `aplicarAvatar` atualiza `.js-user-avatar` (sidebar **e** bottom-nav); `aplicarVisibilidadeMenu` trata itens `[data-tela]` da barra.
+- `js/shell.js` — estado ativo refletido também nos itens `.bottom-nav [data-page]`.
+- **Bug corrigido:** `@media (max-width:992px)` (auto-recolhimento de tablet) atingia também o mobile, quebrando labels/popover do overlay. Reescopado para `@media (min-width:769px) and (max-width:992px)` e bloco `:root.sidebar-collapsed` envolto em `@media (min-width:769px)`.
+
+### Listas compactas (mobile)
+- `css/dashboard.css` — classe genérica `.list-table-container.mobile-compact` (só 1ª coluna + última, sem rolagem horizontal).
+- `voluntarios.html` / `ministerios.html` / `usuarios.html` — classe aplicada. `configuracao-escala.html` usa regra `nth-child` local (1ª coluna é o handle de arrastar).
+- **Servos** (`voluntarios.html` + `js/voluntarios.js`) — botão "Filtros" oculta/revela ordenação+filtros no mobile; ordenação alfabética como padrão no mobile.
+- **Usuários** (`usuarios.html` + `js/usuarios.js`) — "Papel" exibido como subtítulo sob o nome (`.user-role-mobile`), só no mobile.
+
+### Migração sessionStorage → localStorage
+- Token/sessão agora persiste entre sessões do navegador (fechar aba, reiniciar o aparelho).
+- `js/auth.js` (4 acessos + comentários), `js/login.js`, `js/perfil.js`, `js/usuarios.js`, `js/auditoria.js` — todos migrados para `localStorage` (chave `serve_session` inalterada).
+- **Bug corrigido (loop de redirecionamento):** `login.js` ainda gravava/lia em `sessionStorage` enquanto `auth.js` lia `localStorage` → login → app → login infinito. Resolvido migrando os acessos diretos restantes. Verificado no preview: login estável, sem loops nos 3 cenários (sessão válida no login, app sem sessão, app com sessão).
+
+### Deploy
+- `ServeApp/DEPLOY.md` — referência de comandos de deploy (SSH/EC2, build/restart do backend, cópia do frontend para nginx, certbot, MySQL/RDS) e tabela de infraestrutura (domínio `serveapp.com.br`, EC2/RDS, systemd `serve-backend.service`).
+
+### Documentação
+- `.claude/CLAUDE.md`, `DOCUMENTACAO.md`, `.claude/DESIGN.md`, `README.md` e este `progress.md` atualizados: JWT real (`JwtService`, substituiu `TokenStore`), `localStorage`, bottom-nav/listas mobile, LGPD concluída, novas páginas (Usuários/Perfil/Auditoria/Privacidade) e `DEPLOY.md`.
+
+---
+
+## Estado Atual (2026-06-16)
 
 Todas as fases do plano de controle de permissões estão concluídas (Fases 1–6).
-Do PLANO DE ACAO.md: F1 (botões responsivos) e F3 (vínculo usuário↔servo) concluídos; **F2 (auditoria) pendente**.
+PLANO DE ACAO.md inteiramente concluído: F1 (botões responsivos), F2 (auditoria), F3 (vínculo usuário↔servo) e **Fase 7 LGPD (7-A/7-B/7-C)**.
+Sistema em produção em `serveapp.com.br` (EC2 + RDS + nginx/TLS).
 
 ### Funcionalidades implementadas e funcionando
 - CRUD completo: Voluntários, Ministérios, Escalas, Avisos, Classificações
@@ -382,3 +411,9 @@ Do PLANO DE ACAO.md: F1 (botões responsivos) e F3 (vínculo usuário↔servo) c
 - **Botões de ação condicionais** nas 4 telas CRUD baseados em permissões do usuário
 - **Botões de ação responsivos** (colapsam para ícone-só em tabela estreita, via container query)
 - **Vínculo Usuário↔Servo**: automático no cadastro (por nome) e gerenciável pelo admin na tela Usuários
+- **Trilha de Auditoria** (admin): registro de logins/escritas/permissões/senha com filtros e paginação
+- **Navegação mobile**: bottom-nav + sidebar em overlay; listas compactas (nome + ações); filtros recolhíveis em Servos
+- **Sessão persistente**: token em `localStorage` (sobrevive a fechar a aba / reiniciar o aparelho)
+- **Autenticação JWT real** (`JwtService`, HS256, expiração configurável, revogação na troca de senha/exclusão)
+- **Conformidade LGPD** (Fase 7): consentimento no cadastro, Política de Privacidade, exclusão/anonimização de conta, avatar local
+- **Deploy em produção** documentado (`DEPLOY.md`): EC2 + RDS + nginx + TLS (`serveapp.com.br`)

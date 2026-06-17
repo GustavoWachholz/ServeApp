@@ -821,6 +821,30 @@ html.embedded .sidebar { display: none; }
 }
 
 
+/* ── Confirm Modal (Auth.confirmar) ───────────────────────────────────────── */
+.confirm-modal-content {
+    max-width: 400px;
+}
+
+.confirm-modal-titulo {
+    font-size: 1.1rem;
+    font-weight: 600;
+    color: var(--text-primary);
+    margin: 0 0 0.75rem;
+}
+
+.confirm-modal-msg {
+    color: var(--text-secondary);
+    line-height: 1.6;
+    margin: 0 0 1.5rem;
+}
+
+.confirm-modal-acoes {
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+}
+
 /* Modal Styling */
 .modal {
     position: fixed;

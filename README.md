@@ -22,15 +22,21 @@ O **Serve.** é um sistema de gestão de escalas para igrejas e ministérios, fo
   9. Conferência Dízimo
 - **Automação de Imagem**: Geração de arquivo `.png` personalizado baseado em um template institucional, utilizando `html2canvas` e injeção de Base64 para evitar erros de CORS.
 - **Regras de Negócio Inteligentes**: Bloqueio de duplicidade de voluntários em ministérios principais, com exceções permitidas para funções específicas.
+- **Autenticação e Permissões**: Login JWT, controle granular de acesso por tela/ação (acessar/criar/editar/excluir) e tela de gestão de usuários (admin).
+- **Trilha de Auditoria**: Registro de logins, criações, edições, exclusões e alterações de permissão/senha, com filtros por módulo, ação, usuário e período.
+- **Experiência Mobile**: Navegação inferior (bottom-nav) e listas compactas em telas pequenas; visualização completa no desktop.
+- **Personalização**: Tema claro/escuro e cor primária configuráveis por usuário; nome e dados da igreja editáveis pelo admin.
+- **Conformidade LGPD**: Consentimento no cadastro, Política de Privacidade, exclusão/anonimização de conta e avatar de iniciais gerado localmente.
 
 ---
 
 ## 🛠️ Tecnologias Utilizadas
 
 ### Backend
-- **Java 17 / Spring Boot**: Núcleo da aplicação e APIs REST.
-- **Spring Data JPA**: Persistência de dados.
-- **PostgreSQL**: Banco de dados relacional.
+- **Java 25 / Spring Boot 4.0.6**: Núcleo da aplicação e APIs REST.
+- **Spring Data JPA / Hibernate 7**: Persistência de dados.
+- **MySQL 8**: Banco de dados relacional.
+- **JWT (HMAC-SHA256)**: Autenticação stateless.
 - **Maven**: Gerenciamento de dependências.
 
 ### Frontend
@@ -52,14 +58,15 @@ Para garantir a fluidez dos cultos, o sistema aplica as seguintes validações:
 ## ⚙️ Instalação e Execução
 
 ### 1. Backend
-1. Importe o projeto `escala-backend` no IntelliJ IDEA.
-2. Certifique-se de que o PostgreSQL está rodando e as credenciais no `application.properties` estão corretas.
-3. Execute a classe `EscalaApplication`.
-4. A API estará disponível em: `http://localhost:8080`.
+1. Certifique-se de que o **MySQL 8** está rodando (banco `servants`) e as credenciais no `application.properties` estão corretas.
+2. Inicie pelo `start.bat` na raiz (verifica porta/MySQL e aplica o timezone `America/Sao_Paulo`), ou rode a classe `EscalaApplication` com `-Duser.timezone=America/Sao_Paulo`.
+3. A API estará disponível em: `http://localhost:8080`.
+
+> Deploy em produção (EC2 + RDS + nginx/TLS): ver `DEPLOY.md`.
 
 ### 2. Frontend
 1. Abra a pasta `escala-frontend` no VS Code.
-2. Utilize a extensão **Live Server** para rodar o arquivo `login.html` ou `agenda.html`.
+2. Utilize a extensão **Live Server** para rodar o arquivo `login.html`.
 3. O frontend rodará em: `http://127.0.0.1:5500`.
 
 ---

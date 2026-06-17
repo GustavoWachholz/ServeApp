@@ -415,13 +415,13 @@ function initModalEvents() {
                 let msg = 'Erro ao salvar ministério.';
                 try { const data = await resp.json(); msg = data.message || msg; } catch (_) {}
                 Auth.toast(msg, 'error');
-                if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
                 return;
             }
             modal.classList.remove('show-modal');
             fetchMinisterios();
         } catch (e) {
             Auth.toast('Falha na conexão. Verifique se o servidor está rodando.', 'error');
+        } finally {
             if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
         }
     };

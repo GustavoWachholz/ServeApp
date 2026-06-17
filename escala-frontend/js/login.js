@@ -163,7 +163,7 @@ function mostrarView(el) {
  * @returns {void}
  */
 function mostrarErro(el, msg) {
-    if (!el) { alert(msg); return; }
+    if (!el) { console.warn('mostrarErro: elemento de erro ausente —', msg); return; }
     el.textContent = msg;
     el.style.display = 'block';
 }

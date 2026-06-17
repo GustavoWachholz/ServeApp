@@ -666,11 +666,11 @@ function initModalEvents() {
                     let msg = 'Erro ao salvar no banco de dados.';
                     try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
                     Auth.toast(msg, 'error');
-                    if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
                 }
             } catch (error) {
                 console.error('Erro na requisição:', error);
                 Auth.toast('Falha na conexão. Verifique se o servidor está rodando e tente novamente.', 'error');
+            } finally {
                 if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
             }
         };

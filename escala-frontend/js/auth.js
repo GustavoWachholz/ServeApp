@@ -923,6 +923,45 @@
      * @param {number} [duracao=4000] tempo em ms antes de fechar automaticamente.
      * @returns {void}
      */
+    /**
+     * Exibe um modal de confirmação e retorna uma Promise<boolean>.
+     * Resolve com {@code true} se o usuário confirmar, {@code false} se cancelar ou fechar.
+     *
+     * @param {Object} opcoes
+     * @param {string} [opcoes.titulo]              Título do modal (padrão "Confirmar").
+     * @param {string} [opcoes.mensagem]            Mensagem/corpo.
+     * @param {string} [opcoes.textoBotaoConfirmar] Texto do botão principal (padrão "Confirmar").
+     * @param {boolean} [opcoes.perigoso]           Se true, o botão confirmar é vermelho.
+     * @returns {Promise<boolean>}
+     */
+    function confirmar(opcoes) {
+        var titulo = (opcoes && opcoes.titulo) || 'Confirmar';
+        var mensagem = (opcoes && opcoes.mensagem) || '';
+        var textoBotao = (opcoes && opcoes.textoBotaoConfirmar) || 'Confirmar';
+        var perigoso = !!(opcoes && opcoes.perigoso);
+        return new Promise(function (resolve) {
+            var overlay = document.createElement('div');
+            overlay.className = 'modal show-modal';
+            overlay.setAttribute('role', 'dialog');
+            overlay.setAttribute('aria-modal', 'true');
+            overlay.innerHTML =
+                '<div class="modal-content confirm-modal-content">' +
+                  '<h3 class="confirm-modal-titulo">' + titulo + '</h3>' +
+                  '<p class="confirm-modal-msg">' + mensagem.replace(/\n/g, '<br>') + '</p>' +
+                  '<div class="confirm-modal-acoes">' +
+                    '<button class="btn btn-secondary confirm-cancel-btn">Cancelar</button>' +
+                    '<button class="btn ' + (perigoso ? 'btn-danger' : 'btn-primary') + ' confirm-ok-btn">' + textoBotao + '</button>' +
+                  '</div>' +
+                '</div>';
+            document.body.appendChild(overlay);
+            function fechar(resultado) { overlay.remove(); resolve(resultado); }
+            overlay.querySelector('.confirm-cancel-btn').onclick = function () { fechar(false); };
+            overlay.querySelector('.confirm-ok-btn').onclick = function () { fechar(true); };
+            overlay.addEventListener('click', function (e) { if (e.target === overlay) fechar(false); });
+            overlay.querySelector('.confirm-ok-btn').focus();
+        });
+    }
+
     function toast(msg, tipo, duracao) {
         if (tipo === undefined) tipo = 'info';
         if (duracao === undefined) duracao = 4000;
@@ -981,8 +1020,9 @@
         esconderLoading,
         // Avatar local
         avatarLocal,
-        // Toasts
+        // Toasts e diálogos
         toast,
+        confirmar,
     };
 
     /**

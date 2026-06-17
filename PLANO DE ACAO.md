@@ -270,9 +270,12 @@ A combinação Módulo×Ação dá a "classificação específica de cada tipo d
   curta + refresh token; invalidar tokens na troca de senha e no "excluir conta".
 
 ### 7.7 — Armazenamento do token no cliente (Art. 46)
-- **Problema:** JWT em `sessionStorage` é acessível por JS (superfície a XSS).
-- **Correção:** migrar para cookie `HttpOnly` + `Secure` + `SameSite=Strict`, ou adicionar CSP restritiva
-  e revisão anti-XSS (a app injeta HTML via `innerHTML` em várias telas — auditar escapes).
+- **Problema:** JWT em `localStorage` (desde 2026-06-16; antes `sessionStorage`) é acessível por JS
+  e persiste entre sessões — maior superfície a XSS. A persistência foi um requisito de UX
+  (manter login ao fechar a aba / reiniciar o aparelho).
+- **Correção (pendente):** migrar para cookie `HttpOnly` + `Secure` + `SameSite=Strict`, ou adicionar
+  CSP restritiva e revisão anti-XSS (a app injeta HTML via `innerHTML` em várias telas — auditar escapes).
+  Mitigação atual: revogação de token na troca de senha/exclusão de conta (`invalidacaoTokensAntes`).
 
 ### 7.8 — Minimização e finalidade (Art. 6, I e III)
 - **Problema:** `gênero` e `data de nascimento` são coletados sem finalidade declarada.

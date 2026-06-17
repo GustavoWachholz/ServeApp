@@ -119,6 +119,11 @@ Tabela `usuarios` — credenciais de acesso e preferências.
 | getTema/setTema | `String` | "light"/"dark". |
 | getCorPrimaria/setCorPrimaria | `String` | Cor primária (hex). |
 | getRole/setRole | `String` | "ADMIN"/"VOLUNTARIO". |
+| getFoto/setFoto | `String` | Foto do perfil (Base64, LONGTEXT). |
+| getVoluntario/setVoluntario | `Voluntario` | Servo vinculado (FK `voluntario_id`, único; nullable). |
+| dataConsentimento / versaoPolitica / ipConsentimento | `LocalDateTime` / `String` / `String` | Registro de consentimento LGPD. |
+| invalidacaoTokensAntes | `LocalDateTime` | Tokens emitidos antes desta data são inválidos (revogação na troca de senha/exclusão). |
+| ultimoLogin | `LocalDateTime` | Carimbo do último login. |
 | equals/hashCode | — | Igualdade/hash por `id`. |
 
 ### `ConfiguracaoEscala` (`model/ConfiguracaoEscala.java`)
@@ -298,16 +303,21 @@ Interfaces Spring Data JPA (herdam o CRUD de `JpaRepository`).
 - `void garantirAdmin()` *(privado)* — cria/migra o usuário `admin@admin.com`.
 - `void limparDados()` *(privado)* — apaga todos os dados (exceto admin) respeitando FKs.
 
-### `TokenStore` (`@Component`)
-- `record Sessao(Long userId, String role, String nome)` — dados da sessão.
-- `String gerar(Usuario)` — gera e registra token opaco (UUID).
-- `Optional<Sessao> validar(String token)` — valida token e retorna a sessão.
-- `void invalidar(String token)` — remove o token (logout).
+### `JwtService` (`@Component`) *(substituiu o antigo `TokenStore` in-memory)*
+- `JwtService(String secret, long expirationMs)` — segredo HMAC-SHA (`serve.jwt.secret`/env `JWT_SECRET`) e expiração (`serve.jwt.expiration-ms`, padrão 8 h).
+- `String gerar(Usuario)` — gera um JWT assinado (HS256) com `userId`, `role`, `nome` e `iat/exp`. Stateless: sobrevive a restart.
+- `Optional<Sessao> validar(String token)` — valida assinatura/expiração e retorna os claims da sessão (também checa `invalidacaoTokensAntes` do usuário para revogação).
+
+### `RateLimitInterceptor` (implements `HandlerInterceptor`)
+- Limita `/api/auth/login` a 10 tentativas por 60 s por IP (bucket em memória); excedente → 429.
 
 ### `AuthInterceptor` (implements `HandlerInterceptor`)
-- `AuthInterceptor(TokenStore)` — injeção.
-- `boolean preHandle(HttpServletRequest, HttpServletResponse, Object)` — libera preflight; exige token (401) e ADMIN para escrita (403).
+- `AuthInterceptor(JwtService, PermissaoService)` — injeção.
+- `boolean preHandle(HttpServletRequest, HttpServletResponse, Object)` — libera preflight; exige token (401); ADMIN passa tudo; não-admin nas 4 telas controladas é checado por `PermissaoService.pode()` (403 caso negue); demais escritas exigem ADMIN.
 - `String extrairToken(HttpServletRequest)` *(privado)* — extrai o Bearer token.
+
+### `AuditInterceptor` (implements `HandlerInterceptor`)
+- `afterCompletion(...)` — registra POST/PUT/DELETE/PATCH nas rotas auditáveis via `AuditoriaService` (deriva módulo/ação do caminho e método; nunca quebra a requisição original).
 
 ### `ResourceNotFoundException` (extends `RuntimeException`, `@ResponseStatus(NOT_FOUND)`)
 - `ResourceNotFoundException(String message)` — exceção 404 com mensagem.
@@ -324,13 +334,20 @@ Interfaces Spring Data JPA (herdam o CRUD de `JpaRepository`).
 
 Arquivos em `escala-frontend/`. O TypeScript (`agenda.ts`, `types.ts`) compila para `.js`.
 
+> **Cobertura:** as seções abaixo documentam os módulos centrais. Telas e serviços
+> adicionados em sessões posteriores — **Usuários** (`usuarios.js`), **Meu Perfil**
+> (`perfil.js`), **Auditoria** (`auditoria.js`), **permissões por tela** (`auth.js`),
+> **bottom-nav/listas mobile** e **conformidade LGPD** — estão resumidos em
+> `.claude/CLAUDE.md` e detalhados por sessão em `.claude/progress.md`. O código-fonte
+> mantém JSDoc completo em cada arquivo.
+
 ### `app.js` *(script de teste/legado)*
 - `async fetchVoluntarios()` — busca voluntários e loga no console; retorna os dados ou `undefined`.
 - `DOMContentLoaded` — dispara o teste de conexão e um listener de submit demonstrativo.
 
 ### `js/auth.js` *(guard de sessão central — `window.Auth`)*
-- `getUsuarioLogado()` → `Object|null` — lê a sessão do `sessionStorage`.
-- `salvarSessao(usuario)` — persiste a sessão.
+- `getUsuarioLogado()` → `Object|null` — lê a sessão do `localStorage` (chave `serve_session`).
+- `salvarSessao(usuario)` — persiste a sessão no `localStorage`.
 - `isAdmin()` → `boolean` — verifica papel ADMIN.
 - `async logout()` — invalida token no servidor, limpa sessão e vai ao login.
 - `restaurarTema()` — aplica tema/cor de forma síncrona (no `<head>`, evita flash).

@@ -311,7 +311,12 @@ function fecharModal() {
 
 async function confirmarExclusao(id) {
     const nome = document.getElementById('modal-nome').textContent;
-    if (!confirm(`Tem certeza que deseja excluir a conta de "${nome}"?\n\nEsta ação é irreversível. Se o usuário tiver histórico de escalas, os dados serão anonimizados.`)) return;
+    if (!await Auth.confirmar({
+        titulo: 'Excluir conta',
+        mensagem: `Tem certeza que deseja excluir a conta de "${nome}"?\n\nEsta ação é irreversível. Se o usuário tiver histórico de escalas, os dados serão anonimizados.`,
+        textoBotaoConfirmar: 'Excluir',
+        perigoso: true
+    })) return;
 
     const session = JSON.parse(localStorage.getItem('serve_session') || '{}');
     const btn = document.getElementById('btn-excluir-usuario');

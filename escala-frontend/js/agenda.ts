@@ -420,9 +420,11 @@ function initModalControls() {
             const nomes = boxesSemVoluntario
                 .map(b => b.getAttribute('data-funcao') || '—')
                 .join(', ');
-            const confirmar = window.confirm(
-                `Os seguintes ministérios ainda não têm voluntários escalados:\n\n${nomes}\n\nDeseja imprimir a escala mesmo assim?`
-            );
+            const confirmar = await Auth.confirmar({
+                titulo: 'Ministérios sem voluntários',
+                mensagem: `Os seguintes ministérios ainda não têm voluntários escalados:\n\n${nomes}\n\nDeseja imprimir a escala mesmo assim?`,
+                textoBotaoConfirmar: 'Imprimir assim mesmo'
+            });
             if (!confirmar) return;
         }
 
@@ -521,7 +523,7 @@ function initModalControls() {
 
         } catch (err) {
             console.error('Erro ao gerar imagem:', err);
-            alert('Erro ao gerar imagem. Verifique o console para mais detalhes.');
+            Auth.toast('Erro ao gerar imagem. Verifique o console para mais detalhes.', 'error');
         } finally {
             btn.innerHTML = originalText;
             btn.disabled = false;
@@ -567,7 +569,8 @@ function initModalControls() {
     const btnDeleteEvent = document.getElementById('delete-event-btn') as HTMLButtonElement;
     btnDeleteEvent.onclick = async () => {
         const id = (document.getElementById('escala-id') as HTMLInputElement).value;
-        if (!id || !confirm('Tem certeza que deseja excluir esta escala?')) return;
+        if (!id) return;
+        if (!await Auth.confirmar({ titulo: 'Excluir escala', mensagem: 'Tem certeza que deseja excluir esta escala?', textoBotaoConfirmar: 'Excluir', perigoso: true })) return;
 
         try {
             const response = await fetch(`${ESCALAS_API_URL}/${id}`, { method: 'DELETE' });
@@ -648,16 +651,16 @@ async function salvarEscala(incluirEquipe = false) {
             calendar.refetchEvents();
             (document.getElementById('escala-modal') as HTMLElement).classList.remove('show-modal');
             if (incluirEquipe) {
-                alert('Equipe salva com sucesso!');
+                Auth.toast('Equipe salva com sucesso!', 'success');
             }
         } else {
             const errorText = await response.text();
-            alert(`Erro ao salvar: ${errorText}`);
+            Auth.toast(`Erro ao salvar: ${errorText}`, 'error');
             console.error('Erro do backend:', errorText);
         }
     } catch (err) {
         console.error('Falha na requisição:', err);
-        alert(`Erro ao salvar: Falha na conexão com o servidor.`);
+        Auth.toast('Erro ao salvar: Falha na conexão com o servidor.', 'error');
     }
 }
 

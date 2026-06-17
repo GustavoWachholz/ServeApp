@@ -253,7 +253,12 @@ function initExcluirConta() {
     const btn = document.getElementById('btn-excluir-conta');
     if (!btn) return;
     btn.addEventListener('click', async () => {
-        if (!confirm('Tem certeza que deseja excluir sua conta?\n\nEsta ação é irreversível. Se você tiver histórico de escalas, seus dados serão anonimizados. Caso contrário, a conta será removida completamente.')) return;
+        if (!await Auth.confirmar({
+            titulo: 'Excluir minha conta',
+            mensagem: 'Tem certeza que deseja excluir sua conta?\n\nEsta ação é irreversível. Se você tiver histórico de escalas, seus dados serão anonimizados. Caso contrário, a conta será removida completamente.',
+            textoBotaoConfirmar: 'Excluir conta',
+            perigoso: true
+        })) return;
         const session = sessao();
         btn.disabled = true;
         try {

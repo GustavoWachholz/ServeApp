@@ -132,6 +132,72 @@
         @media (max-width: 768px) {
             .main-content { padding: 1rem 0.75rem; }
         }
+
+        /* ── Aniversariantes: badge na célula do mês ── */
+        .aniv-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            font-size: 0.68rem;
+            color: var(--primary-color, #004b87);
+            background: rgba(0, 75, 135, 0.1);
+            border-radius: 4px;
+            padding: 1px 5px;
+            margin: 0 2px 2px 0;
+            cursor: default;
+            white-space: nowrap;
+        }
+
+        /* ── Aniversariantes: banner no topo da visão de dia ── */
+        #aniv-day-banner {
+            display: none;
+            align-items: center;
+            gap: 1.25rem;
+            flex-wrap: wrap;
+            background: var(--card-bg, #fff);
+            border: 1px solid var(--border-color, #e5e7eb);
+            border-radius: 10px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 1rem;
+        }
+        .aniv-banner-label {
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            white-space: nowrap;
+        }
+        .aniv-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+        }
+        .aniv-avatar {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            object-fit: cover;
+            flex-shrink: 0;
+        }
+        .aniv-avatar-initials {
+            width: 30px;
+            height: 30px;
+            border-radius: 50%;
+            background: var(--primary-color, #004b87);
+            color: #fff;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-weight: 700;
+            font-size: 0.85rem;
+            flex-shrink: 0;
+        }
+        .aniv-nome {
+            font-size: 0.875rem;
+            font-weight: 500;
+            color: var(--text-primary);
+        }
     </style>
 </head>
 <body>
@@ -205,11 +271,13 @@
             </header>
 
             <div class="section-header" style="margin-bottom: 1.5rem;">
-                <h2>AGENDA E ESCALAS</h2>
+                <h2>AGENDA</h2>
                 <button class="btn-primary" id="btn-nova-escala" data-admin-only>
                     <i class="fas fa-plus"></i> Nova Escala
                 </button>
             </div>
+
+            <div id="aniv-day-banner"></div>
 
             <div id="calendar-container"></div>
         </main>

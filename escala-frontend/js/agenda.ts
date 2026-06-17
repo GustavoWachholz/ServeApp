@@ -25,6 +25,14 @@ interface Voluntario {
     ministerios?: string[];
 }
 
+/** Aniversariante retornado por GET /api/aniversariantes. */
+interface AniversarianteAgendaDTO {
+    nome: string;
+    mes: number;
+    dia: number;
+    foto: string | null;
+}
+
 /** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis: any[] = [];
 
@@ -36,6 +44,8 @@ let listaVoluntarios: Voluntario[] = [];
 let escalaAtualId: number | null = null;
 /** Indica falha no carregamento da lista de voluntários. */
 let voluntariosErro = false;
+/** Cache dos aniversariantes carregados de GET /api/aniversariantes. */
+let aniversariantes: AniversarianteAgendaDTO[] = [];
 /** Configuração da escala ativa (cor, organização, setor, ministérios). */
 let configAtual: any = null;
 /** Atribuições pré-carregadas ao editar um evento existente. */
@@ -51,6 +61,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     popularSelectClassificacao();
     initModalControls();
     await carregarVoluntariosParaEscala();
+    await carregarAniversariantes();
     initCalendar();
     initAutocomplete();
     if (!(window as any).Auth?.podeCriar('AGENDA')) {
@@ -778,6 +789,24 @@ function initCalendar() {
         editable: (window as any).Auth?.podeEditar('AGENDA') ?? false,
         selectable: (window as any).Auth?.podeCriar('AGENDA') ?? false,
 
+        dayCellDidMount: function(info: any) {
+            const d: Date = info.date;
+            const doAlvo = aniversariantes.filter(
+                a => a.mes === d.getMonth() + 1 && a.dia === d.getDate()
+            );
+            if (doAlvo.length === 0) return;
+            const badge = document.createElement('span');
+            badge.className = 'aniv-badge';
+            badge.title = doAlvo.map(a => a.nome).join(', ');
+            badge.innerHTML = `<i class="fas fa-cake-candles"></i>${doAlvo.length > 1 ? ' ' + doAlvo.length : ''}`;
+            const top = info.el.querySelector('.fc-daygrid-day-top');
+            if (top) top.prepend(badge);
+        },
+
+        datesSet: function(info: any) {
+            atualizarBannerAniversariantes(info.view.type, info.start);
+        },
+
         dateClick: function(info: any) {
             // Clicar no dia abre a visão do dia (criação de escala é só pelo botão "Nova Escala")
             calendar.changeView('timeGridDay', info.dateStr);
@@ -854,6 +883,60 @@ function resetModal() {
 
     (document.getElementById('step-1-dados') as HTMLElement).style.display = 'block';
     (document.getElementById('step-2-equipe') as HTMLElement).style.display = 'none';
+}
+
+/**
+ * Busca a lista completa de aniversariantes (todos os meses) do backend.
+ *
+ * @async
+ * @returns {Promise<void>}
+ */
+async function carregarAniversariantes(): Promise<void> {
+    try {
+        const res = await fetch('/api/aniversariantes');
+        if (res.ok) aniversariantes = await res.json();
+    } catch (e) {
+        console.error('Erro ao carregar aniversariantes:', e);
+    }
+}
+
+/**
+ * Exibe ou oculta o banner de aniversariantes acima do calendário.
+ * Só fica visível na visão de dia ({@code timeGridDay}) e quando há
+ * pelo menos um aniversariante na data exibida.
+ *
+ * @param viewType tipo da visão FullCalendar (ex.: 'timeGridDay').
+ * @param start    primeira data visível na visão atual.
+ * @returns {void}
+ */
+function atualizarBannerAniversariantes(viewType: string, start: Date): void {
+    const banner = document.getElementById('aniv-day-banner');
+    if (!banner) return;
+
+    if (viewType !== 'timeGridDay') {
+        banner.style.display = 'none';
+        return;
+    }
+
+    const doAlvo = aniversariantes.filter(
+        a => a.mes === start.getMonth() + 1 && a.dia === start.getDate()
+    );
+
+    if (doAlvo.length === 0) {
+        banner.style.display = 'none';
+        return;
+    }
+
+    const itens = doAlvo.map(a => {
+        const avatar = a.foto
+            ? `<img src="${a.foto}" alt="${a.nome}" class="aniv-avatar">`
+            : `<span class="aniv-avatar-initials">${a.nome.charAt(0).toUpperCase()}</span>`;
+        return `<div class="aniv-item">${avatar}<span class="aniv-nome">${a.nome}</span></div>`;
+    }).join('');
+
+    banner.innerHTML =
+        `<span class="aniv-banner-label"><i class="fas fa-cake-candles"></i> Aniversariantes</span>${itens}`;
+    banner.style.display = 'flex';
 }
 
 // Aparência, toggle de tema, color picker e botão de configurações

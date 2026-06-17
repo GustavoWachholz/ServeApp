@@ -111,7 +111,11 @@ public class UsuarioService {
         String generoNorm = request.genero() != null && !request.genero().isBlank()
                 ? request.genero().trim().toUpperCase() : null;
         servo.setGenero(generoNorm);
-        servo.setDataNascimento(parseData(request.dataNascimento()));
+        LocalDate nascimento = parseData(request.dataNascimento());
+        if (nascimento != null && nascimento.isAfter(LocalDate.now())) {
+            throw new IllegalArgumentException("A data de nascimento não pode ser uma data futura.");
+        }
+        servo.setDataNascimento(nascimento);
         return voluntarioRepository.save(servo);
     }
 
@@ -250,25 +254,27 @@ public class UsuarioService {
         }
         usuarioRepository.save(usuario);
 
-        Voluntario voluntario = usuario.getVoluntario();
-        if (voluntario == null) {
-            voluntario = voluntarioRepository.findByEmail(usuario.getEmail())
-                    .orElseGet(() -> {
-                        Voluntario v = new Voluntario();
-                        v.setEmail(usuario.getEmail());
-                        return v;
-                    });
-        }
-        voluntario.setNome(request.nome());
-        voluntario.setTelefone(request.telefone());
-        voluntario.setGenero(request.genero());
-        voluntario.setDataNascimento(parseData(request.dataNascimento()));
-        voluntarioRepository.save(voluntario);
+        // Admin não tem servo vinculado por design — não criar automaticamente
+        if (!"ADMIN".equals(usuario.getRole())) {
+            Voluntario voluntario = usuario.getVoluntario();
+            if (voluntario == null) {
+                voluntario = voluntarioRepository.findByEmail(usuario.getEmail())
+                        .orElseGet(() -> {
+                            Voluntario v = new Voluntario();
+                            v.setEmail(usuario.getEmail());
+                            return v;
+                        });
+            }
+            voluntario.setNome(request.nome());
+            voluntario.setTelefone(request.telefone());
+            voluntario.setGenero(request.genero());
+            voluntario.setDataNascimento(parseData(request.dataNascimento()));
+            voluntarioRepository.save(voluntario);
 
-        // Auto-cura o vínculo explícito se ainda não existia
-        if (usuario.getVoluntario() == null) {
-            usuario.setVoluntario(voluntario);
-            usuarioRepository.save(usuario);
+            if (usuario.getVoluntario() == null) {
+                usuario.setVoluntario(voluntario);
+                usuarioRepository.save(usuario);
+            }
         }
     }
 
@@ -352,7 +358,6 @@ public class UsuarioService {
 
         Voluntario voluntario = resolverVoluntario(usuario);
         boolean temHistorico = voluntario != null
-                && !escalaAtribuicaoRepository.findDistinctVoluntarioIds().isEmpty()
                 && escalaAtribuicaoRepository.findDistinctVoluntarioIds().contains(voluntario.getId());
 
         permissaoTelaRepository.deleteByUsuarioId(id);

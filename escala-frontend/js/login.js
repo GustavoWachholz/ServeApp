@@ -82,6 +82,10 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── Data máxima = hoje (impede datas de nascimento no futuro) ─────────
+    const regNascInput = document.getElementById('reg-nascimento');
+    if (regNascInput) regNascInput.max = new Date().toISOString().split('T')[0];
+
     // ── Máscara de telefone no formulário de registro ─────────────────────
     const regTelInput = document.getElementById('reg-telefone');
     if (regTelInput) {

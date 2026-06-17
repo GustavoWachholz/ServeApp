@@ -118,7 +118,7 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 | `PermissaoTela` | `permissoes_tela` | permissão por tela/ação (acessar/criar/editar/excluir) por usuário |
 | `RegistroAuditoria` | `auditoria` | log de operações: dataHora, usuarioId/Nome (snapshot), modulo, acao, descricao, entidadeId, metodoHttp, caminho, statusHttp, ip |
 
-**Vínculo Usuário↔Servo:** cada `Usuario` pode ter um `Voluntario` vinculado (`voluntario_id`, único). No cadastro o sistema vincula automaticamente a um servo de mesmo nome (1 correspondência não vinculada) ou cria um servo novo. O admin gerencia o vínculo na tela Usuários (`PUT /api/usuarios/{id}/vincular-servo`). `buscarPerfil`/`atualizarPerfil` resolvem o servo pelo vínculo explícito, com fallback por e-mail.
+**Vínculo Usuário↔Servo:** cada `Usuario` pode ter um `Voluntario` vinculado (`voluntario_id`, único). No cadastro o sistema **sempre** cria (ou reutiliza pelo e-mail) um `Voluntario` com todos os dados pessoais do formulário de registro — sem fuzzy match por nome. O admin gerencia o vínculo na tela Usuários (`PUT /api/usuarios/{id}/vincular-servo`). `buscarPerfil`/`atualizarPerfil` resolvem o servo pelo vínculo explícito, com fallback por e-mail. **Admin nunca ganha servo vinculado** — `atualizarPerfil` ignora o bloco de servo quando `role === 'ADMIN'`.
 
 ---
 
@@ -164,7 +164,7 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 |---|---|
 | `POST /api/auth/login` | Login |
 | `POST /api/auth/cadastro` | Cadastro |
-| `GET/POST/PUT/DELETE /api/voluntarios` | CRUD voluntários |
+| `GET /api/voluntarios` `GET /api/voluntarios/{id}` `PUT /api/voluntarios/{id}` | Voluntários: listar, buscar, atualizar áreas/ministérios (criação via `/api/auth/cadastro`; exclusão via `DELETE /api/usuarios/{id}`) |
 | `GET/POST/PUT/DELETE /api/ministerios` | CRUD ministérios |
 | `GET/POST/PUT/DELETE /api/escalas` | CRUD escalas |
 | `GET/POST/PUT/DELETE /api/avisos` | CRUD avisos |

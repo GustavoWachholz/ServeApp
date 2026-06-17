@@ -55,37 +55,6 @@ function aplicarPermissoesServos() {
     }
 }
 
-/* ─────────────── Máscara de telefone ─────────────── */
-/**
- * Formata um número de telefone brasileiro conforme a quantidade de dígitos:
- * {@code (XX) XXXXX-XXXX} para 11 dígitos (celular) e {@code (XX) XXXX-XXXX}
- * para 10 dígitos (fixo). Ignora caracteres não numéricos.
- *
- * @param {string} valor texto digitado (com ou sem máscara).
- * @returns {string} telefone formatado.
- */
-function formatarTelefone(valor) {
-    const d = (valor || '').replace(/\D/g, '').slice(0, 11);
-    if (d.length === 0) return '';
-    if (d.length <= 2) return `(${d}`;
-    if (d.length <= 6) return `(${d.slice(0, 2)}) ${d.slice(2)}`;
-    if (d.length <= 10) return `(${d.slice(0, 2)}) ${d.slice(2, 6)}-${d.slice(6)}`;
-    return `(${d.slice(0, 2)}) ${d.slice(2, 7)}-${d.slice(7)}`;
-}
-
-/**
- * Liga a máscara de telefone ao campo {@code #phone}, formatando enquanto o usuário digita.
- *
- * @returns {void}
- */
-function initMascaraTelefone() {
-    const input = document.getElementById('phone');
-    if (!input) return;
-    input.addEventListener('input', () => {
-        input.value = formatarTelefone(input.value);
-    });
-}
-
 /* ─────────────── Chips de classificação ─────────────── */
 /**
  * Renderiza os chips de classificação (selecionáveis) em um container.
@@ -658,27 +627,6 @@ function preencherFormulario(v) {
         cb.checked = (v.ministerios || []).includes(cb.value);
     });
     renderClassifChips('classif-checkboxes-vol', v.classificacoes || []);
-}
-
-function verificarMenoridade(inputId, warnId) {
-    const input = document.getElementById(inputId);
-    if (!input) return;
-    let warnEl = document.getElementById(warnId);
-    if (!warnEl) {
-        warnEl = document.createElement('span');
-        warnEl.id = warnId;
-        warnEl.style.cssText = 'font-size:.8rem;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:.3rem .6rem;margin-top:.3rem;display:none;';
-        warnEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Voluntário menor de 18 anos. Obtenha o consentimento do responsável legal antes de salvar (LGPD Art. 14).';
-        input.parentNode.appendChild(warnEl);
-    }
-    const val = input.value;
-    if (!val) { warnEl.style.display = 'none'; return; }
-    const nasc = new Date(val + 'T00:00:00');
-    const hoje = new Date();
-    let idade = hoje.getFullYear() - nasc.getFullYear();
-    const dm = hoje.getMonth() - nasc.getMonth();
-    if (dm < 0 || (dm === 0 && hoje.getDate() < nasc.getDate())) idade--;
-    warnEl.style.display = (idade >= 0 && idade < 18) ? 'block' : 'none';
 }
 
 /**

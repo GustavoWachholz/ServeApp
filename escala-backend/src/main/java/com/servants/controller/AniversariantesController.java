@@ -1,14 +1,15 @@
 package com.servants.controller;
 
 import com.servants.dto.AniversarianteAgendaDTO;
+import com.servants.model.Usuario;
 import com.servants.repository.UsuarioRepository;
 import com.servants.repository.VoluntarioRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import java.util.Comparator;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -33,6 +34,14 @@ public class AniversariantesController {
 
     @GetMapping
     public List<AniversarianteAgendaDTO> listar() {
+        // Monta mapa voluntarioId → foto em uma única query (evita N+1)
+        Map<Long, String> fotoMap = usuarioRepository.findAllWithVoluntario().stream()
+                .filter(u -> u.getVoluntario() != null && u.getFoto() != null)
+                .collect(Collectors.toMap(
+                        u -> u.getVoluntario().getId(),
+                        Usuario::getFoto,
+                        (existing, duplicate) -> existing));
+
         return voluntarioRepository.findAll().stream()
                 .filter(v -> v.getDataNascimento() != null)
                 .sorted((a, b) -> {
@@ -43,16 +52,11 @@ public class AniversariantesController {
                             a.getDataNascimento().getDayOfMonth(),
                             b.getDataNascimento().getDayOfMonth());
                 })
-                .map(v -> {
-                    String foto = usuarioRepository.findByVoluntarioId(v.getId())
-                            .map(u -> u.getFoto())
-                            .orElse(null);
-                    return new AniversarianteAgendaDTO(
-                            v.getNome(),
-                            v.getDataNascimento().getMonthValue(),
-                            v.getDataNascimento().getDayOfMonth(),
-                            foto);
-                })
+                .map(v -> new AniversarianteAgendaDTO(
+                        v.getNome(),
+                        v.getDataNascimento().getMonthValue(),
+                        v.getDataNascimento().getDayOfMonth(),
+                        fotoMap.get(v.getId())))
                 .collect(Collectors.toList());
     }
 }

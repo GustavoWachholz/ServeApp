@@ -84,19 +84,6 @@ public class VoluntarioService {
     }
 
     /**
-     * Cria um novo voluntário a partir do DTO informado.
-     *
-     * @param dto dados do voluntário a criar.
-     * @return o {@link VoluntarioDTO} persistido (com id gerado).
-     */
-    @Transactional
-    public VoluntarioDTO criar(VoluntarioDTO dto) {
-        Voluntario voluntario = convertToEntity(dto);
-        Voluntario salvo = voluntarioRepository.save(voluntario);
-        return convertToDTO(salvo, buscarEscaladoIds());
-    }
-
-    /**
      * Atualiza as áreas ({@code ministerios}) e ministérios ({@code classificacoes}) do voluntário.
      * Dados pessoais (nome, telefone, e-mail, gênero, nascimento) são gerenciados exclusivamente
      * por {@code PUT /api/usuarios/{id}/perfil}.
@@ -119,26 +106,6 @@ public class VoluntarioService {
     }
 
     /**
-     * Remove um voluntário pelo id, apagando antes seus vínculos em escalas
-     * ({@code escala_atribuicoes} e {@code escala_voluntarios}) para evitar
-     * violação de FK.
-     *
-     * @param id identificador do voluntário.
-     * @throws ResourceNotFoundException se o voluntário não for encontrado.
-     */
-    @Transactional
-    public void deletar(Long id) {
-        if (!voluntarioRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Voluntário não encontrado com ID: " + id);
-        }
-        // Remove vínculos com escalas antes de excluir o voluntário
-        // (evita violação de FK nas tabelas escala_voluntarios e escala_atribuicoes)
-        escalaAtribuicaoRepository.deleteByVoluntarioId(id);
-        escalaVoluntarioRepository.deleteByVoluntarioId(id);
-        voluntarioRepository.deleteById(id);
-    }
-
-    /**
      * Converte uma entidade {@link Voluntario} em {@link VoluntarioDTO}, marcando o
      * campo {@code escalado} conforme a presença do id no conjunto informado.
      *
@@ -158,44 +125,6 @@ public class VoluntarioService {
                 voluntario.getClassificacoes(),
                 escaladoIds.contains(voluntario.getId())
         );
-    }
-
-    /**
-     * Converte um {@link VoluntarioDTO} em entidade {@link Voluntario}, normalizando
-     * gênero e listas de strings antes de persistir.
-     *
-     * @param dto DTO a converter.
-     * @return a entidade correspondente.
-     */
-    private Voluntario convertToEntity(VoluntarioDTO dto) {
-        Voluntario voluntario = new Voluntario();
-        voluntario.setId(dto.id());
-        voluntario.setNome(dto.nome());
-        voluntario.setTelefone(dto.telefone());
-        voluntario.setEmail(dto.email());
-        voluntario.setDataNascimento(dto.dataNascimento());
-        voluntario.setGenero(normalizarGenero(dto.genero()));
-        voluntario.setMinisterios(normalizarLista(dto.ministerios(), false));
-        voluntario.setClassificacoes(normalizarLista(dto.classificacoes(), true));
-        return voluntario;
-    }
-
-    /**
-     * Normaliza o gênero: {@code null}/vazio → {@code null}; qualquer valor →
-     * trimado e em maiúsculas. Lança {@link IllegalArgumentException} se o valor
-     * não for "MASCULINO" nem "FEMININO".
-     *
-     * @param genero valor recebido do cliente.
-     * @return gênero normalizado ou {@code null}.
-     */
-    private String normalizarGenero(String genero) {
-        if (genero == null || genero.isBlank()) return null;
-        String g = genero.trim().toUpperCase();
-        if (!Set.of("MASCULINO", "FEMININO").contains(g)) {
-            throw new IllegalArgumentException(
-                    "Gênero inválido: \"" + genero + "\". Valores aceitos: MASCULINO, FEMININO.");
-        }
-        return g;
     }
 
     /**

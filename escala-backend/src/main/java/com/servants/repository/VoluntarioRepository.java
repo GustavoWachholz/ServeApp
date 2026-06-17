@@ -20,13 +20,4 @@ public interface VoluntarioRepository extends JpaRepository<Voluntario, Long> {
      * @return {@link Optional} com o voluntário, ou vazio se não existir.
      */
     Optional<Voluntario> findByEmail(String email);
-
-    /**
-     * Busca todos os voluntários cujo nome corresponde (ignorando maiúsculas/minúsculas).
-     * Usado no cadastro para detectar e vincular automaticamente um servo de mesmo nome.
-     *
-     * @param nome nome a procurar.
-     * @return lista de voluntários com o nome informado (pode ser vazia ou ter duplicatas).
-     */
-    List<Voluntario> findAllByNomeIgnoreCase(String nome);
 }

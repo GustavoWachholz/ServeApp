@@ -1,7 +1,7 @@
 /**
  * Dashboard.js — Carrega a tela inicial: nome do usuário, próximos compromissos
- * (faixa horizontal com filtro Semana/Mês), aniversariantes, quadro de avisos
- * e minhas escalas (escalas futuras do voluntário vinculado ao usuário logado).
+ * (faixa horizontal com filtro Semana/Mês), quadro de avisos e minhas escalas
+ * (escalas futuras do voluntário vinculado ao usuário logado).
  * Os links "Ver todos" abrem um modal com a lista completa.
  */
 
@@ -23,8 +23,6 @@ function esc(s) {
 let periodoAtual = 'semana';
 /** Todas as escalas futuras (ordenadas), usadas no modal "Ver todos". */
 let escalasFuturas = [];
-/** Aniversariantes carregados, usados no modal "Ver todos". */
-let aniversariantesCache = [];
 
 /** Inicializa o dashboard ao carregar o DOM. */
 document.addEventListener('DOMContentLoaded', async () => {
@@ -40,7 +38,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 });
 
 /**
- * Busca os dados do dashboard (nome, aniversariantes, minhas escalas) e os renderiza.
+ * Busca os dados do dashboard (nome e minhas escalas) e os renderiza.
  *
  * @async
  * @returns {Promise<void>}
@@ -54,12 +52,9 @@ async function fetchDashboardData() {
         const userNameDisplay = document.getElementById('user-name-display');
         if (userNameDisplay) userNameDisplay.textContent = data.nomeUsuario || 'Administrador';
 
-        aniversariantesCache = data.aniversariantes || [];
-        renderAniversariantes(aniversariantesCache);
         renderMinhasEscalas(data.minhasEscalas || []);
     } catch (error) {
         console.error('Erro ao buscar dados do dashboard:', error);
-        renderAniversariantes([]);
         renderMinhasEscalas([]);
     }
 }
@@ -314,9 +309,6 @@ function initControlesHome() {
     const verCompromissos = document.getElementById('ver-todos-compromissos');
     if (verCompromissos) verCompromissos.addEventListener('click', e => { e.preventDefault(); abrirListaCompromissos(); });
 
-    const verAniversariantes = document.getElementById('ver-todos-aniversariantes');
-    if (verAniversariantes) verAniversariantes.addEventListener('click', e => { e.preventDefault(); abrirListaAniversariantes(); });
-
     const modal = document.getElementById('lista-modal');
     const close = document.getElementById('lista-modal-close');
     if (close) close.onclick = () => modal.classList.remove('show-modal');
@@ -435,46 +427,6 @@ function formatarData(iso) {
 }
 
 /**
- * Renderiza os cards de aniversariantes (grid), ou uma mensagem de vazio.
- *
- * @param {Array} list aniversariantes.
- * @returns {void}
- */
-function renderAniversariantes(list) {
-    const container = document.getElementById('container-aniversariantes');
-    if (!container) return;
-    if (!list || list.length === 0) {
-        container.innerHTML = `<p style='color: var(--text-color); opacity: 0.5; font-style: italic; padding: 1rem 0;'>Nenhum aniversariante este mês.</p>`;
-        return;
-    }
-    container.innerHTML = '';
-    list.forEach(item => container.appendChild(createBirthdayCard(item)));
-}
-
-/**
- * Cria o card de um aniversariante.
- *
- * @param {string|{nome:string,data:string}} item dados do aniversariante.
- * @returns {HTMLElement} o elemento do card.
- */
-function createBirthdayCard(item) {
-    const div = document.createElement('div');
-    div.className = 'card';
-    const nome = typeof item === 'string' ? item.split(' - ')[0] : (item.nome || item);
-    const data = typeof item === 'string' ? item.split(' - ')[1] || '' : (item.data || '');
-    div.innerHTML = `
-        <div style="display: flex; align-items: center; gap: 0.8rem;">
-            <i class="fas fa-cake-candles" style="color: var(--primary-color)"></i>
-            <div>
-                <h4>${esc(nome)}</h4>
-                <p>${esc(data)}</p>
-            </div>
-        </div>
-    `;
-    return div;
-}
-
-/**
  * Abre o modal de listagem com um título e um corpo HTML.
  *
  * @param {string} titulo título do modal.
@@ -504,29 +456,6 @@ function abrirListaCompromissos() {
             </div>`).join('')
         : `<p style="opacity:0.6;padding:1rem 0;">Nenhum compromisso futuro.</p>`;
     abrirModalLista('Próximos Compromissos', html);
-}
-
-/**
- * Abre o modal com a lista completa de aniversariantes.
- *
- * @returns {void}
- */
-function abrirListaAniversariantes() {
-    const html = aniversariantesCache.length
-        ? aniversariantesCache.map(a => {
-            const nome = typeof a === 'string' ? a.split(' - ')[0] : (a.nome || '');
-            const data = typeof a === 'string' ? (a.split(' - ')[1] || '') : (a.data || '');
-            return `
-            <div class="lista-modal-item">
-                <i class="fas fa-cake-candles"></i>
-                <div>
-                    <div style="font-weight:600;">${nome}</div>
-                    <div style="font-size:0.8rem;color:var(--text-muted);">${data}</div>
-                </div>
-            </div>`;
-        }).join('')
-        : `<p style="opacity:0.6;padding:1rem 0;">Nenhum aniversariante.</p>`;
-    abrirModalLista('Aniversariantes', html);
 }
 
 // Aparência, toggle de tema, color picker e botão de configurações

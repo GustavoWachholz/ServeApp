@@ -326,3 +326,305 @@ de consentimento e exclusão; rotina de retenção (agendada).
 `usuarios.js`/`auth.js`/`voluntarios.js`/`ministerios.js`/`perfil.js` (remover `ui-avatars.com`).
 **Documentação:** atualizar `.claude/CLAUDE.md` (modelo de consentimento, endpoints de exclusão),
 `.claude/progress.md` e Política de Privacidade publicada.
+
+---
+
+# Fase 8 — Reorganização da Home, Aniversariantes na Agenda e Reestruturação do Menu
+
+> Plano de implementação (2026-06-17). **Não executar** itens não aprovados.
+> Stack: Java 25 / Spring Boot 4.0.6 / Hibernate 7 / MySQL 8 · Frontend Vanilla JS + TS (`agenda.ts`).
+> Status: 🔲 **A executar.**
+
+## Contexto relevante (estado atual verificado)
+
+- **Home** (`index.html` + `js/dashboard.js`): a `.dashboard-grid` exibe 4 seções nesta ordem —
+  **Próximos Compromissos** → **Aniversariantes** → **Quadro de Avisos** → **Minhas Escalas**.
+  Os aniversariantes vêm de `GET /api/dashboard` (`fetchDashboardData` → `aniversariantesCache` →
+  `renderAniversariantes`/`createBirthdayCard`); há "Ver todos" (`abrirListaAniversariantes`).
+- **Agenda** (`agenda.html` + `js/agenda.ts`→`agenda.js`): `.section-header` com `<h2>AGENDA E ESCALAS</h2>`
+  e um único botão `#btn-nova-escala` ("Nova Escala", `data-admin-only`, escondido por `podeCriar('AGENDA')`).
+  O calendário é FullCalendar (`initCalendar`); `dateClick` faz `calendar.changeView('timeGridDay', …)`.
+  **Não** há `dayCellDidMount` nem banner de dia. Modal título "+ Nova Escala" (`#modal-title`).
+- **Backend aniversariantes**: `DashboardService` filtra `voluntarioRepository.findAll()` por mês atual e
+  monta `AniversarianteDTO(nome, data)` (data já formatada "dd de mês"). **Não há foto nem dia numérico.**
+  A foto é do `Usuario` (`foto` LONGTEXT) ligado ao `Voluntario` pela FK `voluntario_id` (`Usuario.voluntario`).
+- **Menu** (`app.html` é o shell real; cada HTML standalone tem sidebar própria, oculta quando embarcada):
+  `Home` → grupo colapsável **Cadastros** (`nav-group`/`nav-group-toggle`, accordion em `auth.js`
+  `inicializarSidebar`, persistência `serve_nav_open_*`) contendo `Agenda / Escalas` (`data-tela="AGENDA"`),
+  `Servos`, `Áreas`, `Ministérios` → `Relatórios` → `Usuários`/`Auditoria` (admin).
+  `js/shell.js` mapeia páginas↔hash e abre o `nav-group` da página ativa.
+
+---
+
+## Parte 1 — Reordenar listas da Home e remover Aniversariantes
+
+**Objetivo:** nova ordem na Home: **1. Quadro de Avisos · 2. Minhas Escalas · 3. Próximos Compromissos**.
+A seção **Aniversariantes** sai da Home (passa para a Agenda — Parte 2).
+
+**`index.html`:**
+- Reordenar os `<section class="dashboard-section">` dentro de `.dashboard-grid` para: Quadro de Avisos →
+  Minhas Escalas → Próximos Compromissos.
+- **Remover** a `<section>` de Aniversariantes (`#container-aniversariantes`, `#ver-todos-aniversariantes`).
+
+**`js/dashboard.js`:**
+- Remover `aniversariantesCache`, `renderAniversariantes`, `createBirthdayCard`, `abrirListaAniversariantes`
+  e o handler de `#ver-todos-aniversariantes` em `initControlesHome`.
+- Em `fetchDashboardData`, parar de ler/renderizar `data.aniversariantes` (manter nome do usuário e
+  `minhasEscalas`). O backend pode continuar enviando o campo — apenas deixa de ser consumido (sem
+  necessidade de mudar o DTO de dashboard; ver Parte 2 para a fonte da Agenda).
+
+**Verificação:** Home mostra 3 seções na ordem pedida; nenhum erro de referência a IDs removidos.
+
+---
+
+## Parte 2 — Aniversariantes na Agenda (indicador no dia + banner na visão do dia)
+
+**Objetivo:** marcar no calendário (visão mês) os dias com aniversariante (badge no **canto superior
+esquerdo** da célula) e, ao abrir o dia (visão `timeGridDay`), exibir **nome + foto** do(s)
+aniversariante(s) **acima dos horários**.
+
+### Backend — novo endpoint com foto e dia
+
+Necessário porque o DTO atual não traz foto nem dia numérico, e a Agenda navega entre meses.
+
+- **`dto/AniversarianteAgendaDTO.java`** (novo): `record AniversarianteAgendaDTO(String nome, int mes, int dia, String foto)`
+  (`foto` nullable → fallback no front para `Auth.avatarLocal(nome)`).
+- **`service`**: método `listarAniversariantesAno()` (em `DashboardService` ou novo `AniversarianteService`)
+  que percorre `voluntarioRepository.findAll()` com `dataNascimento != null`, e resolve a foto montando
+  um `Map<Long,String>` de `voluntarioId → foto` a partir de `usuarioRepository.findAll()`
+  (via `Usuario.getVoluntario()`/`getFoto()`). Retorna **todos** os aniversariantes do ano (dataset pequeno),
+  evitando refetch a cada troca de mês.
+- **`controller/AniversarianteController.java`** (novo): `GET /api/aniversariantes` (qualquer logado) →
+  `List<AniversarianteAgendaDTO>`. (Alternativa: `GET /api/dashboard/aniversariantes`.)
+
+> Decisão: retornar o ano inteiro de uma vez (simples; poucos servos). Se a base crescer, paginar por mês
+> via query param `?mes=`.
+
+### Frontend — `agenda.ts` (recompilar `agenda.js` ao final)
+
+- No `DOMContentLoaded`, buscar `GET /api/aniversariantes` e montar um índice
+  `Map<string, {nome, foto}[]>` com chave `"MM-DD"`.
+- **Badge na célula do mês:** adicionar callback `dayCellDidMount` ao config do FullCalendar; para cada
+  célula cuja data (`arg.date`) tenha entrada no índice, inserir um `<div class="aniv-badge">` (ícone
+  `fa-cake-candles`) posicionado no canto superior esquerdo. CSS novo em `dashboard.css`
+  (`.fc-daygrid-day-frame { position: relative } .aniv-badge { position:absolute; top:2px; left:2px; … }`).
+  Tooltip (`title`) com os nomes.
+- **Banner na visão do dia:** usar o callback `datesSet`; quando `view.type === 'timeGridDay'`, calcular o
+  dia exibido, consultar o índice e renderizar um banner (criado uma vez, inserido entre o `.section-header`
+  e `#calendar-container`, visível só nessa visão) com, para cada aniversariante, `<img>` (foto ou
+  `Auth.avatarLocal(nome)`) + nome. Em mês/semana o banner fica oculto.
+  > "Acima dos horários" é atendido visualmente pelo banner logo acima da grade de horas. Alternativa
+  > mais acoplada ao DOM do FullCalendar (injetar no topo do `.fc-timegrid`) fica como refinamento.
+- Como a foto pode faltar, sempre ter fallback `Auth.avatarLocal(nome)` (já existe, LGPD-safe).
+
+**Verificação:** em um mês com aniversariante, a célula do dia mostra o badge no canto superior esquerdo;
+ao clicar no dia, o banner com foto+nome aparece acima dos horários; dias sem aniversariante ficam limpos.
+
+---
+
+## Parte 3 — Botões da Agenda (Novo Compromisso + Aniversariantes + Indisponibilidades)
+
+**Objetivo:** ao lado do botão principal, dois novos botões; renomear o principal.
+
+**`agenda.html`** (`.section-header`):
+- Renomear `#btn-nova-escala` de "Nova Escala" para **"Novo Compromisso"** (`<i class="fas fa-plus">`).
+  Atualizar também o título do modal `#modal-title` ("+ Nova Escala" → "+ Novo Compromisso") e a label
+  do botão "Nova Escala" em `agenda.ts` (`btnNovaEscala` define `#modal-title`).
+- Envolver os botões num grupo flex (`.agenda-actions`) com 3 itens, na ordem:
+  **Aniversariantes** · **Indisponibilidades** · **+ Novo Compromisso**.
+  - **Aniversariantes** (`#btn-aniversariantes`, `fa-cake-candles`): abre um modal/painel com a lista do
+    **mês visível** (reaproveita o índice da Parte 2). Visível a todos que acessam AGENDA.
+  - **Indisponibilidades** (`#btn-indisponibilidades`, `fa-user-clock`): **placeholder** — apenas o
+    ícone/botão; ao clicar, exibe **mensagem informativa** pelo mesmo recurso usado em "cadastro salvo"/
+    "escala definida" → `Auth.toast('Funcionalidade em desenvolvimento.', 'info')`. Sem lógica.
+- CSS: `.agenda-actions { display:flex; gap:.6rem; flex-wrap:wrap }`; em mobile os botões quebram linha.
+  Reaproveitar o colapso ícone-only por container query se necessário.
+
+> **Confirmado (2026-06-17):** o botão **Aniversariantes** abre um **modal com a lista do mês visível**
+> (reaproveitando o índice da Parte 2).
+
+**`agenda.ts`:** ligar os handlers dos novos botões (modal de aniversariantes; placeholder de
+indisponibilidades) e recompilar (`npx tsc`).
+
+---
+
+## Parte 4 — Reestruturação do menu lateral
+
+**Objetivo:**
+1. **Agenda** sai do grupo Cadastros e vira item de topo **logo abaixo de Home** (rótulo só "Agenda").
+2. **Cadastros** deixa de ser submenu colapsável e vira **um separador de seção** (rótulo não-clicável)
+   agrupando visualmente **Servos · Áreas · Ministérios** (itens planos, sempre visíveis conforme permissão).
+
+**`app.html` (shell — crítico):** reescrever a `<ul>` da `.sidebar-nav`:
+```
+Home (data-page="index.html")
+Agenda (data-page="agenda.html", data-tela="AGENDA", ícone fa-calendar-check)   ← novo lugar, rótulo "Agenda"
+<li class="nav-section-label">Cadastros</li>                                     ← separador (não-clicável)
+Servos (data-tela="SERVOS")
+Áreas (data-tela="AREAS")
+Ministérios (data-tela="MINISTERIOS")
+Relatórios
+Usuários (nav-admin-only) · Auditoria (nav-admin-only)
+```
+- Os itens Servos/Áreas/Ministérios ficam como `<li data-tela="…">` planos (sem `.nav-submenu`).
+- Remover o `.nav-group`/`.nav-group-toggle`/`.nav-submenu`.
+
+**Demais HTML standalone** (`index, agenda, voluntarios, ministerios, configuracao-escala, relatorios,
+usuarios, perfil, auditoria.html`): replicar a mesma estrutura de sidebar (consistência; ficam ocultas
+quando embarcadas, mas o projeto mantém paridade — ver convenção no CLAUDE.md).
+
+**`css/dashboard.css`:** novo estilo `.nav-section-label` (texto pequeno, maiúsculas, `--text-muted`,
+padding, não-clicável); ocultar/encolher o rótulo quando a sidebar está recolhida (mostrar apenas um
+divisor). Remover dependência visual do `.nav-group` para esses itens (os estilos do grupo continuam
+existindo caso usados em outro lugar, mas não nesta lista).
+
+**`js/auth.js` (`inicializarSidebar`):** o bloco de accordion (`document.querySelectorAll('.nav-group')…`)
+deixa de encontrar grupos nesta lista — inócuo. `aplicarVisibilidadeMenu` continua funcionando pelos
+`[data-tela]` nos `<li>` planos (incluindo o novo item Agenda). Limpeza opcional da chave
+`serve_nav_open_Cadastros` (dead key).
+
+**`js/shell.js`:** `ARQUIVO_PARA_HASH` permanece (Agenda já mapeada). A marcação de item ativo opera por
+`li[data-page]` (segue válida para o item Agenda plano). O trecho que abre o `.nav-group` da página ativa
+(`aplicar`) torna-se inócuo (sem `.nav-group` na lista) — pode ser mantido ou removido.
+
+**Verificação:** sidebar mostra Home → Agenda → "Cadastros" (separador) → Servos/Áreas/Ministérios →
+Relatórios → admin; clicar em Agenda navega e marca ativo; itens respeitam permissão; nada colapsa
+(sem accordion). Bottom-nav mobile (já tem Agenda) inalterada.
+
+---
+
+## Parte 5 — Unificação Servo ↔ Usuário (eliminar o cadastro de servos)
+
+**Objetivo:** **acabar com o cadastro independente de servos**. Um `Voluntario` (servo) só passa a existir
+**através do cadastro de usuário** — todos os dados são compartilhados na mesma operação. Mantém-se a
+**distinção de papéis**:
+- **Usuário** → identidade + **permissões do sistema** (`PermissaoTela`: acessar/criar/editar/excluir por tela).
+- **Servo** → dados pessoais + **"permissões de escala"** (onde pode ser escalado): `ministerios` (áreas
+  específicas) e `classificacoes` (tipos de culto).
+
+Relação **1:1 obrigatória** (`Usuario.voluntario` / FK `voluntario_id` única): **não pode haver servo sem
+usuário, nem usuário sem servo** — **exceção única: o admin**, que hoje é o único usuário sem servo
+relacionado. A mudança transforma essa relação em obrigatória e remove a porta de entrada paralela (criação
+direta de servo), mas **mantém a tela e o item de menu "Servos"** (ver decisões confirmadas abaixo).
+
+> **Decisões confirmadas (2026-06-17):**
+> 1. Auto-cadastro coleta **apenas dados pessoais**; ministerios/classificacoes ficam para o admin.
+> 2. **Tela "Servos" e item de menu permanecem.** Remove-se apenas **criar novo servo** e **editar dados
+>    pessoais**. Ao editar um servo pelo menu Servos, só se altera **as outras informações** (permissões de
+>    escala: ministerios/classificacoes).
+> 3. **Permissão `SERVOS` permanece** (a tela continua no menu).
+> 4. Invariante **1:1 obrigatório** (sem servo órfão / sem usuário órfão); **admin é a única exceção**
+>    (usuário sem servo).
+> 5. **Todos os campos do servo são obrigatórios** no cadastro.
+
+### Backend
+
+- **`UsuarioService.cadastrar`**: passa a **sempre criar o `Voluntario` vinculado** com **todos** os dados
+  **pessoais** informados no cadastro (nome, email, telefone, dataNascimento, genero) — `ministerios`/
+  `classificacoes` nascem **vazios** (o admin define depois). Mantém o auto-vínculo por nome/e-mail apenas
+  como *fallback* para os servos pré-existentes; daqui em diante todo cadastro nasce com servo próprio.
+- **`CadastroRequest`** (DTO): acrescentar `telefone`, `dataNascimento`, `genero` com Bean Validation
+  **obrigatória** (`@NotBlank`/`@NotNull`, `@PastOrPresent` no nascimento). Senha mínima já é 8 (alinhar com
+  `@Size(min=8)` no backend se ainda não estiver).
+- **`/api/voluntarios` (`VoluntarioController`)**:
+  - **GET** (listar/buscar) — **mantido** (Agenda, Relatórios e a própria tela Servos dependem disso).
+  - **POST** (criar servo avulso) — **removido** (não há mais cadastro direto de servo).
+  - **PUT** (editar servo) — **mantido, porém restrito às "outras informações"** (ministerios/classificacoes):
+    a edição de **dados pessoais** sai da tela Servos (vai para Meu Perfil do próprio usuário). Validar no
+    backend que os campos pessoais não são sobrescritos por aqui (ou expor DTO só com as permissões de escala).
+  - **DELETE** (excluir servo) — **removido**; a exclusão ocorre via **exclusão de usuário** (Fase 7 —
+    anonimização/eliminação LGPD), que trata o `Voluntario` vinculado e preserva a invariante 1:1.
+- **Invariante 1:1**: garantir no cadastro/exclusão que servo e usuário andam juntos. **Admin é exceção**
+  (usuário sem servo) — o código que assume "todo usuário tem servo" deve tolerar `voluntario == null` para
+  o admin.
+- **`DataInitializer`**: ajustar a seed/demo para criar servos **a partir de usuários** (mantendo o admin
+  sem servo) e preservar o backfill de vínculo já existente.
+
+### Frontend
+
+- **Menu**: o item **Servos** (`voluntarios.html`) **permanece**. O separador "Cadastros" (Parte 4) segue
+  agrupando **Servos · Áreas · Ministérios**.
+- **Tela de Servos (`voluntarios.html`/`js/voluntarios.js`)**:
+  - **Remover o botão "Novo Servo"** (sem criação direta).
+  - No modal de **editar**, **bloquear (read-only) os dados pessoais** (nome, e-mail, telefone, nascimento,
+    gênero) e **permitir editar apenas as permissões de escala** (ministerios/classificacoes). Salvar via
+    `PUT /api/voluntarios/{id}` com payload restrito a esses campos.
+  - A listagem e a visualização permanecem.
+- **Cadastro (`login.html`/`login.js`)**: expandir o formulário para coletar **todos os dados pessoais**
+  do servo — **telefone, data de nascimento e gênero**, todos **obrigatórios** — além de nome/e-mail/senha
+  e do aceite LGPD. **Não** coletar ministerios/classificacoes aqui. Validação visual (`field-invalid`) +
+  validação backend.
+- **Tela Usuários (`usuarios.html`/`js/usuarios.js`)**: foca **exclusivamente em permissões de sistema**
+  (`PermissaoTela`) + vínculo usuário↔servo. **Não** edita ministerios/classificacoes — tudo que é de escala
+  fica na tela Servos.
+- **Meu Perfil (`perfil.html`/`perfil.js`)**: passa a ser **o** lugar de edição dos **dados pessoais** do
+  servo vinculado — garantir que telefone, nascimento e gênero estejam editáveis e refletidos.
+
+### Pontos de atenção / migração
+
+- **Permissão `SERVOS`**: **permanece** (a tela continua). Semântica passa de "cadastrar servos" para
+  "gerir permissões de escala / visualizar servos" — `criar` deixa de ter efeito (sem botão novo); `editar`
+  passa a significar editar ministerios/classificacoes. Revisar textos/guards conforme isso.
+- **Admin sem servo**: tratar como caso válido em todo lugar que hoje pressupõe servo vinculado (perfil,
+  dashboard "minhas escalas", etc.) — não quebrar para o admin.
+- **Servos pré-existentes**: conforme informado, **todos já têm usuário** (só o admin não tem servo); ainda
+  assim, manter o fallback de vínculo por e-mail no `cadastrar` por segurança.
+- **Auditoria/`AuditInterceptor`**: `POST/DELETE /api/voluntarios` deixam de ser exercitados; `PUT` passa a
+  registrar edição de permissões de escala. As escritas de pessoa concentram-se em `/api/usuarios/...` e
+  `/api/auth/cadastro` (já tratadas).
+- **`agenda.ts`**: nenhuma mudança — continua lendo `/api/voluntarios` (GET); a regra ESPECIFICO segue
+  usando `voluntario.ministerios`.
+
+> **Todas as decisões da Parte 5 foram confirmadas em 2026-06-17** (ver bloco no topo da Parte 5).
+> **Separação de responsabilidades definida:** tudo relacionado a **escalas** (ministerios/classificacoes,
+> permissões de escala) fica na **tela Servos**; **permissões de sistema** ficam na **tela Usuários**.
+
+---
+
+## Ordem de execução sugerida
+
+1. **Parte 1** (Home) — isolada, baixo risco.
+2. **Parte 4** (Menu) — só markup/CSS/navegação; não depende do backend.
+3. **Parte 2** (backend aniversariantes + indicador/banner na Agenda) — maior esforço.
+4. **Parte 3** (botões da Agenda) — depende do índice de aniversariantes da Parte 2.
+5. **Parte 5** (unificação Servo↔Usuário) — mudança estrutural; executar por último e em conjunto com a
+   revisão do menu (remoção de Servos). Depende de decisões confirmadas.
+
+## Resumo de arquivos — Fase 8
+
+**Backend (novos):** `dto/AniversarianteAgendaDTO.java`, `controller/AniversarianteController.java`
+(e método de serviço em `DashboardService` ou novo `AniversarianteService`).
+**Backend (editar — Parte 5):** `dto/CadastroRequest.java` (campos pessoais obrigatórios: telefone,
+dataNascimento, genero; `@Size(min=8)` na senha), `service/UsuarioService.java` (cadastro sempre cria servo
+com dados pessoais; ministerios/classificacoes vazios; tolerar admin sem servo),
+`controller/VoluntarioController.java` (remover POST/DELETE; restringir PUT às permissões de escala),
+`config/DataInitializer.java` (seed via usuários, admin sem servo).
+**Frontend (editar):** `index.html`, `js/dashboard.js` (Parte 1); `agenda.html`, `js/agenda.ts`→`agenda.js`,
+`css/dashboard.css` (Partes 2 e 3); `app.html` + todas as sidebars standalone, `css/dashboard.css`,
+`js/auth.js`, `js/shell.js` (Parte 4); `login.html`/`login.js` (dados pessoais obrigatórios no cadastro),
+`voluntarios.html`/`js/voluntarios.js` (remover "Novo Servo"; editar só permissões de escala, dados pessoais
+read-only), `perfil.html`/`perfil.js` (edição dos dados pessoais do servo) (Parte 5).
+**Documentação:** atualizar `.claude/CLAUDE.md` (endpoint `/api/aniversariantes`, `PUT /api/usuarios/{id}/servo`,
+fim do cadastro de servos, nova estrutura de menu), `.claude/DESIGN.md` (badge no calendário, banner do dia,
+separador de seção, grupo de botões da Agenda) e `.claude/progress.md`.
+
+## Decisões confirmadas (2026-06-17)
+- Botão **Aniversariantes**: abre **modal com a lista do mês**. ✅
+- Banner do dia: **acima de `#calendar-container`**. ✅
+- **Indisponibilidades**: **mensagem informativa** (`Auth.toast`, padrão "cadastro salvo"/"escala definida"). ✅
+
+## Decisões ainda em aberto
+- Endpoint de aniversariantes: `/api/aniversariantes` (assumido) vs. `/api/dashboard/aniversariantes`
+  — detalhe menor, decido na implementação se não houver preferência.
+
+> **Separação de responsabilidades (confirmada 2026-06-17):** escalas → tela **Servos**; permissões de
+> sistema → tela **Usuários**.
+
+## Verificação final (end-to-end)
+- `mvnw.cmd clean compile -q` sem erros; `npx tsc` sem erros (recompilar `agenda.js`).
+- `GET /api/aniversariantes` retorna nome/mes/dia/foto; tabela inalterada (sem nova entidade).
+- Preview: Home reordenada sem Aniversariantes; Agenda com badges no mês, banner no dia e 3 botões;
+  menu reestruturado (Agenda fora de Cadastros; Cadastros como separador, sem Servos).
+- Parte 5: cadastro de usuário cria o servo com todos os dados pessoais (obrigatórios); não há mais botão
+  "Novo Servo" nem edição de dados pessoais na tela Servos (só permissões de escala); dados pessoais
+  editáveis em Meu Perfil; exclusão de usuário trata o servo vinculado; admin permanece sem servo (exceção).

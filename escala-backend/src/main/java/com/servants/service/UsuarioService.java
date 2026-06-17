@@ -89,48 +89,30 @@ public class UsuarioService {
         usuario.setVersaoPolitica("1.0");
         usuario.setIpConsentimento(ip);
 
-        usuario.setVoluntario(resolverServoParaCadastro(request.nome(), request.email()));
+        usuario.setVoluntario(criarServoParaCadastro(request));
         usuarioRepository.save(usuario);
 
         return usuario;
     }
 
     /**
-     * Resolve o servo a vincular a um novo cadastro: se existir exatamente um servo de
-     * mesmo nome (ignorando caixa) e ainda não vinculado a outra conta, vincula a ele;
-     * se não existir nenhum, cria um servo novo com os dados informados. Em caso de nome
-     * ambíguo (mais de um servo) ou servo já vinculado, retorna {@code null} — o admin
-     * resolve o vínculo manualmente.
+     * Cria (ou reutiliza pelo e-mail) o servo vinculado ao novo cadastro, preenchendo
+     * todos os dados pessoais informados no formulário de registro.
      *
-     * @param nome  nome informado no cadastro.
-     * @param email e-mail informado no cadastro.
-     * @return o servo a vincular, ou {@code null} se o vínculo automático não se aplicar.
+     * @param request dados de cadastro com campos pessoais obrigatórios.
+     * @return o servo persistido pronto para ser vinculado à conta.
      */
-    private Voluntario resolverServoParaCadastro(String nome, String email) {
-        List<Voluntario> mesmoNome = voluntarioRepository.findAllByNomeIgnoreCase(nome.trim());
-
-        if (mesmoNome.size() == 1) {
-            Voluntario servo = mesmoNome.get(0);
-            if (usuarioRepository.findByVoluntarioId(servo.getId()).isPresent()) {
-                return null; // já pertence a outra conta
-            }
-            if (servo.getEmail() == null || servo.getEmail().isBlank()) {
-                servo.setEmail(email);
-                voluntarioRepository.save(servo);
-            }
-            return servo;
-        }
-
-        if (mesmoNome.isEmpty()) {
-            return voluntarioRepository.findByEmail(email).orElseGet(() -> {
-                Voluntario servo = new Voluntario();
-                servo.setNome(nome);
-                servo.setEmail(email);
-                return voluntarioRepository.save(servo);
-            });
-        }
-
-        return null; // nome ambíguo
+    private Voluntario criarServoParaCadastro(CadastroRequest request) {
+        Voluntario servo = voluntarioRepository.findByEmail(request.email())
+                .orElseGet(Voluntario::new);
+        servo.setNome(request.nome());
+        servo.setEmail(request.email());
+        servo.setTelefone(request.telefone());
+        String generoNorm = request.genero() != null && !request.genero().isBlank()
+                ? request.genero().trim().toUpperCase() : null;
+        servo.setGenero(generoNorm);
+        servo.setDataNascimento(parseData(request.dataNascimento()));
+        return voluntarioRepository.save(servo);
     }
 
     /**

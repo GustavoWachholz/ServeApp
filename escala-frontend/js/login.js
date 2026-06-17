@@ -82,13 +82,29 @@ document.addEventListener('DOMContentLoaded', () => {
         });
     }
 
+    // ── Máscara de telefone no formulário de registro ─────────────────────
+    const regTelInput = document.getElementById('reg-telefone');
+    if (regTelInput) {
+        regTelInput.addEventListener('input', () => {
+            const d = regTelInput.value.replace(/\D/g, '').slice(0, 11);
+            if (d.length === 0) { regTelInput.value = ''; return; }
+            if (d.length <= 2) regTelInput.value = `(${d}`;
+            else if (d.length <= 6) regTelInput.value = `(${d.slice(0,2)}) ${d.slice(2)}`;
+            else if (d.length <= 10) regTelInput.value = `(${d.slice(0,2)}) ${d.slice(2,6)}-${d.slice(6)}`;
+            else regTelInput.value = `(${d.slice(0,2)}) ${d.slice(2,7)}-${d.slice(7)}`;
+        });
+    }
+
     // ── Formulário de registro ─────────────────────────────────────────────
 
     if (registroForm) {
         registroForm.addEventListener('submit', async (e) => {
             e.preventDefault();
-            const nome   = document.getElementById('reg-nome').value.trim();
-            const email  = document.getElementById('reg-email').value.trim();
+            const nome          = document.getElementById('reg-nome').value.trim();
+            const email         = document.getElementById('reg-email').value.trim();
+            const telefone      = document.getElementById('reg-telefone').value.trim();
+            const dataNascimento = document.getElementById('reg-nascimento').value;
+            const genero        = document.getElementById('reg-genero').value;
             const senha  = document.getElementById('reg-senha').value;
             const senha2 = document.getElementById('reg-senha2').value;
             const btnSubmit = registroForm.querySelector('.btn-submit');
@@ -97,6 +113,18 @@ document.addEventListener('DOMContentLoaded', () => {
 
             const consentimento = document.getElementById('reg-consentimento')?.checked;
 
+            if (!telefone) {
+                mostrarErro(msgErroRegistro, 'O telefone é obrigatório.');
+                return;
+            }
+            if (!dataNascimento) {
+                mostrarErro(msgErroRegistro, 'A data de nascimento é obrigatória.');
+                return;
+            }
+            if (!genero) {
+                mostrarErro(msgErroRegistro, 'O gênero é obrigatório.');
+                return;
+            }
             if (senha !== senha2) {
                 mostrarErro(msgErroRegistro, 'As senhas não coincidem.');
                 return;
@@ -116,7 +144,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 const res = await fetch(`${API_BASE}/cadastro`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ nome, email, senha, consentimento: true })
+                    body: JSON.stringify({ nome, email, telefone, dataNascimento, genero, senha, consentimento: true })
                 });
 
                 if (res.status === 201) {

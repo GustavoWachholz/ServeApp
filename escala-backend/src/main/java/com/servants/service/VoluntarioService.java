@@ -97,10 +97,12 @@ public class VoluntarioService {
     }
 
     /**
-     * Atualiza um voluntário existente com os dados do DTO.
+     * Atualiza as áreas ({@code ministerios}) e ministérios ({@code classificacoes}) do voluntário.
+     * Dados pessoais (nome, telefone, e-mail, gênero, nascimento) são gerenciados exclusivamente
+     * por {@code PUT /api/usuarios/{id}/perfil}.
      *
      * @param id  identificador do voluntário.
-     * @param dto novos dados do voluntário.
+     * @param dto DTO contendo as novas listas de ministerios e classificacoes.
      * @return o {@link VoluntarioDTO} atualizado.
      * @throws ResourceNotFoundException se o voluntário não for encontrado.
      */
@@ -109,11 +111,6 @@ public class VoluntarioService {
         Voluntario voluntario = voluntarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado com ID: " + id));
 
-        voluntario.setNome(dto.nome());
-        voluntario.setTelefone(dto.telefone());
-        voluntario.setEmail(dto.email());
-        voluntario.setDataNascimento(dto.dataNascimento());
-        voluntario.setGenero(normalizarGenero(dto.genero()));
         voluntario.setMinisterios(normalizarLista(dto.ministerios(), false));
         voluntario.setClassificacoes(normalizarLista(dto.classificacoes(), true));
 

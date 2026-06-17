@@ -288,9 +288,6 @@
             <section class="dashboard-section">
                 <div class="section-header">
                     <h2>GESTÃO DE SERVOS</h2>
-                    <button class="btn-primary" id="btn-new-volunteer">
-                        <i class="fas fa-plus"></i> Novo Servo
-                    </button>
                 </div>
 
                 <!-- Toolbar: pesquisa + ordenação -->
@@ -404,7 +401,6 @@
                     <div id="view-classificacoes" class="classif-grid">-</div>
                 </div>
                 <div class="modal-footer">
-                    <button type="button" class="btn-danger" id="btn-delete-volunteer">Excluir</button>
                     <div class="footer-right">
                         <button type="button" class="btn-secondary cancel-modal">Fechar</button>
                         <button type="button" class="btn-primary" id="btn-switch-to-edit">Editar</button>
@@ -412,38 +408,15 @@
                 </div>
             </div>
 
-            <!-- MODO EDIÇÃO / CRIAÇÃO -->
+            <!-- MODO EDIÇÃO (apenas áreas e ministérios) -->
             <form id="volunteer-form" style="display: none;">
                 <input type="hidden" id="volunteer-id">
-                
-                <div class="form-group">
-                    <label for="name">Nome Completo</label>
-                    <input type="text" id="name" required placeholder="Ex: João Silva">
-                </div>
 
-                <div class="form-group">
-                    <label for="email">E-mail</label>
-                    <input type="email" id="email" required placeholder="joao@email.com">
-                </div>
-
-                <div class="form-group">
-                    <label for="phone">Telefone</label>
-                    <input type="tel" id="phone" required placeholder="(11) 99999-9999" maxlength="16">
-                </div>
-
-                <div class="form-group">
-                    <label for="genero">Gênero</label>
-                    <select id="genero" required>
-                        <option value="">Selecione…</option>
-                        <option value="MASCULINO">Masculino</option>
-                        <option value="FEMININO">Feminino</option>
-                    </select>
-                </div>
-
-                <div class="form-group">
-                    <label for="birthdate">Data de Nascimento</label>
-                    <input type="date" id="birthdate" required>
-                </div>
+                <p id="edit-nome-display" style="font-weight:600;font-size:1rem;color:var(--text-color);margin-bottom:0.25rem;"></p>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
+                    <i class="fas fa-circle-info" style="margin-right:0.3rem;"></i>
+                    Dados pessoais são editados em <strong>Meu Perfil</strong>.
+                </p>
 
                 <div class="form-group">
                     <label>Áreas</label>
@@ -463,31 +436,12 @@
                 </div>
 
                 <div class="modal-footer">
-                    <button type="button" class="btn-danger" id="btn-form-delete" style="display: none;">Excluir</button>
                     <div class="footer-right" style="width: 100%; justify-content: flex-end;">
                         <button type="button" class="btn-secondary" id="btn-back-to-view">Cancelar</button>
                         <button type="submit" class="btn-primary">Salvar</button>
                     </div>
                 </div>
             </form>
-        </div>
-    </div>
-
-    <!-- Modal de Confirmação de Exclusão -->
-    <div id="confirm-modal" class="modal" style="backdrop-filter: blur(4px);">
-        <div class="modal-content" style="max-width: 400px; text-align: center;">
-            <div style="margin-bottom: 1.5rem;">
-                <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: #ef4444;"></i>
-            </div>
-            <h2 style="color: var(--text-color); margin-bottom: 1rem;">Confirmar Exclusão</h2>
-            <p style="color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
-                Tem certeza que deseja excluir o servo <strong id="confirm-item-name" style="color: var(--text-color);"></strong>? <br>
-                Esta ação é irreversível.
-            </p>
-            <div style="display: flex; gap: 1rem; justify-content: center;">
-                <button type="button" class="btn-secondary" id="btn-confirm-cancel" style="flex: 1;">Não, manter</button>
-                <button type="button" class="btn-danger" id="btn-confirm-delete" style="flex: 1;">Sim, excluir</button>
-            </div>
         </div>
     </div>
 

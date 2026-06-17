@@ -44,25 +44,14 @@ document.addEventListener('DOMContentLoaded', async () => {
     initModalEvents();
     initToolbar();
     initFiltros();
-    initMascaraTelefone();
     aplicarPermissoesServos();
     Auth.esconderLoading();
 });
 
 function aplicarPermissoesServos() {
-    if (!Auth.podeCriar('SERVOS')) {
-        const el = document.getElementById('btn-new-volunteer');
-        if (el) el.style.display = 'none';
-    }
     if (!Auth.podeEditar('SERVOS')) {
         const el = document.getElementById('btn-switch-to-edit');
         if (el) el.style.display = 'none';
-    }
-    if (!Auth.podeExcluir('SERVOS')) {
-        ['btn-delete-volunteer', 'btn-form-delete'].forEach(id => {
-            const el = document.getElementById(id);
-            if (el) el.style.display = 'none';
-        });
     }
 }
 
@@ -414,7 +403,6 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
             <td>${tel}</td>
             <td class="actions-cell">
                 <button class="btn-sort btn-view" data-id="${id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
-                ${Auth.podeExcluir('SERVOS') ? `<button class="btn-sort btn-sort-danger btn-delete-row" data-id="${id}" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
             </td>
         `;
         list.appendChild(tr);
@@ -486,19 +474,12 @@ function initToolbar() {
  */
 function initModalEvents() {
     const modal = document.getElementById('volunteer-modal');
-    const confirmModal = document.getElementById('confirm-modal');
     const form = document.getElementById('volunteer-form');
     const list = document.getElementById('volunteers-list');
-    
-    const btnNew = document.getElementById('btn-new-volunteer');
     const btnBack = document.getElementById('btn-back-to-view');
     const btnSwitchEdit = document.getElementById('btn-switch-to-edit');
-    
-    const btnConfirmDelete = document.getElementById('btn-confirm-delete');
-    const btnCancelConfirm = document.getElementById('btn-confirm-cancel');
 
-    // Rastreia onde o clique começou: só fecha pelo fundo se o mousedown iniciou no fundo
-    // (evita fechar ao selecionar texto de um campo e soltar fora do modal).
+    // Fecha modal pelo ×, pelo botão "Fechar" ou clicando no fundo
     let downTarget = null;
     window.addEventListener('mousedown', (e) => { downTarget = e.target; });
     window.addEventListener('click', (e) => {
@@ -507,38 +488,12 @@ function initModalEvents() {
         } else if (e.target === modal && downTarget === modal) {
             modal.classList.remove('show-modal');
         }
-        if (e.target === btnCancelConfirm || (e.target === confirmModal && downTarget === confirmModal)) {
-            confirmModal.classList.remove('show-modal');
-        }
     });
-
-    const birthdateInput = document.getElementById('birthdate');
-    if (birthdateInput) {
-        birthdateInput.addEventListener('change', () =>
-            verificarMenoridade('birthdate', 'birthdate-menor-aviso'));
-    }
-
-    if (btnNew) {
-        btnNew.onclick = () => {
-            resetForm();
-            showEditMode('Novo Voluntário');
-            const btnDeleteF = document.getElementById('btn-form-delete');
-            if (btnDeleteF) btnDeleteF.style.display = 'none';
-            modal.classList.add('show-modal');
-        };
-    }
 
     if (list) {
         list.addEventListener('click', (e) => {
             const btnView = e.target.closest('.btn-view');
-            const btnDel  = e.target.closest('.btn-delete-row');
-            if (btnView) {
-                buscarEPresentar(btnView.getAttribute('data-id'), 'view');
-            } else if (btnDel) {
-                const id = btnDel.getAttribute('data-id');
-                currentVolunteer = voluntariosCache.find(v => String(v.id || v._id) === String(id));
-                abrirConfirmacao();
-            }
+            if (btnView) buscarEPresentar(btnView.getAttribute('data-id'), 'view');
         });
     }
 
@@ -546,115 +501,37 @@ function initModalEvents() {
         btnSwitchEdit.onclick = () => {
             if (currentVolunteer) {
                 preencherFormulario(currentVolunteer);
-                showEditMode('Editar Voluntário');
-                const btnDeleteF = document.getElementById('btn-form-delete');
-                if (btnDeleteF) btnDeleteF.style.display = 'block';
+                showEditMode('Editar Áreas e Ministérios');
             }
         };
     }
 
-    btnBack.onclick = () => {
-        modal.classList.remove('show-modal');
-        resetForm();
-    };
-
-    const abrirConfirmacao = () => {
-        if (currentVolunteer) {
-            document.getElementById('confirm-item-name').textContent = currentVolunteer.nome;
-            confirmModal.classList.add('show-modal');
-        }
-    };
-    
-    const btnDeleteV = document.getElementById('btn-delete-volunteer');
-    const btnDeleteF = document.getElementById('btn-form-delete');
-    if (btnDeleteV) btnDeleteV.onclick = abrirConfirmacao;
-    if (btnDeleteF) btnDeleteF.onclick = abrirConfirmacao;
-
-    btnConfirmDelete.onclick = async () => {
-        if (!currentVolunteer) return;
-        const id = currentVolunteer.id || currentVolunteer._id;
-        const btnConfirm = document.getElementById('btn-confirm-delete');
-        const textoOriginal = btnConfirm.textContent;
-        btnConfirm.disabled = true;
-        btnConfirm.textContent = 'Excluindo…';
-        try {
-            const response = await fetch(`${API_URL}/${id}`, { method: 'DELETE' });
-            if (response.ok) {
-                confirmModal.classList.remove('show-modal');
-                modal.classList.remove('show-modal');
-                resetForm();
-                carregarVoluntarios();
-            } else {
-                let msg = 'Erro ao excluir voluntário.';
-                try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
-                Auth.toast(msg, 'error');
-                btnConfirm.disabled = false;
-                btnConfirm.textContent = textoOriginal;
-            }
-        } catch (e) {
-            console.error('Erro ao deletar:', e);
-            Auth.toast('Falha na conexão. Verifique se o servidor está rodando.', 'error');
-            btnConfirm.disabled = false;
-            btnConfirm.textContent = textoOriginal;
-        }
-    };
+    if (btnBack) {
+        btnBack.onclick = () => {
+            modal.classList.remove('show-modal');
+            resetForm();
+        };
+    }
 
     if (form) {
         form.onsubmit = async (e) => {
             e.preventDefault();
-
-            // Validação visual dos campos obrigatórios
-            const camposObrigatorios = [
-                { id: 'name',  label: 'Nome' },
-                { id: 'email', label: 'E-mail' }
-            ];
-            let valido = true;
-            camposObrigatorios.forEach(({ id, label }) => {
-                const el = document.getElementById(id);
-                if (!el) return;
-                const erroId = `${id}-erro`;
-                let erroEl = document.getElementById(erroId);
-                if (!erroEl) {
-                    erroEl = document.createElement('span');
-                    erroEl.id = erroId;
-                    erroEl.className = 'field-error-msg';
-                    el.parentNode.appendChild(erroEl);
-                }
-                if (!el.value.trim()) {
-                    el.classList.add('field-invalid');
-                    erroEl.textContent = `${label} é obrigatório.`;
-                    valido = false;
-                } else {
-                    el.classList.remove('field-invalid');
-                    erroEl.textContent = '';
-                }
-                el.addEventListener('input', () => {
-                    el.classList.remove('field-invalid');
-                    erroEl.textContent = '';
-                }, { once: true });
-            });
-            if (!valido) return;
+            const id = document.getElementById('volunteer-id').value;
+            if (!id) return;
 
             const btnSubmit = form.querySelector('button[type="submit"]');
             const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Salvar';
             if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Salvando…'; }
 
-            const id = document.getElementById('volunteer-id').value;
             const ministerios = Array.from(document.querySelectorAll('input[name="ministries"]:checked')).map(cb => cb.value);
             const payload = {
-                nome: document.getElementById('name').value,
-                email: document.getElementById('email').value,
-                telefone: document.getElementById('phone').value,
-                genero: document.getElementById('genero').value || null,
-                dataNascimento: document.getElementById('birthdate').value,
-                ministerios: ministerios,
+                ministerios,
                 classificacoes: getClassificacoesSelecionadas('classif-checkboxes-vol')
             };
-            const method = id ? 'PUT' : 'POST';
-            const url = id ? `${API_URL}/${id}` : API_URL;
+
             try {
-                const response = await fetch(url, {
-                    method: method,
+                const response = await fetch(`${API_URL}/${id}`, {
+                    method: 'PUT',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
@@ -662,14 +539,15 @@ function initModalEvents() {
                     modal.classList.remove('show-modal');
                     resetForm();
                     carregarVoluntarios();
+                    Auth.toast('Áreas e ministérios atualizados.', 'success');
                 } else {
-                    let msg = 'Erro ao salvar no banco de dados.';
+                    let msg = 'Erro ao salvar.';
                     try { const data = await response.json(); msg = data.message || msg; } catch (_) {}
                     Auth.toast(msg, 'error');
                 }
             } catch (error) {
                 console.error('Erro na requisição:', error);
-                Auth.toast('Falha na conexão. Verifique se o servidor está rodando e tente novamente.', 'error');
+                Auth.toast('Falha na conexão.', 'error');
             } finally {
                 if (btnSubmit) { btnSubmit.disabled = false; btnSubmit.textContent = textoOriginal; }
             }
@@ -773,12 +651,8 @@ async function buscarEPresentar(id, mode) {
  */
 function preencherFormulario(v) {
     document.getElementById('volunteer-id').value = v.id || v._id || '';
-    document.getElementById('name').value = v.nome || '';
-    document.getElementById('email').value = v.email || '';
-    document.getElementById('phone').value = formatarTelefone(v.telefone || '');
-    document.getElementById('genero').value = v.genero || '';
-    document.getElementById('birthdate').value = v.dataNascimento || '';
-    verificarMenoridade('birthdate', 'birthdate-menor-aviso');
+    const nomeDisplay = document.getElementById('edit-nome-display');
+    if (nomeDisplay) nomeDisplay.textContent = v.nome || '';
     const checkboxes = document.querySelectorAll('input[name="ministries"]');
     checkboxes.forEach(cb => {
         cb.checked = (v.ministerios || []).includes(cb.value);
@@ -815,7 +689,7 @@ function verificarMenoridade(inputId, warnId) {
 function showViewMode() {
     document.getElementById('view-mode').style.display = 'block';
     document.getElementById('volunteer-form').style.display = 'none';
-    document.getElementById('modal-title').textContent = 'Detalhes do Voluntário';
+    document.getElementById('modal-title').textContent = 'Detalhes do Servo';
 }
 
 /**
@@ -838,8 +712,10 @@ function showEditMode(title) {
  */
 function resetForm() {
     document.getElementById('volunteer-id').value = '';
-    const form = document.getElementById('volunteer-form');
-    if (form) form.reset();
+    const nomeDisplay = document.getElementById('edit-nome-display');
+    if (nomeDisplay) nomeDisplay.textContent = '';
+    const checkboxes = document.querySelectorAll('input[name="ministries"]');
+    checkboxes.forEach(cb => { cb.checked = false; });
     renderClassifChips('classif-checkboxes-vol', []);
     currentVolunteer = null;
 }

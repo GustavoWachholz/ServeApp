@@ -69,6 +69,26 @@
                         </div>
 
                         <div class="input-group">
+                            <label for="reg-telefone">Telefone</label>
+                            <input type="tel" id="reg-telefone" name="telefone" placeholder="(11) 99999-9999" required>
+                        </div>
+
+                        <div class="input-group" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                            <div>
+                                <label for="reg-nascimento">Data de Nascimento</label>
+                                <input type="date" id="reg-nascimento" name="dataNascimento" required style="width:100%;">
+                            </div>
+                            <div>
+                                <label for="reg-genero">Gênero</label>
+                                <select id="reg-genero" name="genero" required style="width:100%;padding:0.65rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.95rem;background:#fff;color:#1a1a2e;outline:none;">
+                                    <option value="">Selecione…</option>
+                                    <option value="MASCULINO">Masculino</option>
+                                    <option value="FEMININO">Feminino</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
                             <label for="reg-senha">Senha</label>
                             <input type="password" id="reg-senha" name="senha" placeholder="Mínimo 8 caracteres" required>
                         </div>

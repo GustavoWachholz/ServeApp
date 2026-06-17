@@ -337,6 +337,7 @@ function gerarGridMinisterios(ministerios) {
  * @returns {void}
  */
 function initModalControls() {
+    var _a;
     const modal = document.getElementById('escala-modal');
     // Navegação
     const step1 = document.getElementById('step-1-dados');
@@ -487,14 +488,30 @@ function initModalControls() {
             }
         });
     };
-    // Botão Nova Escala
+    // Botão Novo Compromisso
     const btnNovaEscala = document.getElementById('btn-nova-escala');
     btnNovaEscala.onclick = () => {
         resetModal();
-        document.getElementById('modal-title').textContent = '+ Nova Escala';
+        document.getElementById('modal-title').textContent = '+ Novo Compromisso';
         document.getElementById('delete-event-btn').style.display = 'none';
         modal.classList.add('show-modal');
     };
+    // Botão Aniversariantes
+    const btnAniversariantes = document.getElementById('btn-aniversariantes');
+    if (btnAniversariantes)
+        btnAniversariantes.onclick = () => abrirModalAniversariantes();
+    // Botão Indisponibilidades (funcionalidade futura)
+    const btnIndisponibilidades = document.getElementById('btn-indisponibilidades');
+    if (btnIndisponibilidades)
+        btnIndisponibilidades.onclick = () => Auth.toast('Funcionalidade em desenvolvimento.', 'info');
+    // Modal Aniversariantes — fechar pelo × e pelo fundo
+    const anivModal = document.getElementById('aniv-modal');
+    if (anivModal) {
+        const fecharAnivModal = () => anivModal.classList.remove('show-modal');
+        (_a = document.getElementById('aniv-modal-close')) === null || _a === void 0 ? void 0 : _a.addEventListener('click', fecharAnivModal);
+        anivModal.addEventListener('click', e => { if (e.target === anivModal)
+            fecharAnivModal(); });
+    }
     // Fechar Modal
     const closeModal = () => modal.classList.remove('show-modal');
     document.querySelectorAll('.close-modal, .cancel-modal').forEach(btn => {
@@ -747,7 +764,7 @@ function initCalendar() {
             atualizarBannerAniversariantes(info.view.type, info.start);
         },
         dateClick: function (info) {
-            // Clicar no dia abre a visão do dia (criação de escala é só pelo botão "Nova Escala")
+            // Clicar no dia abre a visão do dia (criação é pelo botão "Novo Compromisso")
             calendar.changeView('timeGridDay', info.dateStr);
         },
         eventClick: function (info) {
@@ -812,6 +829,43 @@ function resetModal() {
     }
     document.getElementById('step-1-dados').style.display = 'block';
     document.getElementById('step-2-equipe').style.display = 'none';
+}
+/**
+ * Abre o modal de aniversariantes com a lista do mês atual.
+ *
+ * @returns {void}
+ */
+function abrirModalAniversariantes() {
+    const modal = document.getElementById('aniv-modal');
+    const titulo = document.getElementById('aniv-modal-titulo');
+    const body = document.getElementById('aniv-modal-body');
+    if (!modal || !titulo || !body)
+        return;
+    const mesAtual = new Date().getMonth() + 1;
+    const MESES = ['Janeiro', 'Fevereiro', 'Março', 'Abril', 'Maio', 'Junho',
+        'Julho', 'Agosto', 'Setembro', 'Outubro', 'Novembro', 'Dezembro'];
+    titulo.textContent = `Aniversariantes — ${MESES[mesAtual - 1]}`;
+    const doMes = aniversariantes.filter(a => a.mes === mesAtual)
+        .sort((a, b) => a.dia - b.dia);
+    if (doMes.length === 0) {
+        body.innerHTML = `<p style="opacity:0.6;padding:1rem 0;">Nenhum aniversariante este mês.</p>`;
+    }
+    else {
+        body.innerHTML = doMes.map(a => {
+            const avatar = a.foto
+                ? `<img src="${a.foto}" alt="${a.nome}" class="aniv-avatar">`
+                : `<span class="aniv-avatar-initials">${a.nome.charAt(0).toUpperCase()}</span>`;
+            return `
+            <div class="lista-modal-item">
+                ${avatar}
+                <div>
+                    <div style="font-weight:600;">${a.nome}</div>
+                    <div style="font-size:0.8rem;color:var(--text-muted);">Dia ${a.dia}</div>
+                </div>
+            </div>`;
+        }).join('');
+    }
+    modal.classList.add('show-modal');
 }
 /**
  * Busca a lista completa de aniversariantes (todos os meses) do backend.

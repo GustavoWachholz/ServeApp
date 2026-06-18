@@ -2,6 +2,7 @@ package com.servants.repository;
 
 import com.servants.model.EscalaAtribuicao;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Modifying;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
@@ -23,6 +24,17 @@ public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuic
      * @param voluntarioId identificador do voluntário.
      */
     void deleteByVoluntarioId(Long voluntarioId);
+
+    /**
+     * Renomeia a função (área) em todas as atribuições — usado para propagar a
+     * renomeação de uma área e manter os vínculos íntegros.
+     *
+     * @param antigo nome atual da área.
+     * @param novo   novo nome da área.
+     */
+    @Modifying
+    @Query("UPDATE EscalaAtribuicao ea SET ea.funcao = :novo WHERE ea.funcao = :antigo")
+    void renomearFuncao(@Param("antigo") String antigo, @Param("novo") String novo);
 
     /**
      * Retorna os IDs (distintos) de todos os voluntários que possuem ao menos uma

@@ -76,6 +76,20 @@
             color: #ef4444;
         }
 
+        /* Servo que deixou de ser elegível desde a criação da escala */
+        .voluntario-tag.voluntario-tag-invalido {
+            background: #b91c1c;
+            box-shadow: 0 0 0 2px #fca5a5;
+            cursor: help;
+        }
+        .voluntario-tag.voluntario-tag-invalido::before {
+            content: "\f071"; /* fa-triangle-exclamation */
+            font-family: "Font Awesome 6 Free";
+            font-weight: 900;
+            font-size: 0.7rem;
+            margin-right: 2px;
+        }
+
         .input-busca {
             width: 100%;
             padding: 0.5rem;

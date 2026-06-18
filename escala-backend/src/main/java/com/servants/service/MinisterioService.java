@@ -6,12 +6,14 @@ import com.servants.dto.MinisterioDetalheDTO;
 import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.Ministerio;
 import com.servants.model.Voluntario;
+import com.servants.repository.EscalaAtribuicaoRepository;
 import com.servants.repository.EscalaVoluntarioRepository;
 import com.servants.repository.MinisterioRepository;
 import com.servants.repository.VoluntarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -26,6 +28,7 @@ public class MinisterioService {
     private final MinisterioRepository ministerioRepository;
     private final VoluntarioRepository voluntarioRepository;
     private final EscalaVoluntarioRepository escalaVoluntarioRepository;
+    private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
 
     /**
      * Injeta os repositórios necessários.
@@ -33,13 +36,16 @@ public class MinisterioService {
      * @param ministerioRepository       repositório de ministérios.
      * @param voluntarioRepository        repositório de voluntários.
      * @param escalaVoluntarioRepository  repositório de vínculos escala-voluntário (para contagem de escalas).
+     * @param escalaAtribuicaoRepository  repositório de atribuições (para propagar renomeação de área).
      */
     public MinisterioService(MinisterioRepository ministerioRepository,
                              VoluntarioRepository voluntarioRepository,
-                             EscalaVoluntarioRepository escalaVoluntarioRepository) {
+                             EscalaVoluntarioRepository escalaVoluntarioRepository,
+                             EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
         this.ministerioRepository = ministerioRepository;
         this.voluntarioRepository = voluntarioRepository;
         this.escalaVoluntarioRepository = escalaVoluntarioRepository;
+        this.escalaAtribuicaoRepository = escalaAtribuicaoRepository;
     }
 
     /**
@@ -118,7 +124,10 @@ public class MinisterioService {
         Ministerio ministerio = ministerioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
 
-        ministerio.setNome(dto.nome());
+        String nomeAntigo = ministerio.getNome();
+        String nomeNovo = dto.nome();
+
+        ministerio.setNome(nomeNovo);
         ministerio.setTipo(normalizarTipo(dto.tipo()));
         ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
         ministerio.setClassificacoes(normalizarClassificacoes(dto.classificacoes()));
@@ -126,7 +135,35 @@ public class MinisterioService {
         ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
 
         Ministerio atualizado = ministerioRepository.save(ministerio);
+
+        // Propaga a renomeação para os vínculos por nome (servos e atribuições em escalas)
+        if (nomeAntigo != null && nomeNovo != null && !nomeAntigo.equals(nomeNovo)) {
+            propagarRenomeacaoArea(nomeAntigo, nomeNovo);
+        }
+
         return convertToDTO(atualizado);
+    }
+
+    /**
+     * Propaga a renomeação de uma área para todos os pontos que a referenciam por nome:
+     * a lista de áreas no perfil de cada servo ({@code voluntario.ministerios}) e a função
+     * registrada nas atribuições de escala ({@code escala_atribuicoes.funcao}).
+     *
+     * @param antigo nome anterior da área.
+     * @param novo   novo nome da área.
+     */
+    private void propagarRenomeacaoArea(String antigo, String novo) {
+        List<Voluntario> afetados = voluntarioRepository.findAll().stream()
+                .filter(v -> v.getMinisterios().contains(antigo))
+                .collect(Collectors.toList());
+        for (Voluntario v : afetados) {
+            List<String> atualizados = new ArrayList<>(v.getMinisterios());
+            atualizados.replaceAll(nome -> nome.equals(antigo) ? novo : nome);
+            v.setMinisterios(atualizados);
+        }
+        voluntarioRepository.saveAll(afetados);
+
+        escalaAtribuicaoRepository.renomearFuncao(antigo, novo);
     }
 
     /**

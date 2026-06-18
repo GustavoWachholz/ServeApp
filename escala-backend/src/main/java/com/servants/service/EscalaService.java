@@ -13,6 +13,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -86,9 +87,7 @@ public class EscalaService {
      */
     @Transactional
     public EscalaDTO criarComAtribuicoes(EscalaDTO dto) {
-        if (dto.getAtribuicoes() != null) {
-            validarRegraDeAtribuicoes(dto.getAtribuicoes());
-        }
+        validarRegraDeAtribuicoes(dto);
         Escala escala = new Escala();
         updateEscalaFromDTO(escala, dto);
         Escala salva = escalaRepository.save(escala);
@@ -107,9 +106,8 @@ public class EscalaService {
      */
     @Transactional
     public EscalaDTO atualizarComAtribuicoes(Long id, EscalaDTO dto) {
-        if (dto.getAtribuicoes() != null) {
-            validarRegraDeAtribuicoes(dto.getAtribuicoes());
-        }
+        if (dto.getId() == null) dto.setId(id);
+        validarRegraDeAtribuicoes(dto);
         Escala escala = escalaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
 
@@ -120,91 +118,141 @@ public class EscalaService {
     }
 
     /**
-     * Valida duas regras de integridade das atribuições:
+     * Valida as regras de integridade das atribuições de uma escala:
      * <ol>
-     *   <li><b>Exclusividade:</b> um mesmo voluntário não pode ser escalado em mais de
-     *       um ministério {@code exclusivoNaEscala} na mesma escala.</li>
-     *   <li><b>Vínculo ESPECIFICO:</b> para ministérios com {@code tipo = "ESPECIFICO"},
-     *       o voluntário escalado deve ter aquele ministério registrado em seu perfil
-     *       ({@code voluntario.ministerios}).</li>
+     *   <li><b>Área existente:</b> toda função atribuída deve corresponder a uma área
+     *       ({@link Ministerio}) cadastrada — funções órfãs (área renomeada/excluída) são rejeitadas.</li>
+     *   <li><b>Ministério do servo:</b> o servo só pode ser escalado se o ministério
+     *       (classificação) da escala estiver no seu perfil ({@code voluntario.classificacoes}).</li>
+     *   <li><b>Exclusividade:</b> um servo não pode ocupar duas áreas {@code exclusivoNaEscala}
+     *       na mesma escala.</li>
+     *   <li><b>Vínculo ESPECIFICO:</b> para áreas {@code tipo = "ESPECIFICO"}, o servo deve ter
+     *       a área registrada no perfil ({@code voluntario.ministerios}).</li>
+     *   <li><b>Conflito entre escalas:</b> o servo não pode estar escalado em outra escala
+     *       sobreposta no tempo.</li>
      * </ol>
      *
-     * @param atribuicoes lista de atribuições a validar.
-     * @throws IllegalArgumentException se alguma das regras for violada.
+     * @param dto escala (com classificação, janela de tempo e atribuições) a validar.
+     * @throws IllegalArgumentException se alguma regra for violada.
      */
-    private void validarRegraDeAtribuicoes(List<AtribuicaoDTO> atribuicoes) {
+    private void validarRegraDeAtribuicoes(EscalaDTO dto) {
+        List<AtribuicaoDTO> atribuicoes = dto.getAtribuicoes();
         if (atribuicoes == null || atribuicoes.isEmpty()) return;
 
-        // 1. Carrega metadados de todos os ministérios citados em uma única query
-        Set<String> nomesMinisterios = atribuicoes.stream()
+        String classificacao = dto.getClassificacao();
+
+        // Carrega metadados das áreas citadas em uma única query
+        Set<String> nomesAreas = atribuicoes.stream()
                 .map(AtribuicaoDTO::getFuncao)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
-
-        Map<String, Ministerio> ministerioMap = ministerioRepository
-                .findByNomeIn(nomesMinisterios)
+        Map<String, Ministerio> areaMap = ministerioRepository.findByNomeIn(nomesAreas)
                 .stream()
                 .collect(Collectors.toMap(Ministerio::getNome, m -> m));
 
-        // 2. Agrupa atribuições por voluntário para checar as duas regras
+        // Carrega os servos citados em uma única query
+        Set<Long> voluntarioIds = atribuicoes.stream()
+                .map(AtribuicaoDTO::getVoluntarioId)
+                .filter(Objects::nonNull)
+                .collect(Collectors.toSet());
+        Map<Long, Voluntario> voluntarioMap = voluntarioRepository.findAllById(voluntarioIds)
+                .stream()
+                .collect(Collectors.toMap(Voluntario::getId, v -> v));
+
+        // Mapa voluntarioId → título da escala conflitante (sobreposta no tempo)
+        Map<Long, String> conflitoEntreEscalas = mapearConflitosEntreEscalas(dto, voluntarioIds);
+
         Map<Long, List<AtribuicaoDTO>> porVoluntario = atribuicoes.stream()
+                .filter(a -> a.getVoluntarioId() != null)
                 .collect(Collectors.groupingBy(AtribuicaoDTO::getVoluntarioId));
 
         for (Map.Entry<Long, List<AtribuicaoDTO>> entry : porVoluntario.entrySet()) {
             Long voluntarioId = entry.getKey();
-            List<AtribuicaoDTO> funcoesDoVoluntario = entry.getValue();
+            List<AtribuicaoDTO> funcoes = entry.getValue();
 
-            // Nome do voluntário (para mensagem de erro legível)
-            String nomeVoluntario = funcoesDoVoluntario.get(0).getVoluntarioNome();
-            if (nomeVoluntario == null || nomeVoluntario.isBlank()) {
-                nomeVoluntario = voluntarioRepository.findById(voluntarioId)
-                        .map(Voluntario::getNome)
-                        .orElse(String.valueOf(voluntarioId));
+            Voluntario voluntario = voluntarioMap.get(voluntarioId);
+            if (voluntario == null) {
+                throw new ResourceNotFoundException("Voluntário não encontrado: " + voluntarioId);
             }
+            String nome = voluntario.getNome();
 
-            // Regra 1: não pode acumular dois ministérios exclusivos
-            List<String> exclusivosAtribuidos = funcoesDoVoluntario.stream()
-                    .filter(f -> {
-                        Ministerio m = ministerioMap.get(f.getFuncao());
-                        return m != null && m.isExclusivoNaEscala();
-                    })
-                    .map(AtribuicaoDTO::getFuncao)
-                    .collect(Collectors.toList());
-
-            if (exclusivosAtribuidos.size() > 1) {
-                throw new IllegalArgumentException(
-                        "O voluntário " + nomeVoluntario + " está escalado em dois ministérios exclusivos: "
-                        + String.join(" e ", exclusivosAtribuidos)
-                        + ". Ministérios exclusivos não podem ser acumulados na mesma escala.");
-            }
-
-            // Regra 2: ministério ESPECIFICO exige vínculo no perfil do voluntário
-            List<String> especificosNaoVinculados = funcoesDoVoluntario.stream()
-                    .filter(f -> {
-                        Ministerio m = ministerioMap.get(f.getFuncao());
-                        return m != null && "ESPECIFICO".equals(m.getTipo());
-                    })
-                    .map(AtribuicaoDTO::getFuncao)
-                    .collect(Collectors.toList());
-
-            if (!especificosNaoVinculados.isEmpty()) {
-                Voluntario voluntario = voluntarioRepository.findById(voluntarioId)
-                        .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado: " + voluntarioId));
-
-                List<String> ministeriosDoVoluntario = voluntario.getMinisterios();
-                List<String> semVinculo = especificosNaoVinculados.stream()
-                        .filter(funcao -> !ministeriosDoVoluntario.contains(funcao))
-                        .collect(Collectors.toList());
-
-                if (!semVinculo.isEmpty()) {
+            // Regra 1: a área (função) precisa existir
+            for (AtribuicaoDTO f : funcoes) {
+                if (areaMap.get(f.getFuncao()) == null) {
                     throw new IllegalArgumentException(
-                            "O voluntário " + voluntario.getNome()
-                            + " não está vinculado ao ministério \""
-                            + String.join("\", \"", semVinculo)
-                            + "\". Adicione o voluntário ao ministério antes de escalá-lo.");
+                            "A área \"" + f.getFuncao() + "\" não existe mais. "
+                            + "Atualize a escala antes de salvar.");
+                }
+            }
+
+            // Regra 2: o ministério (classificação) da escala precisa estar no perfil do servo
+            if (classificacao != null && !classificacao.isBlank()
+                    && !voluntario.getClassificacoes().contains(classificacao)) {
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " não atua no ministério desta escala. "
+                        + "Adicione o ministério ao perfil do servo antes de escalá-lo.");
+            }
+
+            // Regra 3: não pode acumular duas áreas exclusivas
+            List<String> exclusivas = funcoes.stream()
+                    .filter(f -> areaMap.get(f.getFuncao()).isExclusivoNaEscala())
+                    .map(AtribuicaoDTO::getFuncao)
+                    .collect(Collectors.toList());
+            if (exclusivas.size() > 1) {
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " está escalado em duas áreas exclusivas: "
+                        + String.join(" e ", exclusivas)
+                        + ". Áreas exclusivas não podem ser acumuladas na mesma escala.");
+            }
+
+            // Regra 4: área ESPECIFICO exige vínculo no perfil do servo
+            List<String> especificosSemVinculo = funcoes.stream()
+                    .filter(f -> "ESPECIFICO".equals(areaMap.get(f.getFuncao()).getTipo()))
+                    .map(AtribuicaoDTO::getFuncao)
+                    .filter(funcao -> !voluntario.getMinisterios().contains(funcao))
+                    .collect(Collectors.toList());
+            if (!especificosSemVinculo.isEmpty()) {
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " não está vinculado à área \""
+                        + String.join("\", \"", especificosSemVinculo)
+                        + "\". Adicione o voluntário à área antes de escalá-lo.");
+            }
+
+            // Regra 5: conflito com outra escala sobreposta no tempo
+            if (conflitoEntreEscalas.containsKey(voluntarioId)) {
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " já está escalado em outra escala no mesmo horário: \""
+                        + conflitoEntreEscalas.get(voluntarioId) + "\".");
+            }
+        }
+    }
+
+    /**
+     * Monta o mapa {@code voluntarioId → título} das escalas que se sobrepõem no tempo à
+     * escala informada e que já contêm algum dos servos citados. Usado pela regra de
+     * conflito entre escalas.
+     *
+     * @param dto           escala em edição (fornece id e janela de tempo).
+     * @param voluntarioIds servos a verificar.
+     * @return mapa de conflitos (vazio se não houver janela ou servos).
+     */
+    private Map<Long, String> mapearConflitosEntreEscalas(EscalaDTO dto, Set<Long> voluntarioIds) {
+        if (dto.getDataEscala() == null || voluntarioIds.isEmpty()) return Map.of();
+
+        LocalDateTime inicio = dto.getDataEscala();
+        LocalDateTime fim = dto.getDataFim() != null ? dto.getDataFim() : dto.getDataEscala();
+
+        Map<Long, String> conflito = new HashMap<>();
+        for (Escala e : escalaRepository.findSobrepostas(dto.getId(), inicio, fim)) {
+            if (e.getAtribuicoes() == null) continue;
+            for (EscalaAtribuicao a : e.getAtribuicoes()) {
+                Long vid = a.getVoluntario().getId();
+                if (voluntarioIds.contains(vid)) {
+                    conflito.putIfAbsent(vid, e.getTitulo());
                 }
             }
         }
+        return conflito;
     }
 
     /**

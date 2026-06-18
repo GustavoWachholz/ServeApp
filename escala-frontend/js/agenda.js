@@ -132,6 +132,7 @@ function obterVoluntariosJaEscalados() {
 function initAutocomplete() {
     // ── Busca em tempo real ──
     document.addEventListener('input', (e) => {
+        var _a;
         const target = e.target;
         if (!target.classList.contains('input-busca'))
             return;
@@ -141,6 +142,7 @@ function initAutocomplete() {
         const funcaoAtual = ministerioBox.getAttribute('data-funcao') || '';
         const tipoMinisterio = ministerioBox.getAttribute('data-tipo') || 'ESPECIFICO';
         const exclusivo = ministerioBox.getAttribute('data-exclusivo') !== 'false';
+        const classificacaoEscala = ((_a = document.getElementById('escala-classificacao')) === null || _a === void 0 ? void 0 : _a.value) || '';
         const termo = target.value.toLowerCase().trim();
         if (!termo) {
             listaResultados.style.display = 'none';
@@ -155,14 +157,17 @@ function initAutocomplete() {
         const filtrados = [];
         let ocultosExclusividade = 0;
         listaVoluntarios.forEach(v => {
-            var _a, _b, _c;
+            var _a, _b, _c, _d;
             const id = ((_b = (_a = v.id) !== null && _a !== void 0 ? _a : v._id) !== null && _b !== void 0 ? _b : '').toString();
             // Filtro de nome
             if (!v.nome.toLowerCase().includes(termo))
                 return;
+            // Só servos que atuam no ministério (classificação) desta escala
+            if (classificacaoEscala && !((_c = v.classificacoes) === null || _c === void 0 ? void 0 : _c.includes(classificacaoEscala)))
+                return;
             // Só voluntários vinculados ao ministério específico
             if (tipoMinisterio === 'ESPECIFICO') {
-                if (!((_c = v.ministerios) === null || _c === void 0 ? void 0 : _c.includes(funcaoAtual)))
+                if (!((_d = v.ministerios) === null || _d === void 0 ? void 0 : _d.includes(funcaoAtual)))
                     return;
             }
             const funcoesDoVoluntario = jaEscalados[id] || [];
@@ -268,6 +273,36 @@ function adicionarTagVoluntario(container, id, nome) {
     container.appendChild(tag);
 }
 /**
+ * Marca uma tag de voluntário como inelegível (classe {@code voluntario-tag-invalido} +
+ * tooltip) quando o servo deixou de atender às regras desde a criação da escala: não atua
+ * mais no ministério (classificação) ou perdeu o vínculo com a área ESPECIFICO. Usado ao
+ * abrir uma escala existente para edição, evitando o save silenciosamente bloqueado.
+ *
+ * @param {HTMLElement} tag elemento da tag do voluntário.
+ * @param {string} volId id do voluntário.
+ * @param {HTMLElement} box box do ministério (área) que contém a tag.
+ * @param {string} classificacao classificação (ministério) da escala atual.
+ * @returns {void}
+ */
+function marcarTagSeInelegivel(tag, volId, box, classificacao) {
+    const vol = listaVoluntarios.find(v => { var _a; return String((_a = v.id) !== null && _a !== void 0 ? _a : v._id) === String(volId); });
+    if (!vol)
+        return;
+    const funcao = box.getAttribute('data-funcao') || '';
+    const tipo = box.getAttribute('data-tipo') || 'ESPECIFICO';
+    const motivos = [];
+    if (classificacao && !(vol.classificacoes || []).includes(classificacao)) {
+        motivos.push('não atua neste ministério');
+    }
+    if (tipo === 'ESPECIFICO' && !(vol.ministerios || []).includes(funcao)) {
+        motivos.push('não está mais vinculado a esta área');
+    }
+    if (motivos.length > 0) {
+        tag.classList.add('voluntario-tag-invalido');
+        tag.title = `${vol.nome} ${motivos.join(' e ')} — remova ou ajuste o cadastro antes de salvar.`;
+    }
+}
+/**
  * Busca a configuração de escala de uma classificação e a guarda em {@link configAtual}.
  *
  * @async
@@ -362,6 +397,10 @@ function initModalControls() {
             if (box) {
                 const lista = box.querySelector('.voluntarios-list');
                 adicionarTagVoluntario(lista, atrib.voluntarioId.toString(), atrib.voluntarioNome || `Voluntário ${atrib.voluntarioId}`);
+                // Sinaliza visualmente se o servo deixou de ser elegível desde a criação
+                const tag = lista.querySelector(`[data-id="${atrib.voluntarioId}"]`);
+                if (tag)
+                    marcarTagSeInelegivel(tag, atrib.voluntarioId.toString(), box, selectClass.value);
             }
         });
         atribuicoesParaCarregar = [];

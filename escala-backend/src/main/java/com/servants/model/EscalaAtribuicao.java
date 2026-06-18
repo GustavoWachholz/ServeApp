@@ -4,7 +4,7 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
- * Entidade JPA que representa a atribuição de um {@link Voluntario} a uma função
+ * Entidade JPA que representa a atribuição de um {@link Servo} a uma função
  * (área/ministério) dentro de uma {@link Escala} específica.
  *
  * <p>Mapeada para a tabela {@code escala_atribuicoes}. É o registro efetivo de
@@ -26,8 +26,8 @@ public class EscalaAtribuicao {
 
     /** Voluntário atribuído. Obrigatório. */
     @ManyToOne
-    @JoinColumn(name = "voluntario_id", nullable = false)
-    private Voluntario voluntario;
+    @JoinColumn(name = "servo_id", nullable = false)
+    private Servo servo;
 
     /** Nome da função/área em que o voluntário foi escalado. Ex.: "Louvor", "Recepção". */
     private String funcao;
@@ -57,13 +57,13 @@ public class EscalaAtribuicao {
     }
 
     /** @return o voluntário atribuído. */
-    public Voluntario getVoluntario() {
-        return voluntario;
+    public Servo getServo() {
+        return servo;
     }
 
-    /** @param voluntario define o voluntário atribuído. */
-    public void setVoluntario(Voluntario voluntario) {
-        this.voluntario = voluntario;
+    /** @param servo define o voluntário atribuído. */
+    public void setServo(Servo servo) {
+        this.servo = servo;
     }
 
     /** @return o nome da função/área da atribuição. */

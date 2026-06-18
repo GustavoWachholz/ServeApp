@@ -4,16 +4,16 @@ import jakarta.persistence.*;
 import java.util.Objects;
 
 /**
- * Entidade JPA de vínculo (legado) que associa um {@link Voluntario} a um
- * {@link Ministerio} dentro de uma {@link Escala}.
+ * Entidade JPA de vínculo (legado) que associa um {@link Servo} a um
+ * {@link Area} dentro de uma {@link Escala}.
  *
- * <p>Mapeada para a tabela {@code escala_voluntarios}. Difere de
- * {@link EscalaAtribuicao} por referenciar a entidade {@link Ministerio} em vez
+ * <p>Mapeada para a tabela {@code escala_servos}. Difere de
+ * {@link EscalaAtribuicao} por referenciar a entidade {@link Area} em vez
  * de uma string de função; mantida por compatibilidade com o esquema antigo.</p>
  */
 @Entity
-@Table(name = "escala_voluntarios")
-public class EscalaVoluntario {
+@Table(name = "escala_servos")
+public class EscalaServo {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -27,16 +27,16 @@ public class EscalaVoluntario {
 
     /** Voluntário vinculado. Obrigatório. */
     @ManyToOne
-    @JoinColumn(name = "voluntario_id", nullable = false)
-    private Voluntario voluntario;
+    @JoinColumn(name = "servo_id", nullable = false)
+    private Servo servo;
 
     /** Ministério (área) em que o voluntário foi escalado. Obrigatório. */
     @ManyToOne
-    @JoinColumn(name = "ministerio_id", nullable = false)
-    private Ministerio ministerio;
+    @JoinColumn(name = "area_id", nullable = false)
+    private Area area;
 
     /** Construtor padrão exigido pelo JPA. */
-    public EscalaVoluntario() {
+    public EscalaServo() {
     }
 
     /** @return o identificador único do vínculo. */
@@ -60,23 +60,23 @@ public class EscalaVoluntario {
     }
 
     /** @return o voluntário vinculado. */
-    public Voluntario getVoluntario() {
-        return voluntario;
+    public Servo getServo() {
+        return servo;
     }
 
-    /** @param voluntario define o voluntário vinculado. */
-    public void setVoluntario(Voluntario voluntario) {
-        this.voluntario = voluntario;
+    /** @param servo define o voluntário vinculado. */
+    public void setServo(Servo servo) {
+        this.servo = servo;
     }
 
     /** @return o ministério (área) do vínculo. */
-    public Ministerio getMinisterio() {
-        return ministerio;
+    public Area getArea() {
+        return area;
     }
 
-    /** @param ministerio define o ministério (área) do vínculo. */
-    public void setMinisterio(Ministerio ministerio) {
-        this.ministerio = ministerio;
+    /** @param area define o ministério (área) do vínculo. */
+    public void setArea(Area area) {
+        this.area = area;
     }
 
     /**
@@ -89,7 +89,7 @@ public class EscalaVoluntario {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        EscalaVoluntario that = (EscalaVoluntario) o;
+        EscalaServo that = (EscalaServo) o;
         return Objects.equals(id, that.id);
     }
 

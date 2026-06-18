@@ -77,7 +77,7 @@ async function gerarRelatorio() {
 /**
  * Renderiza a tabela de frequência.
  *
- * @param {Array<Object>} dados lista de {voluntarioId, voluntarioNome, total}.
+ * @param {Array<Object>} dados lista de {servoId, servoNome, total}.
  * @param {string} de   data início (ISO).
  * @param {string} ate  data fim (ISO).
  * @returns {void}
@@ -99,7 +99,7 @@ function renderTabela(dados, de, ate) {
         return `
         <tr>
             <td><span class="rank-badge ${rankClass(i)}">${i + 1}</span></td>
-            <td><strong>${item.voluntarioNome}</strong></td>
+            <td><strong>${item.servoNome}</strong></td>
             <td class="freq-bar-cell">
                 <div class="freq-bar-wrapper">
                     <div class="freq-bar" style="width:${pct}%;max-width:200px;"></div>
@@ -154,7 +154,7 @@ function exportarRelatorioCSV() {
 
     const linhas = [
         ['#', 'Servo', 'Escalações'],
-        ...dados.map((item, i) => [i + 1, item.voluntarioNome, item.total])
+        ...dados.map((item, i) => [i + 1, item.servoNome, item.total])
     ];
 
     const nome = `frequencia_${de}_${ate}.csv`;

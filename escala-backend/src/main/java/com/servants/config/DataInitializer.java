@@ -1,9 +1,9 @@
 package com.servants.config;
 
 import com.servants.model.Usuario;
-import com.servants.model.Voluntario;
+import com.servants.model.Servo;
 import com.servants.repository.UsuarioRepository;
-import com.servants.repository.VoluntarioRepository;
+import com.servants.repository.ServoRepository;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
@@ -25,7 +25,7 @@ public class DataInitializer implements CommandLineRunner {
     private static final Logger log = LoggerFactory.getLogger(DataInitializer.class);
 
     private final UsuarioRepository usuarioRepository;
-    private final VoluntarioRepository voluntarioRepository;
+    private final ServoRepository servoRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbc;
 
@@ -39,11 +39,11 @@ public class DataInitializer implements CommandLineRunner {
      * @param jdbc              template JDBC usado na limpeza ordenada das tabelas.
      */
     public DataInitializer(UsuarioRepository usuarioRepository,
-                           VoluntarioRepository voluntarioRepository,
+                           ServoRepository servoRepository,
                            PasswordEncoder passwordEncoder,
                            JdbcTemplate jdbc) {
         this.usuarioRepository = usuarioRepository;
-        this.voluntarioRepository = voluntarioRepository;
+        this.servoRepository = servoRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbc = jdbc;
     }
@@ -69,18 +69,18 @@ public class DataInitializer implements CommandLineRunner {
     // ── Backfill de vínculo Usuário↔Servo ──────────────────────────────────────
 
     /**
-     * Vincula, uma única vez, cada usuário sem servo associado ({@code voluntario == null})
+     * Vincula, uma única vez, cada usuário sem servo associado ({@code servo == null})
      * a um servo de mesmo e-mail, quando existir. Idempotente: nas execuções seguintes
      * apenas os ainda não vinculados são considerados. Não cria servos novos.
      */
     private void vincularServosPorEmail() {
         int vinculados = 0;
         for (Usuario u : usuarioRepository.findAll()) {
-            if (u.getVoluntario() != null || u.getEmail() == null) continue;
-            Voluntario servo = voluntarioRepository.findByEmail(u.getEmail()).orElse(null);
+            if (u.getServo() != null || u.getEmail() == null) continue;
+            Servo servo = servoRepository.findByEmail(u.getEmail()).orElse(null);
             // Só vincula se o servo ainda não pertencer a outra conta
-            if (servo != null && usuarioRepository.findByVoluntarioId(servo.getId()).isEmpty()) {
-                u.setVoluntario(servo);
+            if (servo != null && usuarioRepository.findByServoId(servo.getId()).isEmpty()) {
+                u.setServo(servo);
                 usuarioRepository.save(u);
                 vinculados++;
             }
@@ -141,22 +141,22 @@ public class DataInitializer implements CommandLineRunner {
 
         // 1. Dependentes de escalas e voluntários/ministérios
         jdbc.execute("DELETE FROM escala_atribuicoes");
-        jdbc.execute("DELETE FROM escala_voluntarios");
+        jdbc.execute("DELETE FROM escala_servos");
         jdbc.execute("DELETE FROM escalas");
 
         // 2. Configurações de classificação
-        jdbc.execute("DELETE FROM config_escala_ministerios");
-        jdbc.execute("DELETE FROM configuracao_escala");
-
-        // 3. Ministérios: zerar FKs para voluntários antes de deletar voluntários
-        jdbc.execute("UPDATE ministerios SET lider_id = NULL, colider_id = NULL");
-        jdbc.execute("DELETE FROM ministerio_classificacoes");
+        jdbc.execute("DELETE FROM config_escala_areas");
         jdbc.execute("DELETE FROM ministerios");
 
+        // 3. Ministérios: zerar FKs para voluntários antes de deletar voluntários
+        jdbc.execute("UPDATE areas SET lider_id = NULL, colider_id = NULL");
+        jdbc.execute("DELETE FROM area_classificacoes");
+        jdbc.execute("DELETE FROM areas");
+
         // 4. Voluntários e suas coleções
-        jdbc.execute("DELETE FROM voluntario_ministerios");
-        jdbc.execute("DELETE FROM voluntario_classificacoes");
-        jdbc.execute("DELETE FROM voluntarios");
+        jdbc.execute("DELETE FROM servo_areas");
+        jdbc.execute("DELETE FROM servo_classificacoes");
+        jdbc.execute("DELETE FROM servos");
 
         // 5. Usuários não-admin
         jdbc.execute("DELETE FROM usuarios WHERE role != 'ADMIN'");

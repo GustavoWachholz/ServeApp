@@ -55,11 +55,11 @@ public class Escala {
     private List<EscalaAtribuicao> atribuicoes = new ArrayList<>();
 
     /**
-     * Vínculos legados voluntário↔ministério desta escala (tabela {@code escala_voluntarios}).
+     * Vínculos legados voluntário↔ministério desta escala (tabela {@code escala_servos}).
      * Mantido por compatibilidade; o preenchimento atual usa {@link #atribuicoes}.
      */
     @OneToMany(mappedBy = "escala")
-    private List<EscalaVoluntario> voluntarios;
+    private List<EscalaServo> servos;
 
     /** Construtor padrão exigido pelo JPA. */
     public Escala() {
@@ -136,13 +136,13 @@ public class Escala {
     }
 
     /** @return os vínculos legados voluntário↔ministério desta escala. */
-    public List<EscalaVoluntario> getVoluntarios() {
-        return voluntarios;
+    public List<EscalaServo> getServos() {
+        return servos;
     }
 
-    /** @param voluntarios define os vínculos legados voluntário↔ministério. */
-    public void setVoluntarios(List<EscalaVoluntario> voluntarios) {
-        this.voluntarios = voluntarios;
+    /** @param servos define os vínculos legados voluntário↔ministério. */
+    public void setServos(List<EscalaServo> servos) {
+        this.servos = servos;
     }
 
     /** @return as atribuições de voluntários a funções nesta escala. */

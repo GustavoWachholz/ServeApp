@@ -1,7 +1,7 @@
 package com.servants.controller;
 
 import com.servants.dto.EscalaDTO;
-import com.servants.dto.EscalaVoluntarioDTO;
+import com.servants.dto.EscalaServoDTO;
 import com.servants.dto.EventoAgendaDTO;
 import com.servants.service.EscalaService;
 import jakarta.validation.Valid;
@@ -88,33 +88,33 @@ public class EscalaController {
     }
 
     /**
-     * {@code POST /api/escalas/{escalaId}/voluntarios} — adiciona um voluntário a um
+     * {@code POST /api/escalas/{escalaId}/servos} — adiciona um voluntário a um
      * ministério dentro da escala (vínculo legado).
      *
      * @param escalaId     identificador da escala.
-     * @param voluntarioId identificador do voluntário (query param).
-     * @param ministerioId identificador do ministério (query param).
-     * @return {@code 201 CREATED} com o {@link EscalaVoluntarioDTO} criado.
+     * @param servoId identificador do voluntário (query param).
+     * @param areaId identificador do ministério (query param).
+     * @return {@code 201 CREATED} com o {@link EscalaServoDTO} criado.
      */
-    @PostMapping("/{escalaId}/voluntarios")
-    public ResponseEntity<EscalaVoluntarioDTO> adicionarVoluntario(
+    @PostMapping("/{escalaId}/servos")
+    public ResponseEntity<EscalaServoDTO> adicionarServo(
             @PathVariable Long escalaId,
-            @RequestParam Long voluntarioId,
-            @RequestParam Long ministerioId) {
-        EscalaVoluntarioDTO salvo = escalaService.adicionarVoluntario(escalaId, voluntarioId, ministerioId);
+            @RequestParam Long servoId,
+            @RequestParam Long areaId) {
+        EscalaServoDTO salvo = escalaService.adicionarServo(escalaId, servoId, areaId);
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
 
     /**
-     * {@code DELETE /api/escalas/voluntarios/{assignmentId}} — remove um vínculo
+     * {@code DELETE /api/escalas/servos/{assignmentId}} — remove um vínculo
      * voluntário↔ministério de uma escala.
      *
      * @param assignmentId identificador do vínculo.
      * @return {@code 204 NO CONTENT}.
      */
-    @DeleteMapping("/voluntarios/{assignmentId}")
-    public ResponseEntity<Void> removerVoluntario(@PathVariable Long assignmentId) {
-        escalaService.removerVoluntario(assignmentId);
+    @DeleteMapping("/servos/{assignmentId}")
+    public ResponseEntity<Void> removerServo(@PathVariable Long assignmentId) {
+        escalaService.removerServo(assignmentId);
         return ResponseEntity.noContent().build();
     }
 }

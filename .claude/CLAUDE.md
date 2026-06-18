@@ -83,7 +83,7 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 ```
 
 ### Banco de dados
-- MySQL 8, banco `servants`, usuário `root`, senha `root` (padrão local)
+- MySQL 8, banco `serve`, usuário `root`, senha `root` (padrão local)
 - `ddl-auto=update` — Hibernate cria/altera tabelas automaticamente, **nunca usar `create-drop`**
 - Timezone: sempre rodar com `-Duser.timezone=America/Sao_Paulo`; o backend usa `LocalDate`/`LocalDateTime` sem timezone
 
@@ -105,13 +105,17 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 - `DataInitializer` cria admin padrão e dados demo; `serve.reset-on-startup=false` em produção
 
 ### Modelos principais
+> **Nomenclatura UI↔código (Fase 8):** as entidades foram renomeadas para casar com a UI —
+> `Voluntario`→`Servo` (`servos`), `Ministerio`→`Area` (`areas`), `ConfiguracaoEscala`→`Ministerio` (`ministerios`).
+> A migração das tabelas em produção está em `migration_rename.sql` (rodar no RDS **antes** de subir o backend novo).
+
 | Entidade | Tabela | Observação |
 |---|---|---|
-| `Voluntario` | `voluntarios` | vinculado a `Usuario` via email |
+| `Servo` | `servos` | vinculado a `Usuario`; tem listas `areas` e `classificacoes` |
 | `Escala` | `escalas` | possui `dataEscala` (LocalDateTime) e `dataFim` (LocalDateTime) |
-| `EscalaAtribuicao` | `escala_atribuicoes` | voluntário + função na escala |
-| `Ministerio` | `ministerios` | área de atuação |
-| `ConfiguracaoEscala` | `configuracao_escala` | classificações de funções |
+| `EscalaAtribuicao` | `escala_atribuicoes` | servo + função (nome da área) na escala |
+| `Area` | `areas` | área de atuação (UI: "Área"); `tipo` GERAL/ESPECIFICO, `exclusivoNaEscala` |
+| `Ministerio` | `ministerios` | tipo de evento (UI: "Ministério"); M2M com `Area` via `ministerio_areas` |
 | `ConfiguracaoIgreja` | `configuracao_igreja` | singleton id=1, nome/contato/redes |
 | `Aviso` | `avisos` | quadro de avisos com validade |
 | `Usuario` | `usuarios` | login/JWT, papel ADMIN ou VOLUNTARIO; `foto` (LONGTEXT); consentimento LGPD (`dataConsentimento`, `versaoPolitica`, `ipConsentimento`); `invalidacaoTokensAntes`, `ultimoLogin`; FK `voluntario_id` (único) liga a conta ao `Voluntario` |
@@ -164,14 +168,14 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 |---|---|
 | `POST /api/auth/login` | Login |
 | `POST /api/auth/cadastro` | Cadastro |
-| `GET /api/voluntarios` `GET /api/voluntarios/{id}` `PUT /api/voluntarios/{id}` | Voluntários: listar, buscar, atualizar áreas/ministérios (criação via `/api/auth/cadastro`; exclusão via `DELETE /api/usuarios/{id}`) |
-| `GET/POST/PUT/DELETE /api/ministerios` | CRUD ministérios |
+| `GET /api/servos` `GET /api/servos/{id}` `PUT /api/servos/{id}` | Servos: listar, buscar, atualizar áreas/ministérios (criação via `/api/auth/cadastro`; exclusão via `DELETE /api/usuarios/{id}`) |
+| `GET/POST/PUT/DELETE /api/areas` | CRUD de áreas (ex-`/api/ministerios`) |
 | `GET/POST/PUT/DELETE /api/escalas` | CRUD escalas |
 | `GET/POST/PUT/DELETE /api/avisos` | CRUD avisos |
 | `GET /api/dashboard` | Dados da home |
 | `GET /api/relatorios/frequencia?de=&ate=` | Relatório de frequência |
 | `GET/PUT /api/igreja` | Config da igreja (singleton) |
-| `GET/PUT /api/configuracao-escala` | Classificações de funções |
+| `GET/POST/PUT/DELETE /api/ministerios` | Ministérios/classificações de evento (ex-`/api/configuracao-escala`) |
 | `GET /api/usuarios` `GET /api/usuarios/me` `GET /api/usuarios/{id}` | Lista (admin) / perfil próprio / perfil (admin ou próprio) |
 | `PUT /api/usuarios/{id}/permissoes` | Atualiza permissões (admin) |
 | `PUT /api/usuarios/{id}/perfil` `PUT /api/usuarios/{id}/senha` | Edita perfil / troca senha (só o próprio) |

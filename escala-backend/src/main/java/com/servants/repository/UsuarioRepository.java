@@ -24,17 +24,17 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      * Busca o usuário vinculado a um determinado servo (voluntário), se houver.
      * Usado para garantir a unicidade do vínculo (um servo ↔ um usuário).
      *
-     * @param voluntarioId id do voluntário.
+     * @param servoId id do voluntário.
      * @return {@link Optional} com o usuário vinculado, ou vazio.
      */
-    Optional<Usuario> findByVoluntarioId(Long voluntarioId);
+    Optional<Usuario> findByServoId(Long servoId);
 
     /**
      * Retorna todos os usuários que possuem servo vinculado — usado para montar o mapa
-     * voluntarioId → foto em uma única query (evita N+1 no endpoint de aniversariantes).
+     * servoId → foto em uma única query (evita N+1 no endpoint de aniversariantes).
      *
-     * @return lista de usuários com {@code voluntario} não nulo.
+     * @return lista de usuários com {@code servo} não nulo.
      */
-    @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u WHERE u.voluntario IS NOT NULL")
-    java.util.List<Usuario> findAllWithVoluntario();
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u WHERE u.servo IS NOT NULL")
+    java.util.List<Usuario> findAllWithServo();
 }

@@ -35,6 +35,6 @@ public class RelatorioController {
     public List<FrequenciaDTO> frequencia(
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
             @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
-        return relatorioService.frequenciaPorVoluntario(de, ate);
+        return relatorioService.frequenciaPorServo(de, ate);
     }
 }

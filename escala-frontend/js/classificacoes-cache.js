@@ -11,7 +11,7 @@
  */
 window.ClassificacoesCache = (() => {
     /** URL da API de configurações de escala. */
-    const API_URL = '/api/configuracao-escala';
+    const API_URL = '/api/ministerios';
     /** Promise cacheada do carregamento (null até o primeiro fetch ou após invalidar). */
     let _promise = null;
 

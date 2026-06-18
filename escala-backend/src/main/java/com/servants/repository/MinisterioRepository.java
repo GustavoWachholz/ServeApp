@@ -2,31 +2,37 @@ package com.servants.repository;
 
 import com.servants.model.Ministerio;
 import org.springframework.data.jpa.repository.JpaRepository;
-import org.springframework.stereotype.Repository;
 
-import java.util.Collection;
-import java.util.List;
 import java.util.Optional;
 
 /**
- * Repositório Spring Data JPA para a entidade {@link Ministerio} (área). Fornece as
- * operações CRUD herdadas de {@link JpaRepository} mais consultas derivadas por nome.
+ * Repositório Spring Data JPA para a entidade {@link Ministerio} (na UI,
+ * um "Ministério"). Fornece as operações CRUD herdadas mais consultas de busca e
+ * validação de unicidade derivadas por nome.
  */
-@Repository
 public interface MinisterioRepository extends JpaRepository<Ministerio, Long> {
     /**
-     * Busca um ministério pelo nome exato.
+     * Busca uma configuração pela chave de classificação, ignorando maiúsculas/minúsculas.
      *
-     * @param nome nome a procurar.
-     * @return {@link Optional} com o ministério, ou vazio se não existir.
+     * @param classificacao chave da classificação a procurar (ex.: "atitude").
+     * @return {@link Optional} com a configuração, ou vazio se não existir.
      */
-    Optional<Ministerio> findByNome(String nome);
+    Optional<Ministerio> findByClassificacaoIgnoreCase(String classificacao);
 
     /**
-     * Busca todos os ministérios cujo nome esteja na coleção informada.
+     * Verifica se já existe uma configuração com a chave de classificação informada.
      *
-     * @param nomes coleção de nomes a procurar.
-     * @return lista de ministérios correspondentes (pode ser vazia).
+     * @param classificacao chave a verificar.
+     * @return {@code true} se já existir.
      */
-    List<Ministerio> findByNomeIn(Collection<String> nomes);
+    boolean existsByClassificacao(String classificacao);
+
+    /**
+     * Verifica se já existe uma configuração com o nome informado (ignorando caixa),
+     * usado para evitar nomes duplicados na criação.
+     *
+     * @param nome nome a verificar.
+     * @return {@code true} se já existir.
+     */
+    boolean existsByNomeIgnoreCase(String nome);
 }

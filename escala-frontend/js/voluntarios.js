@@ -11,9 +11,9 @@ function esc(s) {
 }
 
 /** URL da API de voluntários. */
-const API_URL = '/api/voluntarios';
+const API_URL = '/api/servos';
 /** URL da API de ministérios (áreas), usada para popular os checkboxes do formulário. */
-const MINISTERIOS_URL = '/api/ministerios';
+const MINISTERIOS_URL = '/api/areas';
 
 /** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
 let classificacoesDisponiveis = [];
@@ -302,12 +302,12 @@ function aplicarFiltroEOrdem() {
         normalizar(v.nome).includes(termo) ||
         normalizar(v.email).includes(termo) ||
         normalizar(v.telefone).includes(termo) ||
-        (v.ministerios || []).some(m => normalizar(m).includes(termo))
+        (v.areas || []).some(m => normalizar(m).includes(termo))
     );
 
     // Filtros estruturados (área, ministério, situação na escala)
     if (filtroArea) {
-        lista = lista.filter(v => (v.ministerios || []).includes(filtroArea));
+        lista = lista.filter(v => (v.areas || []).includes(filtroArea));
     }
     if (filtroMinisterio) {
         lista = lista.filter(v => (v.classificacoes || []).includes(filtroMinisterio));
@@ -492,9 +492,9 @@ function initModalEvents() {
             const textoOriginal = btnSubmit ? btnSubmit.textContent : 'Salvar';
             if (btnSubmit) { btnSubmit.disabled = true; btnSubmit.textContent = 'Salvando…'; }
 
-            const ministerios = Array.from(document.querySelectorAll('input[name="ministries"]:checked')).map(cb => cb.value);
+            const areas = Array.from(document.querySelectorAll('input[name="ministries"]:checked')).map(cb => cb.value);
             const payload = {
-                ministerios,
+                areas,
                 classificacoes: getClassificacoesSelecionadas('classif-checkboxes-vol')
             };
 
@@ -594,7 +594,7 @@ async function buscarEPresentar(id, mode) {
             document.getElementById('view-genero').textContent = generoLabel(currentVolunteer.genero);
             document.getElementById('view-birthdate').textContent = formatarData(currentVolunteer.dataNascimento);
             const minDiv = document.getElementById('view-ministries');
-            minDiv.innerHTML = (currentVolunteer.ministerios || []).map(m => `<span class="ministry-tag">${m}</span>`).join('');
+            minDiv.innerHTML = (currentVolunteer.areas || []).map(m => `<span class="ministry-tag">${m}</span>`).join('');
             renderClassifView('view-classificacoes', currentVolunteer.classificacoes || []);
             showViewMode();
         } else {
@@ -624,7 +624,7 @@ function preencherFormulario(v) {
     if (nomeDisplay) nomeDisplay.textContent = v.nome || '';
     const checkboxes = document.querySelectorAll('input[name="ministries"]');
     checkboxes.forEach(cb => {
-        cb.checked = (v.ministerios || []).includes(cb.value);
+        cb.checked = (v.areas || []).includes(cb.value);
     });
     renderClassifChips('classif-checkboxes-vol', v.classificacoes || []);
 }
@@ -687,9 +687,9 @@ function exportarVoluntariosCSV() {
         normalizar(v.nome).includes(termo) ||
         normalizar(v.email).includes(termo) ||
         normalizar(v.telefone).includes(termo) ||
-        (v.ministerios || []).some(m => normalizar(m).includes(termo))
+        (v.areas || []).some(m => normalizar(m).includes(termo))
     );
-    if (filtroArea)      lista = lista.filter(v => (v.ministerios || []).includes(filtroArea));
+    if (filtroArea)      lista = lista.filter(v => (v.areas || []).includes(filtroArea));
     if (filtroMinisterio) lista = lista.filter(v => (v.classificacoes || []).includes(filtroMinisterio));
     if (filtroEscala === 'escalados')     lista = lista.filter(v => v.escalado === true);
     if (filtroEscala === 'nao-escalados') lista = lista.filter(v => v.escalado !== true);
@@ -701,7 +701,7 @@ function exportarVoluntariosCSV() {
         v.telefone || '',
         generoLabel(v.genero),
         formatarData(v.dataNascimento),
-        (v.ministerios || []).join('; '),
+        (v.areas || []).join('; '),
         (v.classificacoes || []).join('; ')
     ]);
     baixarCSVVoluntarios('servos.csv', [cabecalho, ...linhas]);

@@ -9,11 +9,11 @@ import com.servants.dto.SenhaUpdateRequest;
 import com.servants.dto.UsuarioListItemDTO;
 import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.Usuario;
-import com.servants.model.Voluntario;
+import com.servants.model.Servo;
 import com.servants.repository.EscalaAtribuicaoRepository;
 import com.servants.repository.PermissaoTelaRepository;
 import com.servants.repository.UsuarioRepository;
-import com.servants.repository.VoluntarioRepository;
+import com.servants.repository.ServoRepository;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -33,20 +33,20 @@ import java.util.UUID;
 public class UsuarioService {
 
     private final UsuarioRepository usuarioRepository;
-    private final VoluntarioRepository voluntarioRepository;
+    private final ServoRepository servoRepository;
     private final PasswordEncoder passwordEncoder;
     private final PermissaoService permissaoService;
     private final PermissaoTelaRepository permissaoTelaRepository;
     private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
 
     public UsuarioService(UsuarioRepository usuarioRepository,
-                          VoluntarioRepository voluntarioRepository,
+                          ServoRepository servoRepository,
                           PasswordEncoder passwordEncoder,
                           PermissaoService permissaoService,
                           PermissaoTelaRepository permissaoTelaRepository,
                           EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
         this.usuarioRepository = usuarioRepository;
-        this.voluntarioRepository = voluntarioRepository;
+        this.servoRepository = servoRepository;
         this.passwordEncoder = passwordEncoder;
         this.permissaoService = permissaoService;
         this.permissaoTelaRepository = permissaoTelaRepository;
@@ -67,7 +67,7 @@ public class UsuarioService {
 
     /**
      * Cadastra um novo usuário (com senha em hash BCrypt e papel VOLUNTARIO) e cria
-     * automaticamente o perfil de {@link Voluntario} correspondente, se ainda não existir.
+     * automaticamente o perfil de {@link Servo} correspondente, se ainda não existir.
      *
      * @param request dados de cadastro (nome, e-mail e senha).
      * @return o usuário recém-criado.
@@ -89,7 +89,7 @@ public class UsuarioService {
         usuario.setVersaoPolitica("1.0");
         usuario.setIpConsentimento(ip);
 
-        usuario.setVoluntario(criarServoParaCadastro(request));
+        usuario.setServo(criarServoParaCadastro(request));
         usuarioRepository.save(usuario);
 
         return usuario;
@@ -102,9 +102,9 @@ public class UsuarioService {
      * @param request dados de cadastro com campos pessoais obrigatórios.
      * @return o servo persistido pronto para ser vinculado à conta.
      */
-    private Voluntario criarServoParaCadastro(CadastroRequest request) {
-        Voluntario servo = voluntarioRepository.findByEmail(request.email())
-                .orElseGet(Voluntario::new);
+    private Servo criarServoParaCadastro(CadastroRequest request) {
+        Servo servo = servoRepository.findByEmail(request.email())
+                .orElseGet(Servo::new);
         servo.setNome(request.nome());
         servo.setEmail(request.email());
         servo.setTelefone(request.telefone());
@@ -116,7 +116,7 @@ public class UsuarioService {
             throw new IllegalArgumentException("A data de nascimento não pode ser uma data futura.");
         }
         servo.setDataNascimento(nascimento);
-        return voluntarioRepository.save(servo);
+        return servoRepository.save(servo);
     }
 
     /**
@@ -126,40 +126,40 @@ public class UsuarioService {
      * @param usuario o usuário.
      * @return o servo vinculado/associado, ou {@code null}.
      */
-    private Voluntario resolverVoluntario(Usuario usuario) {
-        if (usuario.getVoluntario() != null) return usuario.getVoluntario();
-        return voluntarioRepository.findByEmail(usuario.getEmail()).orElse(null);
+    private Servo resolverServo(Usuario usuario) {
+        if (usuario.getServo() != null) return usuario.getServo();
+        return servoRepository.findByEmail(usuario.getEmail()).orElse(null);
     }
 
     /**
      * Vincula (ou desvincula) um servo a uma conta de usuário. Usado pelo admin.
      *
      * @param usuarioId    id do usuário.
-     * @param voluntarioId id do servo a vincular; {@code null} desvincula.
+     * @param servoId id do servo a vincular; {@code null} desvincula.
      * @throws ResourceNotFoundException se o usuário ou o servo não existirem.
      * @throws IllegalArgumentException  se o servo já estiver vinculado a outra conta.
      */
     @Transactional
-    public void vincularServo(Long usuarioId, Long voluntarioId) {
+    public void vincularServo(Long usuarioId, Long servoId) {
         Usuario usuario = usuarioRepository.findById(usuarioId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + usuarioId));
 
-        if (voluntarioId == null) {
-            usuario.setVoluntario(null);
+        if (servoId == null) {
+            usuario.setServo(null);
             usuarioRepository.save(usuario);
             return;
         }
 
-        Voluntario voluntario = voluntarioRepository.findById(voluntarioId)
-                .orElseThrow(() -> new ResourceNotFoundException("Servo não encontrado com ID: " + voluntarioId));
+        Servo servo = servoRepository.findById(servoId)
+                .orElseThrow(() -> new ResourceNotFoundException("Servo não encontrado com ID: " + servoId));
 
-        usuarioRepository.findByVoluntarioId(voluntarioId).ifPresent(outro -> {
+        usuarioRepository.findByServoId(servoId).ifPresent(outro -> {
             if (!outro.getId().equals(usuarioId)) {
                 throw new IllegalArgumentException("Este servo já está vinculado a outro usuário.");
             }
         });
 
-        usuario.setVoluntario(voluntario);
+        usuario.setServo(servo);
         usuarioRepository.save(usuario);
     }
 
@@ -189,7 +189,7 @@ public class UsuarioService {
     public List<UsuarioListItemDTO> listarTodos() {
         List<UsuarioListItemDTO> lista = new ArrayList<>();
         for (Usuario u : usuarioRepository.findAll()) {
-            Voluntario v = resolverVoluntario(u);
+            Servo v = resolverServo(u);
             lista.add(new UsuarioListItemDTO(
                     u.getId(), u.getNome(), u.getEmail(), u.getRole(), u.getFoto(),
                     permissaoService.listarDTO(u.getId()),
@@ -210,23 +210,23 @@ public class UsuarioService {
         Usuario usuario = usuarioRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado com ID: " + id));
 
-        Voluntario voluntario = resolverVoluntario(usuario);
-        String telefone = voluntario != null ? voluntario.getTelefone() : null;
-        String genero = voluntario != null ? voluntario.getGenero() : null;
-        String nascimento = (voluntario != null && voluntario.getDataNascimento() != null)
-                ? voluntario.getDataNascimento().toString() : null;
+        Servo servo = resolverServo(usuario);
+        String telefone = servo != null ? servo.getTelefone() : null;
+        String genero = servo != null ? servo.getGenero() : null;
+        String nascimento = (servo != null && servo.getDataNascimento() != null)
+                ? servo.getDataNascimento().toString() : null;
 
         return new PerfilDTO(
                 usuario.getId(), usuario.getNome(), usuario.getEmail(), usuario.getRole(),
                 usuario.getFoto(), telefone, genero, nascimento,
                 permissaoService.listarDTO(usuario.getId()),
-                voluntario != null ? voluntario.getId() : null,
-                voluntario != null ? voluntario.getNome() : null);
+                servo != null ? servo.getId() : null,
+                servo != null ? servo.getNome() : null);
     }
 
     /**
      * Atualiza o perfil do próprio usuário: nome e foto no {@link Usuario}, e
-     * nome/telefone/gênero/nascimento no {@link Voluntario} vinculado por e-mail
+     * nome/telefone/gênero/nascimento no {@link Servo} vinculado por e-mail
      * (criando o voluntário se ainda não existir).
      *
      * @param id      id do usuário.
@@ -256,23 +256,23 @@ public class UsuarioService {
 
         // Admin não tem servo vinculado por design — não criar automaticamente
         if (!"ADMIN".equals(usuario.getRole())) {
-            Voluntario voluntario = usuario.getVoluntario();
-            if (voluntario == null) {
-                voluntario = voluntarioRepository.findByEmail(usuario.getEmail())
+            Servo servo = usuario.getServo();
+            if (servo == null) {
+                servo = servoRepository.findByEmail(usuario.getEmail())
                         .orElseGet(() -> {
-                            Voluntario v = new Voluntario();
+                            Servo v = new Servo();
                             v.setEmail(usuario.getEmail());
                             return v;
                         });
             }
-            voluntario.setNome(request.nome());
-            voluntario.setTelefone(request.telefone());
-            voluntario.setGenero(request.genero());
-            voluntario.setDataNascimento(parseData(request.dataNascimento()));
-            voluntarioRepository.save(voluntario);
+            servo.setNome(request.nome());
+            servo.setTelefone(request.telefone());
+            servo.setGenero(request.genero());
+            servo.setDataNascimento(parseData(request.dataNascimento()));
+            servoRepository.save(servo);
 
-            if (usuario.getVoluntario() == null) {
-                usuario.setVoluntario(voluntario);
+            if (usuario.getServo() == null) {
+                usuario.setServo(servo);
                 usuarioRepository.save(usuario);
             }
         }
@@ -356,12 +356,12 @@ public class UsuarioService {
             throw new IllegalArgumentException("Sem permissão para excluir esta conta.");
         }
 
-        Voluntario voluntario = resolverVoluntario(usuario);
-        boolean temHistorico = voluntario != null
-                && escalaAtribuicaoRepository.findDistinctVoluntarioIds().contains(voluntario.getId());
+        Servo servo = resolverServo(usuario);
+        boolean temHistorico = servo != null
+                && escalaAtribuicaoRepository.findDistinctServoIds().contains(servo.getId());
 
         permissaoTelaRepository.deleteByUsuarioId(id);
-        usuario.setVoluntario(null);
+        usuario.setServo(null);
         usuarioRepository.save(usuario);
 
         if (temHistorico) {
@@ -376,16 +376,16 @@ public class UsuarioService {
             usuario.setIpConsentimento(null);
             usuarioRepository.save(usuario);
 
-            voluntario.setNome("Servo Anônimo");
-            voluntario.setEmail(null);
-            voluntario.setTelefone(null);
-            voluntario.setGenero(null);
-            voluntario.setDataNascimento(null);
-            voluntarioRepository.save(voluntario);
+            servo.setNome("Servo Anônimo");
+            servo.setEmail(null);
+            servo.setTelefone(null);
+            servo.setGenero(null);
+            servo.setDataNascimento(null);
+            servoRepository.save(servo);
         } else {
-            if (voluntario != null) {
-                escalaAtribuicaoRepository.deleteByVoluntarioId(voluntario.getId());
-                voluntarioRepository.delete(voluntario);
+            if (servo != null) {
+                escalaAtribuicaoRepository.deleteByServoId(servo.getId());
+                servoRepository.delete(servo);
             }
             usuarioRepository.delete(usuario);
         }

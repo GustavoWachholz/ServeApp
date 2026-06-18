@@ -81,7 +81,7 @@ public class UsuarioController {
                                               @RequestBody VincularServoRequest body,
                                               HttpServletRequest request) {
         if (!isAdmin(request)) return ResponseEntity.status(403).build();
-        usuarioService.vincularServo(id, body.voluntarioId());
+        usuarioService.vincularServo(id, body.servoId());
         return ResponseEntity.noContent().build();
     }
 

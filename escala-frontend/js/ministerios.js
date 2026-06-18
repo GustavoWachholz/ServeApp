@@ -11,9 +11,9 @@ function esc(s) {
 }
 
 /** URL da API de ministérios. */
-const MINISTERIOS_API_URL = '/api/ministerios';
+const MINISTERIOS_API_URL = '/api/areas';
 /** URL da API de voluntários (para popular os selects de líder/co-líder). */
-const VOLUNTARIOS_API_URL = '/api/voluntarios';
+const VOLUNTARIOS_API_URL = '/api/servos';
 
 /** Classificações (ministérios, na UI) carregadas dinamicamente do backend. */
 let classificacoesDisponiveis = [];
@@ -398,7 +398,6 @@ function initModalEvents() {
             nome: document.getElementById('nome').value,
             tipo: tipoSelecionado,
             exclusivoNaEscala: document.getElementById('exclusivoNaEscala').checked,
-            classificacoes: getClassificacoesSelecionadas('classif-checkboxes-min'),
             liderId: document.getElementById('liderId').value || null,
             coliderId: document.getElementById('coliderId').value || null
         };
@@ -481,7 +480,6 @@ function renderViewMode(m) {
     document.getElementById('view-nome').textContent = m.nome;
     document.getElementById('view-tipo').textContent = m.tipo === 'GERAL' ? 'Geral' : 'Específico';
     document.getElementById('view-exclusivo').textContent = m.exclusivoNaEscala ? 'Sim' : 'Não';
-    renderClassifView('view-classificacoes', m.classificacoes || []);
     document.getElementById('view-lider').textContent = resolveName(m, 'lider') || 'Nenhum';
     document.getElementById('view-colider').textContent = resolveName(m, 'colider') || 'Nenhum';
     const list = document.getElementById('view-membros-list');
@@ -544,9 +542,6 @@ function fillForm(m) {
     excToggle.checked = m.exclusivoNaEscala !== false; // default true
     document.getElementById('exclusivo-label').textContent = excToggle.checked ? 'Sim' : 'Não';
 
-    // Classificações
-    renderClassifChips('classif-checkboxes-min', m.classificacoes || []);
-
     // Tenta obter o ID do líder de várias formas
     const lidId   = m.liderId   || (m.lider   ? (m.lider.id   || m.lider._id)   : '');
     const colidId = m.coliderId || (m.colider  ? (m.colider.id || m.colider._id) : '');
@@ -606,14 +601,13 @@ function exportarMinisteriosCSV() {
         Auth.toast('Nenhum dado disponível para exportar.', 'warning');
         return;
     }
-    const cabecalho = ['Nome', 'Tipo', 'Exclusivo', 'Líder', 'Co-líder', 'Classificações'];
+    const cabecalho = ['Nome', 'Tipo', 'Exclusivo', 'Líder', 'Co-líder'];
     const linhas = ministeriosGlobal.map(m => [
         m.nome || '',
         m.tipo === 'GERAL' ? 'Geral' : 'Específico',
         m.exclusivoNaEscala ? 'Sim' : 'Não',
         resolveName(m, 'lider') || '',
-        resolveName(m, 'colider') || '',
-        (m.classificacoes || []).join('; ')
+        resolveName(m, 'colider') || ''
     ]);
     baixarCSV('ministerios.csv', [cabecalho, ...linhas]);
 }

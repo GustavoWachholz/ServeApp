@@ -3,27 +3,25 @@ package com.servants.dto;
 import java.util.List;
 
 /**
- * DTO de transporte de um ministério (área) entre backend e frontend.
+ * DTO de transporte de uma configuração de escala (na UI, um "Ministério") com
+ * todos os dados de identidade visual e as áreas associadas.
  *
- * @param exclusivoNaEscala se {@code true}, o voluntário aqui não acumula com outra área exclusiva.
- * @param classificacoes    classificações (ministérios, na UI) às quais a área pertence.
- * @param liderId           identificador do líder (pode ser {@code null}).
- * @param liderNome         nome do líder (pode ser {@code null}).
- * @param coLiderId         identificador do co-líder (pode ser {@code null}).
- * @param coLiderNome       nome do co-líder (pode ser {@code null}).
- * @param id                identificador do ministério.
- * @param nome              nome do ministério (área).
- * @param tipo              tipo do ministério ("GERAL" ou "ESPECIFICO").
+ * @param id              identificador da configuração.
+ * @param classificacao   chave única da classificação (ex.: "ATITUDE").
+ * @param nome            nome de exibição.
+ * @param titulo          título usado no calendário e na imagem.
+ * @param nomeOrganizacao nome da organização (título principal da imagem).
+ * @param nomeSetor       nome do setor (subtítulo da imagem).
+ * @param cor             cor principal (hex) da imagem.
+ * @param areas     ministérios (áreas) exibidos como colunas na imagem.
  */
 public record MinisterioDTO(
     Long id,
+    String classificacao,
     String nome,
-    String tipo,
-    boolean exclusivoNaEscala,
-    List<String> classificacoes,
-    Long liderId,
-    String liderNome,
-    Long coLiderId,
-    String coLiderNome
-) {
-}
+    String titulo,
+    String nomeOrganizacao,
+    String nomeSetor,
+    String cor,
+    List<AreaDTO> areas
+) {}

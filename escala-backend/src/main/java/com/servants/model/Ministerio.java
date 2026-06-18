@@ -3,173 +3,98 @@ package com.servants.model;
 import jakarta.persistence.*;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Objects;
 
 /**
- * Entidade JPA que representa um ministério — chamado de "Área" na interface atual.
+ * Entidade JPA que armazena a configuração visual e de ministérios (áreas) para
+ * cada classificação de escala (na interface, cada registro é um "Ministério":
+ * ATITUDE, BEONE, KIDS, EVENTOS, BASE, etc.).
  *
- * <p>Mapeada para a tabela {@code ministerios}. Define a função/área em que um
- * voluntário pode servir (ex.: Louvor, Recepção, Mídia), seus líderes e as
- * classificações de culto/evento às quais pertence.</p>
+ * <p>Mapeada para a tabela {@code ministerios}. Determina como a imagem
+ * exportada da escala é renderizada — cores, títulos e quais áreas viram colunas.</p>
  */
 @Entity
 @Table(name = "ministerios")
 public class Ministerio {
 
-    /** Identificador único, gerado automaticamente pelo banco. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    /** Nome do ministério/área. Obrigatório e único. */
+    /** Classificação do culto/evento. Chave única gerada a partir do nome. Ex.: "ATITUDE", "CULTO_GERAL". */
     @Column(nullable = false, unique = true)
+    private String classificacao;
+
+    /** Nome de exibição cadastrado pelo usuário. Ex.: "Atitude", "Culto Geral". */
+    @Column(nullable = false)
     private String nome;
 
+    /** Título usado no calendário e na imagem exportada. Ex.: "Culto Atitude". */
+    private String titulo;
+
+    /** Nome da organização — aparece como título principal na imagem. Ex.: "Igreja Batista Atitude". */
+    @Column(name = "nome_organizacao")
+    private String nomeOrganizacao;
+
     /**
-     * Tipo do ministério:
-     * <ul>
-     *   <li>{@code GERAL} – qualquer voluntário pode ser escalado; NÃO aparece no cadastro do voluntário.</li>
-     *   <li>{@code ESPECIFICO} – apenas voluntários com este ministério no perfil podem ser escalados.</li>
-     * </ul>
-     * Valor padrão: {@code ESPECIFICO}.
+     * Nome do setor — aparece como subtítulo na imagem; diferente por classificação.
+     * Ex.: "CULTO ATITUDE", "MINISTÉRIO DE JOVENS BEONE".
      */
+    @Column(name = "nome_setor")
+    private String nomeSetor;
+
+    /** Cor principal (hex) usada no cabeçalho e acentos da imagem. Ex.: "#004b87". */
     @Column(nullable = false)
-    private String tipo = "ESPECIFICO";
+    private String cor;
 
-    /**
-     * Quando {@code true}, o voluntário escalado aqui NÃO pode ser escalado em outro
-     * ministério exclusivo no mesmo evento (ex.: Mesa não acumula com Recepção).
-     * Valor padrão: {@code true}.
-     */
-    @Column(name = "exclusivo_na_escala", nullable = false)
-    private boolean exclusivoNaEscala = true;
-
-    /**
-     * Classificações de culto/evento às quais este ministério pertence
-     * (ex.: ATITUDE, BEONE, KIDS, EVENTOS, BASE). Persistido na tabela
-     * de coleção {@code ministerio_classificacoes}.
-     */
-    @ElementCollection
-    @CollectionTable(name = "ministerio_classificacoes", joinColumns = @JoinColumn(name = "ministerio_id"))
-    @Column(name = "classificacao")
-    private List<String> classificacoes = new ArrayList<>();
-
-    /** Voluntário líder do ministério (opcional). */
-    @ManyToOne
-    @JoinColumn(name = "lider_id")
-    private Voluntario lider;
-
-    /** Voluntário co-líder do ministério (opcional). */
-    @ManyToOne
-    @JoinColumn(name = "colider_id")
-    private Voluntario coLider;
+    /** Áreas que aparecem como colunas na imagem deste ministério. */
+    @ManyToMany
+    @JoinTable(
+        name = "ministerio_areas",
+        joinColumns = @JoinColumn(name = "ministerio_id"),
+        inverseJoinColumns = @JoinColumn(name = "area_id")
+    )
+    private List<Area> areas = new ArrayList<>();
 
     /** Construtor padrão exigido pelo JPA. */
-    public Ministerio() {
-    }
+    public Ministerio() {}
 
-    /**
-     * Construtor de conveniência usado para montar referências mínimas (ex.: em DTOs).
-     *
-     * @param id   identificador do ministério.
-     * @param nome nome do ministério.
-     */
-    public Ministerio(Long id, String nome) {
-        this.id = id;
-        this.nome = nome;
-    }
+    /** @return o identificador único da configuração. */
+    public Long getId() { return id; }
+    /** @param id define o identificador único da configuração. */
+    public void setId(Long id) { this.id = id; }
 
-    /** @return o identificador único do ministério. */
-    public Long getId() {
-        return id;
-    }
+    /** @return a chave única da classificação (ex.: "ATITUDE"). */
+    public String getClassificacao() { return classificacao; }
+    /** @param classificacao define a chave única da classificação. */
+    public void setClassificacao(String classificacao) { this.classificacao = classificacao; }
 
-    /** @param id define o identificador único do ministério. */
-    public void setId(Long id) {
-        this.id = id;
-    }
+    /** @return o nome de exibição cadastrado pelo usuário. */
+    public String getNome() { return nome; }
+    /** @param nome define o nome de exibição. */
+    public void setNome(String nome) { this.nome = nome; }
 
-    /** @return o nome do ministério/área. */
-    public String getNome() {
-        return nome;
-    }
+    /** @return o título usado no calendário e na imagem. */
+    public String getTitulo() { return titulo; }
+    /** @param titulo define o título usado no calendário e na imagem. */
+    public void setTitulo(String titulo) { this.titulo = titulo; }
 
-    /** @param nome define o nome do ministério/área. */
-    public void setNome(String nome) {
-        this.nome = nome;
-    }
+    /** @return o nome da organização (título principal da imagem). */
+    public String getNomeOrganizacao() { return nomeOrganizacao; }
+    /** @param nomeOrganizacao define o nome da organização. */
+    public void setNomeOrganizacao(String nomeOrganizacao) { this.nomeOrganizacao = nomeOrganizacao; }
 
-    /** @return o voluntário líder (pode ser {@code null}). */
-    public Voluntario getLider() {
-        return lider;
-    }
+    /** @return o nome do setor (subtítulo da imagem). */
+    public String getNomeSetor() { return nomeSetor; }
+    /** @param nomeSetor define o nome do setor. */
+    public void setNomeSetor(String nomeSetor) { this.nomeSetor = nomeSetor; }
 
-    /** @param lider define o voluntário líder. */
-    public void setLider(Voluntario lider) {
-        this.lider = lider;
-    }
+    /** @return a cor principal (hex) da imagem. */
+    public String getCor() { return cor; }
+    /** @param cor define a cor principal (hex) da imagem. */
+    public void setCor(String cor) { this.cor = cor; }
 
-    /** @return o voluntário co-líder (pode ser {@code null}). */
-    public Voluntario getCoLider() {
-        return coLider;
-    }
-
-    /** @param coLider define o voluntário co-líder. */
-    public void setCoLider(Voluntario coLider) {
-        this.coLider = coLider;
-    }
-
-    /** @return o tipo do ministério ("GERAL" ou "ESPECIFICO"). */
-    public String getTipo() {
-        return tipo;
-    }
-
-    /** @param tipo define o tipo do ministério ("GERAL" ou "ESPECIFICO"). */
-    public void setTipo(String tipo) {
-        this.tipo = tipo;
-    }
-
-    /** @return {@code true} se o ministério é exclusivo na escala. */
-    public boolean isExclusivoNaEscala() {
-        return exclusivoNaEscala;
-    }
-
-    /** @param exclusivoNaEscala define se o ministério é exclusivo na escala. */
-    public void setExclusivoNaEscala(boolean exclusivoNaEscala) {
-        this.exclusivoNaEscala = exclusivoNaEscala;
-    }
-
-    /** @return a lista de classificações às quais o ministério pertence. */
-    public List<String> getClassificacoes() {
-        return classificacoes;
-    }
-
-    /**
-     * Define as classificações do ministério, normalizando {@code null} para lista vazia.
-     *
-     * @param classificacoes lista de classificações (pode ser {@code null}).
-     */
-    public void setClassificacoes(List<String> classificacoes) {
-        this.classificacoes = classificacoes != null ? classificacoes : new ArrayList<>();
-    }
-
-    /**
-     * Igualdade baseada exclusivamente no {@link #id} (identidade de entidade JPA).
-     *
-     * @param o objeto a comparar.
-     * @return {@code true} se for a mesma instância ou tiver o mesmo id não-nulo.
-     */
-    @Override
-    public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        Ministerio that = (Ministerio) o;
-        return Objects.equals(id, that.id);
-    }
-
-    /** @return hash code derivado do {@link #id}. */
-    @Override
-    public int hashCode() {
-        return Objects.hashCode(id);
-    }
+    /** @return os ministérios (áreas) que viram colunas na imagem. */
+    public List<Area> getAreas() { return areas; }
+    /** @param areas define os ministérios (áreas) que viram colunas. */
+    public void setAreas(List<Area> areas) { this.areas = areas; }
 }

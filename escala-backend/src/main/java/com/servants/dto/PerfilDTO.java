@@ -7,7 +7,7 @@ import java.util.List;
  * (tela "Usuários") quanto na carga da própria tela "Meu Perfil".
  *
  * <p>Junta dados da conta ({@link com.servants.model.Usuario}) com os dados pessoais
- * do {@link com.servants.model.Voluntario} vinculado por e-mail.</p>
+ * do {@link com.servants.model.Servo} vinculado por e-mail.</p>
  *
  * @param id             identificador do usuário.
  * @param nome           nome de exibição.
@@ -18,10 +18,10 @@ import java.util.List;
  * @param genero         gênero do voluntário vinculado, ou {@code null}.
  * @param dataNascimento data de nascimento (ISO {@code yyyy-MM-dd}), ou {@code null}.
  * @param permissoes     permissões por tela do usuário.
- * @param voluntarioId   id do servo vinculado, ou {@code null} se não houver vínculo.
- * @param voluntarioNome nome do servo vinculado, ou {@code null}.
+ * @param servoId   id do servo vinculado, ou {@code null} se não houver vínculo.
+ * @param servoNome nome do servo vinculado, ou {@code null}.
  */
 public record PerfilDTO(Long id, String nome, String email, String role, String foto,
                         String telefone, String genero, String dataNascimento,
                         List<PermissaoDTO> permissoes,
-                        Long voluntarioId, String voluntarioNome) {}
+                        Long servoId, String servoNome) {}

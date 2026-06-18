@@ -21,9 +21,9 @@ public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuic
      * Remove todas as atribuições de um voluntário (usado antes de excluir o
      * voluntário, para respeitar as FK constraints).
      *
-     * @param voluntarioId identificador do voluntário.
+     * @param servoId identificador do voluntário.
      */
-    void deleteByVoluntarioId(Long voluntarioId);
+    void deleteByServoId(Long servoId);
 
     /**
      * Renomeia a função (área) em todas as atribuições — usado para propagar a
@@ -42,22 +42,22 @@ public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuic
      *
      * @return lista de IDs de voluntários escalados via atribuição.
      */
-    @Query("SELECT DISTINCT ea.voluntario.id FROM EscalaAtribuicao ea")
-    List<Long> findDistinctVoluntarioIds();
+    @Query("SELECT DISTINCT ea.servo.id FROM EscalaAtribuicao ea")
+    List<Long> findDistinctServoIds();
 
     /**
      * Retorna as atribuições futuras de um voluntário, ordenadas cronologicamente.
      * Usado para popular a seção "Minhas Escalas" no dashboard.
      *
-     * @param voluntarioId identificador do voluntário.
+     * @param servoId identificador do voluntário.
      * @param agora        data/hora de corte (inclusiva).
      * @return lista de atribuições futuras com a escala já carregada via JOIN FETCH.
      */
     @Query("SELECT ea FROM EscalaAtribuicao ea JOIN FETCH ea.escala " +
-           "WHERE ea.voluntario.id = :voluntarioId AND ea.escala.dataEscala >= :agora " +
+           "WHERE ea.servo.id = :servoId AND ea.escala.dataEscala >= :agora " +
            "ORDER BY ea.escala.dataEscala")
-    List<EscalaAtribuicao> findFuturasByVoluntarioId(
-            @Param("voluntarioId") Long voluntarioId,
+    List<EscalaAtribuicao> findFuturasByServoId(
+            @Param("servoId") Long servoId,
             @Param("agora") LocalDateTime agora);
 
     /**
@@ -66,14 +66,14 @@ public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuic
      *
      * @param de  início do intervalo (inclusivo).
      * @param ate fim do intervalo (inclusivo).
-     * @return lista de arrays {@code [voluntarioId, voluntarioNome, count]}.
+     * @return lista de arrays {@code [servoId, servoNome, count]}.
      */
-    @Query("SELECT ea.voluntario.id, ea.voluntario.nome, COUNT(ea) AS total " +
+    @Query("SELECT ea.servo.id, ea.servo.nome, COUNT(ea) AS total " +
            "FROM EscalaAtribuicao ea " +
            "WHERE ea.escala.dataEscala BETWEEN :de AND :ate " +
-           "GROUP BY ea.voluntario.id, ea.voluntario.nome " +
+           "GROUP BY ea.servo.id, ea.servo.nome " +
            "ORDER BY total DESC")
-    List<Object[]> countFrequenciaPorVoluntario(
+    List<Object[]> countFrequenciaPorServo(
             @Param("de") LocalDateTime de,
             @Param("ate") LocalDateTime ate);
 }

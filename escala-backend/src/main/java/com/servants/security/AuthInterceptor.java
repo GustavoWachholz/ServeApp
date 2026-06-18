@@ -117,9 +117,9 @@ public class AuthInterceptor implements HandlerInterceptor {
      */
     private String resolverTela(String path) {
         if (path.startsWith("/api/escalas")) return "AGENDA";
-        if (path.startsWith("/api/voluntarios")) return "SERVOS";
-        if (path.startsWith("/api/configuracao-escala")) return "MINISTERIOS";
-        if (path.startsWith("/api/ministerios")) return "AREAS";
+        if (path.startsWith("/api/servos")) return "SERVOS";
+        if (path.startsWith("/api/ministerios")) return "MINISTERIOS";
+        if (path.startsWith("/api/areas")) return "AREAS";
         return null;
     }
 

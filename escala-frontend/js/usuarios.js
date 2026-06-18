@@ -7,7 +7,7 @@ const TELAS = [
     { key: 'MINISTERIOS', label: 'Ministérios' },
 ];
 
-const VOLUNTARIOS_URL = '/api/voluntarios';
+const VOLUNTARIOS_URL = '/api/servos';
 
 let usuariosCache = [];
 let servosCache = [];
@@ -147,7 +147,7 @@ function preencherModal(perfil) {
         .filter(Boolean).join(' · ');
     document.getElementById('modal-contato').textContent = contato || '';
 
-    popularSelectServos(perfil.voluntarioId);
+    popularSelectServos(perfil.servoId);
 
     const isAdmin = perfil.role === 'ADMIN';
     const btnExcluir = document.getElementById('btn-excluir-usuario');
@@ -257,7 +257,7 @@ async function salvarPermissoes(id) {
     }
 }
 
-function popularSelectServos(voluntarioId) {
+function popularSelectServos(servoId) {
     const sel = document.getElementById('vinculo-servo');
     const ordenados = [...servosCache].sort((a, b) =>
         (a.nome || '').localeCompare(b.nome || '', 'pt-BR'));
@@ -265,17 +265,17 @@ function popularSelectServos(voluntarioId) {
         .concat(ordenados.map(s =>
             `<option value="${s.id}">${escHtml(s.nome)}</option>`));
     sel.innerHTML = opcoes.join('');
-    sel.value = voluntarioId != null ? String(voluntarioId) : '';
+    sel.value = servoId != null ? String(servoId) : '';
 
     const hint = document.getElementById('vinculo-hint');
-    hint.textContent = voluntarioId != null
+    hint.textContent = servoId != null
         ? 'Conta vinculada a um servo. Selecione outro ou "Nenhum" para alterar.'
         : 'Conta sem servo vinculado. Selecione um servo para vincular.';
 }
 
 async function salvarVinculo(id) {
     const sel = document.getElementById('vinculo-servo');
-    const voluntarioId = sel.value ? Number(sel.value) : null;
+    const servoId = sel.value ? Number(sel.value) : null;
 
     const btn = document.getElementById('btn-salvar-vinculo');
     btn.disabled = true;
@@ -287,7 +287,7 @@ async function salvarVinculo(id) {
                 'Content-Type': 'application/json',
                 'Authorization': 'Bearer ' + session.token
             },
-            body: JSON.stringify({ voluntarioId })
+            body: JSON.stringify({ servoId })
         });
         if (res.status === 400) {
             const data = await res.json().catch(() => ({}));

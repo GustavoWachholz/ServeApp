@@ -4,13 +4,13 @@ import com.servants.dto.AniversarianteDTO;
 import com.servants.dto.AvisoDTO;
 import com.servants.dto.DashboardResponse;
 import com.servants.dto.MinhaEscalaDTO;
-import com.servants.model.Ministerio;
+import com.servants.model.Area;
 import com.servants.model.Usuario;
 import com.servants.repository.AvisoRepository;
 import com.servants.repository.EscalaAtribuicaoRepository;
-import com.servants.repository.MinisterioRepository;
+import com.servants.repository.AreaRepository;
 import com.servants.repository.UsuarioRepository;
-import com.servants.repository.VoluntarioRepository;
+import com.servants.repository.ServoRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -31,19 +31,19 @@ import java.util.stream.Collectors;
 public class DashboardService {
 
     private final UsuarioRepository usuarioRepository;
-    private final VoluntarioRepository voluntarioRepository;
-    private final MinisterioRepository ministerioRepository;
+    private final ServoRepository servoRepository;
+    private final AreaRepository areaRepository;
     private final AvisoRepository avisoRepository;
     private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
 
     public DashboardService(UsuarioRepository usuarioRepository,
-                            VoluntarioRepository voluntarioRepository,
-                            MinisterioRepository ministerioRepository,
+                            ServoRepository servoRepository,
+                            AreaRepository areaRepository,
                             AvisoRepository avisoRepository,
                             EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
         this.usuarioRepository = usuarioRepository;
-        this.voluntarioRepository = voluntarioRepository;
-        this.ministerioRepository = ministerioRepository;
+        this.servoRepository = servoRepository;
+        this.areaRepository = areaRepository;
         this.avisoRepository = avisoRepository;
         this.escalaAtribuicaoRepository = escalaAtribuicaoRepository;
     }
@@ -66,8 +66,8 @@ public class DashboardService {
         String tema = usuario.getTema();
         String corPrimaria = usuario.getCorPrimaria();
 
-        List<String> ministerios = ministerioRepository.findAll().stream()
-                .map(Ministerio::getNome)
+        List<String> areas = areaRepository.findAll().stream()
+                .map(Area::getNome)
                 .collect(Collectors.toList());
 
         List<AvisoDTO> avisos = avisoRepository
@@ -78,9 +78,9 @@ public class DashboardService {
 
         List<MinhaEscalaDTO> minhasEscalas = new ArrayList<>();
         if (usuario.getEmail() != null) {
-            voluntarioRepository.findByEmail(usuario.getEmail()).ifPresent(voluntario ->
+            servoRepository.findByEmail(usuario.getEmail()).ifPresent(servo ->
                     escalaAtribuicaoRepository
-                            .findFuturasByVoluntarioId(voluntario.getId(), LocalDateTime.now())
+                            .findFuturasByServoId(servo.getId(), LocalDateTime.now())
                             .stream()
                             .limit(10)
                             .forEach(ea -> minhasEscalas.add(new MinhaEscalaDTO(
@@ -95,13 +95,13 @@ public class DashboardService {
         int mesAtual = LocalDate.now().getMonthValue();
         DateTimeFormatter formatter = DateTimeFormatter.ofPattern("dd 'de' MMMM", new Locale("pt", "BR"));
 
-        List<AniversarianteDTO> aniversariantes = voluntarioRepository.findAll().stream()
+        List<AniversarianteDTO> aniversariantes = servoRepository.findAll().stream()
                 .filter(v -> v.getDataNascimento() != null && v.getDataNascimento().getMonthValue() == mesAtual)
                 .sorted(Comparator.comparingInt(v -> v.getDataNascimento().getDayOfMonth()))
                 .map(v -> new AniversarianteDTO(v.getNome(), v.getDataNascimento().format(formatter)))
                 .collect(Collectors.toList());
 
         return new DashboardResponse(
-                nomeUsuario, ministerios, avisos, minhasEscalas, aniversariantes, tema, corPrimaria);
+                nomeUsuario, areas, avisos, minhasEscalas, aniversariantes, tema, corPrimaria);
     }
 }

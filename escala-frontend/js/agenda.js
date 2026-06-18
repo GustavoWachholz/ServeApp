@@ -16,7 +16,7 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 /** URL da API de escalas. */
 const ESCALAS_API_URL = '/api/escalas';
 /** URL da API de configurações de escala (classificações). */
-const CONFIG_ESCALA_API_URL = '/api/configuracao-escala';
+const CONFIG_ESCALA_API_URL = '/api/ministerios';
 /** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis = [];
 /** Instância do FullCalendar. */
@@ -83,7 +83,7 @@ function popularSelectClassificacao() {
 function carregarVoluntariosParaEscala() {
     return __awaiter(this, void 0, void 0, function* () {
         try {
-            const response = yield fetch('/api/voluntarios');
+            const response = yield fetch('/api/servos');
             if (response.ok) {
                 listaVoluntarios = yield response.json();
             }
@@ -99,7 +99,7 @@ function carregarVoluntariosParaEscala() {
 }
 /**
  * Retorna um mapa de voluntários já escalados no Modal (Step 2)
- * @returns {Record<string, string[]>} { voluntarioId: [funcao1, funcao2, ...] }
+ * @returns {Record<string, string[]>} { servoId: [funcao1, funcao2, ...] }
  */
 function obterVoluntariosJaEscalados() {
     const escalados = {};
@@ -167,7 +167,7 @@ function initAutocomplete() {
                 return;
             // Só voluntários vinculados ao ministério específico
             if (tipoMinisterio === 'ESPECIFICO') {
-                if (!((_d = v.ministerios) === null || _d === void 0 ? void 0 : _d.includes(funcaoAtual)))
+                if (!((_d = v.areas) === null || _d === void 0 ? void 0 : _d.includes(funcaoAtual)))
                     return;
             }
             const funcoesDoVoluntario = jaEscalados[id] || [];
@@ -294,7 +294,7 @@ function marcarTagSeInelegivel(tag, volId, box, classificacao) {
     if (classificacao && !(vol.classificacoes || []).includes(classificacao)) {
         motivos.push('não atua neste ministério');
     }
-    if (tipo === 'ESPECIFICO' && !(vol.ministerios || []).includes(funcao)) {
+    if (tipo === 'ESPECIFICO' && !(vol.areas || []).includes(funcao)) {
         motivos.push('não está mais vinculado a esta área');
     }
     if (motivos.length > 0) {
@@ -390,17 +390,17 @@ function initModalControls() {
         btnIrEscala.disabled = true;
         btnIrEscala.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
         const config = yield carregarConfigEscala(selectClass.value);
-        gerarGridMinisterios((config === null || config === void 0 ? void 0 : config.ministerios) || []);
+        gerarGridMinisterios((config === null || config === void 0 ? void 0 : config.areas) || []);
         // Preenche atribuições pré-carregadas (edição de evento existente)
         atribuicoesParaCarregar.forEach(atrib => {
             const box = document.querySelector(`.ministerio-box[data-funcao="${atrib.funcao}"]`);
             if (box) {
                 const lista = box.querySelector('.voluntarios-list');
-                adicionarTagVoluntario(lista, atrib.voluntarioId.toString(), atrib.voluntarioNome || `Voluntário ${atrib.voluntarioId}`);
+                adicionarTagVoluntario(lista, atrib.servoId.toString(), atrib.servoNome || `Voluntário ${atrib.servoId}`);
                 // Sinaliza visualmente se o servo deixou de ser elegível desde a criação
-                const tag = lista.querySelector(`[data-id="${atrib.voluntarioId}"]`);
+                const tag = lista.querySelector(`[data-id="${atrib.servoId}"]`);
                 if (tag)
-                    marcarTagSeInelegivel(tag, atrib.voluntarioId.toString(), box, selectClass.value);
+                    marcarTagSeInelegivel(tag, atrib.servoId.toString(), box, selectClass.value);
             }
         });
         atribuicoesParaCarregar = [];
@@ -454,7 +454,7 @@ function initModalControls() {
                 const cor = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.cor) || '#004b87';
                 const nomeOrg = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.nomeOrganizacao) || '';
                 const nomeSetor = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.nomeSetor) || selectClass.value;
-                const ministerios = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.ministerios) || [];
+                const ministerios = (configAtual === null || configAtual === void 0 ? void 0 : configAtual.areas) || [];
                 // ── Preenche o cabeçalho ──
                 exportHeader.style.background = cor;
                 exportOrg.textContent = nomeOrg.toUpperCase();
@@ -631,7 +631,7 @@ function salvarEscala() {
                     tags.forEach(tag => {
                         const volId = tag.getAttribute('data-id');
                         if (volId)
-                            atribuicoes.push({ voluntarioId: parseInt(volId), funcao });
+                            atribuicoes.push({ servoId: parseInt(volId), funcao });
                     });
                 }
             });

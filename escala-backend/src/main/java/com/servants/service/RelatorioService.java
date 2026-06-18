@@ -28,13 +28,13 @@ public class RelatorioService {
      *
      * @param de  data de início do período (inclusiva).
      * @param ate data de fim do período (inclusiva, até 23:59:59).
-     * @return lista de DTOs com voluntarioId, nome e total de escalações.
+     * @return lista de DTOs com servoId, nome e total de escalações.
      */
     @Transactional(readOnly = true)
-    public List<FrequenciaDTO> frequenciaPorVoluntario(LocalDate de, LocalDate ate) {
+    public List<FrequenciaDTO> frequenciaPorServo(LocalDate de, LocalDate ate) {
         LocalDateTime inicio = de.atStartOfDay();
         LocalDateTime fim = ate.atTime(23, 59, 59);
-        return atribuicaoRepository.countFrequenciaPorVoluntario(inicio, fim)
+        return atribuicaoRepository.countFrequenciaPorServo(inicio, fim)
                 .stream()
                 .map(row -> new FrequenciaDTO(
                         ((Number) row[0]).longValue(),

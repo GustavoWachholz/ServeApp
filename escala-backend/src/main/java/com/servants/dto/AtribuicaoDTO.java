@@ -7,9 +7,9 @@ package com.servants.dto;
  */
 public class AtribuicaoDTO {
     /** Identificador do voluntário atribuído. */
-    private Long voluntarioId;
+    private Long servoId;
     /** Nome do voluntário (preenchido na resposta; opcional na requisição). */
-    private String voluntarioNome;
+    private String servoNome;
     /** Nome da função/área em que o voluntário foi escalado. */
     private String funcao;
 
@@ -19,34 +19,34 @@ public class AtribuicaoDTO {
     /**
      * Cria uma atribuição com todos os campos preenchidos.
      *
-     * @param voluntarioId   identificador do voluntário.
-     * @param voluntarioNome nome do voluntário.
+     * @param servoId   identificador do voluntário.
+     * @param servoNome nome do voluntário.
      * @param funcao         nome da função/área.
      */
-    public AtribuicaoDTO(Long voluntarioId, String voluntarioNome, String funcao) {
-        this.voluntarioId = voluntarioId;
-        this.voluntarioNome = voluntarioNome;
+    public AtribuicaoDTO(Long servoId, String servoNome, String funcao) {
+        this.servoId = servoId;
+        this.servoNome = servoNome;
         this.funcao = funcao;
     }
 
     /** @return o identificador do voluntário. */
-    public Long getVoluntarioId() {
-        return voluntarioId;
+    public Long getServoId() {
+        return servoId;
     }
 
-    /** @param voluntarioId define o identificador do voluntário. */
-    public void setVoluntarioId(Long voluntarioId) {
-        this.voluntarioId = voluntarioId;
+    /** @param servoId define o identificador do voluntário. */
+    public void setServoId(Long servoId) {
+        this.servoId = servoId;
     }
 
     /** @return o nome do voluntário. */
-    public String getVoluntarioNome() {
-        return voluntarioNome;
+    public String getServoNome() {
+        return servoNome;
     }
 
-    /** @param voluntarioNome define o nome do voluntário. */
-    public void setVoluntarioNome(String voluntarioNome) {
-        this.voluntarioNome = voluntarioNome;
+    /** @param servoNome define o nome do voluntário. */
+    public void setServoNome(String servoNome) {
+        this.servoNome = servoNome;
     }
 
     /** @return o nome da função/área. */

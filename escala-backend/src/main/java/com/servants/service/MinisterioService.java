@@ -1,250 +1,234 @@
 package com.servants.service;
 
-import com.servants.dto.MembroDTO;
 import com.servants.dto.MinisterioDTO;
-import com.servants.dto.MinisterioDetalheDTO;
+import com.servants.dto.MinisterioRequest;
+import com.servants.dto.AreaDTO;
 import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.Ministerio;
-import com.servants.model.Voluntario;
-import com.servants.repository.EscalaAtribuicaoRepository;
-import com.servants.repository.EscalaVoluntarioRepository;
+import com.servants.model.Area;
 import com.servants.repository.MinisterioRepository;
-import com.servants.repository.VoluntarioRepository;
+import com.servants.repository.EscalaRepository;
+import com.servants.repository.AreaRepository;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.server.ResponseStatusException;
 
-import java.util.ArrayList;
+import java.text.Normalizer;
 import java.util.List;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 /**
- * Serviço de regras de negócio para ministérios (áreas): CRUD, montagem de
- * detalhes com membros e conversão entre entidade e DTO.
+ * Serviço de gestão das configurações de escala (na UI, "Ministérios"): listagem,
+ * criação com geração de chave única, edição, exclusão (com proteção contra escalas
+ * vinculadas) e conversão para DTO.
  */
 @Service
 public class MinisterioService {
 
-    private final MinisterioRepository ministerioRepository;
-    private final VoluntarioRepository voluntarioRepository;
-    private final EscalaVoluntarioRepository escalaVoluntarioRepository;
-    private final EscalaAtribuicaoRepository escalaAtribuicaoRepository;
+    private final MinisterioRepository configRepo;
+    private final AreaRepository areaRepository;
+    private final EscalaRepository escalaRepository;
 
     /**
      * Injeta os repositórios necessários.
      *
-     * @param ministerioRepository       repositório de ministérios.
-     * @param voluntarioRepository        repositório de voluntários.
-     * @param escalaVoluntarioRepository  repositório de vínculos escala-voluntário (para contagem de escalas).
-     * @param escalaAtribuicaoRepository  repositório de atribuições (para propagar renomeação de área).
+     * @param configRepo            repositório de configurações de escala.
+     * @param areaRepository  repositório de ministérios (áreas).
+     * @param escalaRepository      repositório de escalas (para validar exclusão).
      */
-    public MinisterioService(MinisterioRepository ministerioRepository,
-                             VoluntarioRepository voluntarioRepository,
-                             EscalaVoluntarioRepository escalaVoluntarioRepository,
-                             EscalaAtribuicaoRepository escalaAtribuicaoRepository) {
-        this.ministerioRepository = ministerioRepository;
-        this.voluntarioRepository = voluntarioRepository;
-        this.escalaVoluntarioRepository = escalaVoluntarioRepository;
-        this.escalaAtribuicaoRepository = escalaAtribuicaoRepository;
+    public MinisterioService(MinisterioRepository configRepo,
+                                     AreaRepository areaRepository,
+                                     EscalaRepository escalaRepository) {
+        this.configRepo = configRepo;
+        this.areaRepository = areaRepository;
+        this.escalaRepository = escalaRepository;
     }
 
+    // ── Listar ──────────────────────────────────────────────────────────────
+
     /**
-     * Lista todos os ministérios cadastrados.
+     * Lista todas as configurações de escala cadastradas.
      *
      * @return lista de {@link MinisterioDTO}.
      */
     @Transactional(readOnly = true)
-    public List<MinisterioDTO> listarTodos() {
-        return ministerioRepository.findAll().stream()
-                .map(this::convertToDTO)
+    public List<MinisterioDTO> listarTodas() {
+        return configRepo.findAll().stream()
+                .map(this::toDTO)
                 .collect(Collectors.toList());
     }
 
     /**
-     * Busca um ministério pelo id e monta seu detalhe, incluindo a lista de membros
-     * (voluntários que têm o ministério no perfil) e quantas vezes cada um já foi escalado.
+     * Busca uma configuração pela chave de classificação (ignorando caixa).
      *
-     * @param id identificador do ministério.
-     * @return {@link MinisterioDetalheDTO} com líderes e membros.
-     * @throws ResourceNotFoundException se o ministério não for encontrado.
+     * @param classificacao chave da classificação a procurar.
+     * @return o {@link MinisterioDTO} correspondente.
+     * @throws ResourceNotFoundException se não existir configuração para a chave.
      */
     @Transactional(readOnly = true)
-    public MinisterioDetalheDTO buscarPorId(Long id) {
-        Ministerio ministerio = ministerioRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
-
-        List<MembroDTO> membros = voluntarioRepository.findAll().stream()
-                .filter(v -> v.getMinisterios().contains(ministerio.getNome()))
-                .map(v -> new MembroDTO(
-                        v.getId(),
-                        v.getNome(),
-                        (int) escalaVoluntarioRepository.countByVoluntarioAndMinisterio(v, ministerio)
-                ))
-                .collect(Collectors.toList());
-
-        return new MinisterioDetalheDTO(
-                ministerio.getId(),
-                ministerio.getNome(),
-                ministerio.getTipo(),
-                ministerio.isExclusivoNaEscala(),
-                ministerio.getClassificacoes(),
-                ministerio.getLider() != null ? ministerio.getLider().getId() : null,
-                ministerio.getLider() != null ? ministerio.getLider().getNome() : null,
-                ministerio.getCoLider() != null ? ministerio.getCoLider().getId() : null,
-                ministerio.getCoLider() != null ? ministerio.getCoLider().getNome() : null,
-                membros
-        );
+    public MinisterioDTO buscarPorClassificacao(String classificacao) {
+        return configRepo.findByClassificacaoIgnoreCase(classificacao)
+                .map(this::toDTO)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Classificação não encontrada: " + classificacao));
     }
 
+    // ── Criar ────────────────────────────────────────────────────────────────
+
     /**
-     * Cria um novo ministério a partir do DTO informado.
+     * Cria uma nova configuração de escala. Gera a chave única a partir do nome e
+     * valida que nem a chave nem o nome já existam.
      *
-     * @param dto dados do ministério a criar.
-     * @return o {@link MinisterioDTO} persistido (com id gerado).
+     * @param request dados da nova configuração.
+     * @return o {@link MinisterioDTO} persistido.
+     * @throws ResponseStatusException {@code 400} se o nome estiver em branco;
+     *         {@code 409} se a chave ou o nome já existirem.
      */
     @Transactional
-    public MinisterioDTO criar(MinisterioDTO dto) {
-        Ministerio ministerio = convertToEntity(dto);
-        Ministerio salvo = ministerioRepository.save(ministerio);
-        return convertToDTO(salvo);
+    public MinisterioDTO criar(MinisterioRequest request) {
+        if (request.nome() == null || request.nome().isBlank()) {
+            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "O campo 'nome' é obrigatório.");
+        }
+
+        String key = gerarChave(request.nome());
+
+        if (configRepo.existsByClassificacao(key)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Já existe uma classificação com a chave '" + key + "'.");
+        }
+        if (configRepo.existsByNomeIgnoreCase(request.nome().trim())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Já existe uma classificação com o nome '" + request.nome().trim() + "'.");
+        }
+
+        Ministerio config = new Ministerio();
+        config.setClassificacao(key);
+        aplicarRequest(config, request);
+
+        return toDTO(configRepo.save(config));
     }
 
+    // ── Editar ───────────────────────────────────────────────────────────────
 
     /**
-     * Atualiza um ministério existente com os dados do DTO, resolvendo líder/co-líder
-     * a partir de seus identificadores.
+     * Atualiza uma configuração existente, identificada pela chave de classificação.
+     * A chave em si não é alterada; apenas os demais campos.
      *
-     * @param id  identificador do ministério a atualizar.
-     * @param dto novos dados do ministério.
+     * @param classificacao chave da configuração a editar.
+     * @param request       novos dados da configuração.
      * @return o {@link MinisterioDTO} atualizado.
-     * @throws ResourceNotFoundException se o ministério não for encontrado.
+     * @throws ResourceNotFoundException se não existir configuração para a chave.
      */
     @Transactional
-    public MinisterioDTO atualizar(Long id, MinisterioDTO dto) {
-        Ministerio ministerio = ministerioRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
+    public MinisterioDTO salvar(String classificacao, MinisterioRequest request) {
+        String key = classificacao.toUpperCase();
+        Ministerio config = configRepo.findByClassificacaoIgnoreCase(key)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Classificação não encontrada: " + key));
 
-        String nomeAntigo = ministerio.getNome();
-        String nomeNovo = dto.nome();
+        aplicarRequest(config, request);
+        return toDTO(configRepo.save(config));
+    }
 
-        ministerio.setNome(nomeNovo);
-        ministerio.setTipo(normalizarTipo(dto.tipo()));
-        ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
-        ministerio.setClassificacoes(normalizarClassificacoes(dto.classificacoes()));
-        ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
-        ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
+    // ── Deletar ──────────────────────────────────────────────────────────────
 
-        Ministerio atualizado = ministerioRepository.save(ministerio);
+    /**
+     * Exclui uma configuração de escala, impedindo a operação se houver escalas
+     * vinculadas à mesma classificação.
+     *
+     * @param classificacao chave da configuração a excluir.
+     * @throws ResourceNotFoundException se não existir configuração para a chave.
+     * @throws ResponseStatusException   {@code 409} se houver escalas vinculadas.
+     */
+    @Transactional
+    public void deletar(String classificacao) {
+        String key = classificacao.toUpperCase();
+        Ministerio config = configRepo.findByClassificacaoIgnoreCase(key)
+                .orElseThrow(() -> new ResourceNotFoundException(
+                        "Classificação não encontrada: " + key));
 
-        // Propaga a renomeação para os vínculos por nome (servos e atribuições em escalas)
-        if (nomeAntigo != null && nomeNovo != null && !nomeAntigo.equals(nomeNovo)) {
-            propagarRenomeacaoArea(nomeAntigo, nomeNovo);
+        if (escalaRepository.existsByClassificacao(key)) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Não é possível excluir: existem escalas vinculadas a esta classificação.");
         }
 
-        return convertToDTO(atualizado);
+        configRepo.delete(config);
+    }
+
+    // ── helpers ──────────────────────────────────────────────────────────────
+
+    /**
+     * Gera chave única a partir do nome: remove acentos (NFD), converte para
+     * maiúsculas e substitui sequências de caracteres não-alfanuméricos por
+     * underscores, removendo underscores das pontas.
+     * Ex.: "Culto Geral" → "CULTO_GERAL".
+     *
+     * @param nome nome de exibição informado pelo usuário.
+     * @return a chave de classificação normalizada.
+     */
+    private String gerarChave(String nome) {
+        String normalizado = Normalizer.normalize(nome.trim(), Normalizer.Form.NFD)
+                .replaceAll("\\p{M}", "");
+        return normalizado.toUpperCase()
+                .replaceAll("[^A-Z0-9]+", "_")
+                .replaceAll("^_|_$", "");
     }
 
     /**
-     * Propaga a renomeação de uma área para todos os pontos que a referenciam por nome:
-     * a lista de áreas no perfil de cada servo ({@code voluntario.ministerios}) e a função
-     * registrada nas atribuições de escala ({@code escala_atribuicoes.funcao}).
+     * Aplica os campos do request à entidade de configuração. Campos de texto só são
+     * sobrescritos quando não-nulos; a cor recebe o padrão "#004b87" se vazia; e os
+     * ministérios são resolvidos a partir da lista de ids.
      *
-     * @param antigo nome anterior da área.
-     * @param novo   novo nome da área.
+     * @param config  entidade alvo a ser preenchida.
+     * @param request fonte dos dados.
      */
-    private void propagarRenomeacaoArea(String antigo, String novo) {
-        List<Voluntario> afetados = voluntarioRepository.findAll().stream()
-                .filter(v -> v.getMinisterios().contains(antigo))
-                .collect(Collectors.toList());
-        for (Voluntario v : afetados) {
-            List<String> atualizados = new ArrayList<>(v.getMinisterios());
-            atualizados.replaceAll(nome -> nome.equals(antigo) ? novo : nome);
-            v.setMinisterios(atualizados);
+    private void aplicarRequest(Ministerio config, MinisterioRequest request) {
+        if (request.nome() != null && !request.nome().isBlank()) {
+            config.setNome(request.nome().trim());
         }
-        voluntarioRepository.saveAll(afetados);
-
-        escalaAtribuicaoRepository.renomearFuncao(antigo, novo);
-    }
-
-    /**
-     * Remove um ministério pelo id.
-     *
-     * @param id identificador do ministério.
-     * @throws ResourceNotFoundException se o ministério não for encontrado.
-     */
-    @Transactional
-    public void deletar(Long id) {
-        if (!ministerioRepository.existsById(id)) {
-            throw new ResourceNotFoundException("Ministério não encontrado com ID: " + id);
+        if (request.titulo() != null) {
+            config.setTitulo(request.titulo().trim());
         }
-        ministerioRepository.deleteById(id);
+        if (request.nomeOrganizacao() != null) {
+            config.setNomeOrganizacao(request.nomeOrganizacao());
+        }
+        if (request.nomeSetor() != null) {
+            config.setNomeSetor(request.nomeSetor());
+        }
+        config.setCor(request.cor() != null && !request.cor().isBlank()
+                ? request.cor() : "#004b87");
+
+        List<Area> mins = request.areaIds() == null ? List.of()
+                : areaRepository.findAllById(request.areaIds());
+        config.setAreas(mins);
     }
 
     /**
      * Converte uma entidade {@link Ministerio} em {@link MinisterioDTO},
-     * achatando líder e co-líder em id/nome.
+     * convertendo também cada ministério associado em {@link AreaDTO}.
      *
-     * @param ministerio entidade a converter.
+     * @param c entidade a converter.
      * @return o DTO correspondente.
      */
-    private MinisterioDTO convertToDTO(Ministerio ministerio) {
-        return new MinisterioDTO(
-                ministerio.getId(),
-                ministerio.getNome(),
-                ministerio.getTipo(),
-                ministerio.isExclusivoNaEscala(),
-                ministerio.getClassificacoes(),
-                ministerio.getLider() != null ? ministerio.getLider().getId() : null,
-                ministerio.getLider() != null ? ministerio.getLider().getNome() : null,
-                ministerio.getCoLider() != null ? ministerio.getCoLider().getId() : null,
-                ministerio.getCoLider() != null ? ministerio.getCoLider().getNome() : null
-        );
-    }
-
-    /**
-     * Converte um {@link MinisterioDTO} em entidade {@link Ministerio}, resolvendo
-     * líder/co-líder a partir de seus identificadores (ou {@code null} se ausentes).
-     *
-     * @param dto DTO a converter.
-     * @return a entidade correspondente.
-     */
-    private Ministerio convertToEntity(MinisterioDTO dto) {
-        Ministerio ministerio = new Ministerio();
-        ministerio.setId(dto.id());
-        ministerio.setNome(dto.nome());
-        ministerio.setTipo(normalizarTipo(dto.tipo()));
-        ministerio.setExclusivoNaEscala(dto.exclusivoNaEscala());
-        ministerio.setClassificacoes(normalizarClassificacoes(dto.classificacoes()));
-        ministerio.setLider(dto.liderId() != null ? voluntarioRepository.findById(dto.liderId()).orElse(null) : null);
-        ministerio.setCoLider(dto.coLiderId() != null ? voluntarioRepository.findById(dto.coLiderId()).orElse(null) : null);
-        return ministerio;
-    }
-
-    /**
-     * Normaliza o tipo do ministério: {@code null}/vazio → {@code "ESPECIFICO"};
-     * qualquer valor → trimado e em maiúsculas. Lança {@link IllegalArgumentException}
-     * para valores desconhecidos.
-     */
-    private String normalizarTipo(String tipo) {
-        if (tipo == null || tipo.isBlank()) return "ESPECIFICO";
-        String t = tipo.trim().toUpperCase();
-        if (!Set.of("GERAL", "ESPECIFICO").contains(t)) {
-            throw new IllegalArgumentException(
-                    "Tipo de ministério inválido: \"" + tipo + "\". Valores aceitos: GERAL, ESPECIFICO.");
-        }
-        return t;
-    }
-
-    /**
-     * Normaliza uma lista de classificações: remove nulos/vazios, aplica trim e
-     * converte para maiúsculas (para casar com as chaves de {@code ConfiguracaoEscala}).
-     */
-    private List<String> normalizarClassificacoes(List<String> lista) {
-        if (lista == null) return List.of();
-        return lista.stream()
-                .filter(s -> s != null)
-                .map(s -> s.trim().toUpperCase())
-                .filter(s -> !s.isEmpty())
+    private MinisterioDTO toDTO(Ministerio c) {
+        List<AreaDTO> mins = c.getAreas().stream()
+                .map(m -> new AreaDTO(
+                        m.getId(), m.getNome(), m.getTipo(), m.isExclusivoNaEscala(),
+                        m.getLider() != null ? m.getLider().getId() : null,
+                        m.getLider() != null ? m.getLider().getNome() : null,
+                        m.getCoLider() != null ? m.getCoLider().getId() : null,
+                        m.getCoLider() != null ? m.getCoLider().getNome() : null))
                 .collect(Collectors.toList());
+
+        return new MinisterioDTO(
+                c.getId(),
+                c.getClassificacao(),
+                c.getNome(),
+                c.getTitulo(),
+                c.getNomeOrganizacao(),
+                c.getNomeSetor(),
+                c.getCor(),
+                mins);
     }
 }

@@ -1,8 +1,9 @@
 package com.servants.controller;
 
 import com.servants.dto.MinisterioDTO;
-import com.servants.dto.MinisterioDetalheDTO;
+import com.servants.dto.MinisterioRequest;
 import com.servants.service.MinisterioService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -10,77 +11,82 @@ import org.springframework.web.bind.annotation.*;
 import java.util.List;
 
 /**
- * Controller REST de ministérios (áreas), exposto em {@code /api/ministerios}.
- * Oferece operações CRUD completas.
+ * Controller REST das configurações de escala (na UI, "Ministérios"), exposto em
+ * {@code /api/ministerios}. Oferece CRUD de classificações usadas para
+ * montar a imagem exportada da escala.
  */
 @RestController
 @RequestMapping("/api/ministerios")
 public class MinisterioController {
 
-    private final MinisterioService ministerioService;
+    private final MinisterioService service;
 
     /**
-     * @param ministerioService serviço de regras de negócio de ministérios.
+     * @param service serviço de regras de negócio das configurações de escala.
      */
-    public MinisterioController(MinisterioService ministerioService) {
-        this.ministerioService = ministerioService;
+    public MinisterioController(MinisterioService service) {
+        this.service = service;
     }
 
     /**
-     * {@code GET /api/ministerios} — lista todos os ministérios.
+     * {@code GET /api/ministerios} — lista todas as classificações cadastradas.
      *
      * @return lista de {@link MinisterioDTO}.
      */
     @GetMapping
-    public List<MinisterioDTO> listarTodos() {
-        return ministerioService.listarTodos();
+    public List<MinisterioDTO> listarTodas() {
+        return service.listarTodas();
     }
 
     /**
-     * {@code GET /api/ministerios/{id}} — busca o detalhe de um ministério (com membros).
+     * {@code GET /api/ministerios/{classificacao}} — busca uma classificação
+     * pela sua chave (ignorando caixa).
      *
-     * @param id identificador do ministério.
-     * @return {@code 200 OK} com {@link MinisterioDetalheDTO}.
+     * @param classificacao chave da classificação.
+     * @return {@code 200 OK} com {@link MinisterioDTO}.
      */
-    @GetMapping("/{id}")
-    public ResponseEntity<MinisterioDetalheDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(ministerioService.buscarPorId(id));
+    @GetMapping("/{classificacao}")
+    public ResponseEntity<MinisterioDTO> buscar(@PathVariable String classificacao) {
+        return ResponseEntity.ok(service.buscarPorClassificacao(classificacao));
     }
 
     /**
-     * {@code POST /api/ministerios} — cria um novo ministério.
+     * {@code POST /api/ministerios} — cria uma nova classificação.
      *
-     * @param dto dados do ministério.
+     * @param request dados da nova classificação.
      * @return {@code 201 CREATED} com o {@link MinisterioDTO} persistido.
      */
     @PostMapping
-    public ResponseEntity<MinisterioDTO> criar(@RequestBody MinisterioDTO dto) {
-        MinisterioDTO salvo = ministerioService.criar(dto);
-        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
+    public ResponseEntity<MinisterioDTO> criar(@Valid @RequestBody MinisterioRequest request) {
+        MinisterioDTO criada = service.criar(request);
+        return ResponseEntity.status(HttpStatus.CREATED).body(criada);
     }
 
     /**
-     * {@code PUT /api/ministerios/{id}} — atualiza um ministério existente.
+     * {@code PUT /api/ministerios/{classificacao}} — atualiza a configuração
+     * completa de uma classificação existente.
      *
-     * @param id  identificador do ministério.
-     * @param dto novos dados.
+     * @param classificacao chave da classificação.
+     * @param request       novos dados.
      * @return {@code 200 OK} com o {@link MinisterioDTO} atualizado.
      */
-    @PutMapping("/{id}")
-    public ResponseEntity<MinisterioDTO> atualizar(@PathVariable Long id, @RequestBody MinisterioDTO dto) {
-        MinisterioDTO atualizado = ministerioService.atualizar(id, dto);
-        return ResponseEntity.ok(atualizado);
+    @PutMapping("/{classificacao}")
+    public ResponseEntity<MinisterioDTO> salvar(
+            @PathVariable String classificacao,
+            @Valid @RequestBody MinisterioRequest request) {
+        return ResponseEntity.ok(service.salvar(classificacao, request));
     }
 
     /**
-     * {@code DELETE /api/ministerios/{id}} — remove um ministério.
+     * {@code DELETE /api/ministerios/{classificacao}} — remove uma
+     * classificação, apenas se não houver escalas vinculadas.
      *
-     * @param id identificador do ministério.
+     * @param classificacao chave da classificação.
      * @return {@code 204 NO CONTENT}.
      */
-    @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deletar(@PathVariable Long id) {
-        ministerioService.deletar(id);
+    @DeleteMapping("/{classificacao}")
+    public ResponseEntity<Void> deletar(@PathVariable String classificacao) {
+        service.deletar(classificacao);
         return ResponseEntity.noContent().build();
     }
 }

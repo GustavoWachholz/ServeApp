@@ -74,9 +74,9 @@ public class AuditInterceptor implements HandlerInterceptor {
             else if (path.endsWith("/vincular-servo")) { acao = AuditoriaService.ACAO_VINCULAR_SERVO; }
             else                                    { acao = resolverAcaoPorMetodo(metodo); }
         } else if (path.startsWith("/api/escalas"))            { modulo = AuditoriaService.MOD_AGENDA;         acao = resolverAcaoPorMetodo(metodo); }
-        else if (path.startsWith("/api/voluntarios"))          { modulo = AuditoriaService.MOD_SERVOS;         acao = resolverAcaoPorMetodo(metodo); }
-        else if (path.startsWith("/api/ministerios"))          { modulo = AuditoriaService.MOD_AREAS;          acao = resolverAcaoPorMetodo(metodo); }
-        else if (path.startsWith("/api/configuracao-escala"))  { modulo = AuditoriaService.MOD_MINISTERIOS;    acao = resolverAcaoPorMetodo(metodo); }
+        else if (path.startsWith("/api/servos"))          { modulo = AuditoriaService.MOD_SERVOS;         acao = resolverAcaoPorMetodo(metodo); }
+        else if (path.startsWith("/api/areas"))          { modulo = AuditoriaService.MOD_AREAS;          acao = resolverAcaoPorMetodo(metodo); }
+        else if (path.startsWith("/api/ministerios"))  { modulo = AuditoriaService.MOD_MINISTERIOS;    acao = resolverAcaoPorMetodo(metodo); }
         else if (path.startsWith("/api/avisos"))               { modulo = AuditoriaService.MOD_AVISOS;         acao = resolverAcaoPorMetodo(metodo); }
         else if (path.startsWith("/api/igreja"))               { modulo = AuditoriaService.MOD_IGREJA;         acao = resolverAcaoPorMetodo(metodo); }
         else if (path.startsWith("/api/configuracao"))         { modulo = AuditoriaService.MOD_CLASSIFICACOES; acao = resolverAcaoPorMetodo(metodo); }

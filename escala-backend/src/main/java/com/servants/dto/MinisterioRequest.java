@@ -13,13 +13,13 @@ import java.util.List;
  * @param nomeOrganizacao nome da organização (título principal da imagem).
  * @param nomeSetor       nome do setor (subtítulo da imagem).
  * @param cor             cor principal (hex) da imagem. Ex.: {@code "#004b87"}.
- * @param ministerioIds   identificadores das áreas que viram colunas na imagem.
+ * @param areaIds   identificadores das áreas que viram colunas na imagem.
  */
-public record ConfiguracaoEscalaRequest(
+public record MinisterioRequest(
     String nome,
     String titulo,
     String nomeOrganizacao,
     String nomeSetor,
     @Pattern(regexp = "^#([0-9a-fA-F]{6})$", message = "Cor inválida: use o formato hexadecimal #RRGGBB") String cor,
-    List<Long> ministerioIds
+    List<Long> areaIds
 ) {}

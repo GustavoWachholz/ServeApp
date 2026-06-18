@@ -15,14 +15,14 @@ declare const ClassificacoesCache: any;
 /** URL da API de escalas. */
 const ESCALAS_API_URL        = '/api/escalas';
 /** URL da API de configurações de escala (classificações). */
-const CONFIG_ESCALA_API_URL  = '/api/configuracao-escala';
+const CONFIG_ESCALA_API_URL  = '/api/ministerios';
 
 /** Representação enxuta de um voluntário no contexto da agenda. */
 interface Voluntario {
     id?: number;
     _id?: number;
     nome: string;
-    ministerios?: string[];
+    areas?: string[];
     classificacoes?: string[];
 }
 
@@ -100,7 +100,7 @@ function popularSelectClassificacao(): void {
  */
 async function carregarVoluntariosParaEscala() {
     try {
-        const response = await fetch('/api/voluntarios');
+        const response = await fetch('/api/servos');
         if (response.ok) {
             listaVoluntarios = await response.json();
         } else {
@@ -114,7 +114,7 @@ async function carregarVoluntariosParaEscala() {
 
 /**
  * Retorna um mapa de voluntários já escalados no Modal (Step 2)
- * @returns {Record<string, string[]>} { voluntarioId: [funcao1, funcao2, ...] }
+ * @returns {Record<string, string[]>} { servoId: [funcao1, funcao2, ...] }
  */
 function obterVoluntariosJaEscalados(): Record<string, string[]> {
     const escalados: Record<string, string[]> = {};
@@ -185,7 +185,7 @@ function initAutocomplete() {
 
             // Só voluntários vinculados ao ministério específico
             if (tipoMinisterio === 'ESPECIFICO') {
-                if (!v.ministerios?.includes(funcaoAtual)) return;
+                if (!v.areas?.includes(funcaoAtual)) return;
             }
 
             const funcoesDoVoluntario = jaEscalados[id] || [];
@@ -325,7 +325,7 @@ function marcarTagSeInelegivel(tag: HTMLElement, volId: string, box: HTMLElement
     if (classificacao && !(vol.classificacoes || []).includes(classificacao)) {
         motivos.push('não atua neste ministério');
     }
-    if (tipo === 'ESPECIFICO' && !(vol.ministerios || []).includes(funcao)) {
+    if (tipo === 'ESPECIFICO' && !(vol.areas || []).includes(funcao)) {
         motivos.push('não está mais vinculado a esta área');
     }
 
@@ -426,18 +426,18 @@ function initModalControls() {
         btnIrEscala.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
 
         const config = await carregarConfigEscala(selectClass.value);
-        gerarGridMinisterios(config?.ministerios || []);
+        gerarGridMinisterios(config?.areas || []);
 
         // Preenche atribuições pré-carregadas (edição de evento existente)
         atribuicoesParaCarregar.forEach(atrib => {
             const box = document.querySelector(`.ministerio-box[data-funcao="${atrib.funcao}"]`) as HTMLElement | null;
             if (box) {
                 const lista = box.querySelector('.voluntarios-list') as HTMLDivElement;
-                adicionarTagVoluntario(lista, atrib.voluntarioId.toString(),
-                    atrib.voluntarioNome || `Voluntário ${atrib.voluntarioId}`);
+                adicionarTagVoluntario(lista, atrib.servoId.toString(),
+                    atrib.servoNome || `Voluntário ${atrib.servoId}`);
                 // Sinaliza visualmente se o servo deixou de ser elegível desde a criação
-                const tag = lista.querySelector(`[data-id="${atrib.voluntarioId}"]`) as HTMLElement | null;
-                if (tag) marcarTagSeInelegivel(tag, atrib.voluntarioId.toString(), box, selectClass.value);
+                const tag = lista.querySelector(`[data-id="${atrib.servoId}"]`) as HTMLElement | null;
+                if (tag) marcarTagSeInelegivel(tag, atrib.servoId.toString(), box, selectClass.value);
             }
         });
         atribuicoesParaCarregar = [];
@@ -501,7 +501,7 @@ function initModalControls() {
             const cor        = configAtual?.cor            || '#004b87';
             const nomeOrg    = configAtual?.nomeOrganizacao || '';
             const nomeSetor  = configAtual?.nomeSetor       || selectClass.value;
-            const ministerios: any[] = configAtual?.ministerios || [];
+            const ministerios: any[] = configAtual?.areas || [];
 
             // ── Preenche o cabeçalho ──
             exportHeader.style.background = cor;
@@ -687,7 +687,7 @@ async function salvarEscala(incluirEquipe = false) {
             } else {
                 tags.forEach(tag => {
                     const volId = (tag as HTMLElement).getAttribute('data-id');
-                    if (volId) atribuicoes.push({ voluntarioId: parseInt(volId), funcao });
+                    if (volId) atribuicoes.push({ servoId: parseInt(volId), funcao });
                 });
             }
         });

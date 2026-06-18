@@ -82,7 +82,7 @@ O **Serve.** é um sistema web de gestão de escalas para igrejas e ministérios
 
 ### Pré-requisitos
 - **Java 25** e **Maven**
-- **MySQL 8** rodando localmente (banco `servants`)
+- **MySQL 8** rodando localmente (banco `serve`)
 
 ### 1. Backend
 ```bat

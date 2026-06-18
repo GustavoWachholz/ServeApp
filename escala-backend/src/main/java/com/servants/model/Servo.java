@@ -9,13 +9,13 @@ import java.util.Objects;
 /**
  * Entidade JPA que representa um voluntário — chamado de "Servo" na interface atual.
  *
- * <p>Mapeada para a tabela {@code voluntarios}. Guarda os dados pessoais de contato
+ * <p>Mapeada para a tabela {@code servos}. Guarda os dados pessoais de contato
  * e as listas de ministérios (áreas) e classificações (ministérios, na UI) em que
  * o voluntário pode atuar.</p>
  */
 @Entity
-@Table(name = "voluntarios")
-public class Voluntario {
+@Table(name = "servos")
+public class Servo {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -40,25 +40,25 @@ public class Voluntario {
 
     /**
      * Nomes dos ministérios (áreas) específicos em que o voluntário atua.
-     * Persistido na tabela de coleção {@code voluntario_ministerios}.
+     * Persistido na tabela de coleção {@code servo_areas}.
      */
     @ElementCollection
-    @CollectionTable(name = "voluntario_ministerios", joinColumns = @JoinColumn(name = "voluntario_id"))
-    @Column(name = "ministerio")
-    private List<String> ministerios = new ArrayList<>();
+    @CollectionTable(name = "servo_areas", joinColumns = @JoinColumn(name = "servo_id"))
+    @Column(name = "area")
+    private List<String> areas = new ArrayList<>();
 
     /**
      * Classificações de culto/evento nas quais este voluntário pode atuar
      * (ex.: ATITUDE, BEONE, KIDS, EVENTOS, BASE). Persistido na tabela de
-     * coleção {@code voluntario_classificacoes}.
+     * coleção {@code servo_classificacoes}.
      */
     @ElementCollection
-    @CollectionTable(name = "voluntario_classificacoes", joinColumns = @JoinColumn(name = "voluntario_id"))
+    @CollectionTable(name = "servo_classificacoes", joinColumns = @JoinColumn(name = "servo_id"))
     @Column(name = "classificacao")
     private List<String> classificacoes = new ArrayList<>();
 
     /** Construtor padrão exigido pelo JPA. */
-    public Voluntario() {
+    public Servo() {
     }
 
     /** @return o identificador único do voluntário. */
@@ -122,13 +122,13 @@ public class Voluntario {
     }
 
     /** @return os nomes dos ministérios (áreas) específicos do voluntário. */
-    public List<String> getMinisterios() {
-        return ministerios;
+    public List<String> getAreas() {
+        return areas;
     }
 
-    /** @param ministerios define os nomes dos ministérios (áreas) específicos. */
-    public void setMinisterios(List<String> ministerios) {
-        this.ministerios = ministerios;
+    /** @param areas define os nomes dos ministérios (áreas) específicos. */
+    public void setAreas(List<String> areas) {
+        this.areas = areas;
     }
 
     /** @return as classificações em que o voluntário pode atuar. */
@@ -155,7 +155,7 @@ public class Voluntario {
     public boolean equals(Object o) {
         if (this == o) return true;
         if (o == null || getClass() != o.getClass()) return false;
-        Voluntario that = (Voluntario) o;
+        Servo that = (Servo) o;
         return Objects.equals(id, that.id);
     }
 

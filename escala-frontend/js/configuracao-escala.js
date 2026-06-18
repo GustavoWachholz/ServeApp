@@ -5,9 +5,9 @@
  */
 
 /** URL da API de configurações de escala (classificações). */
-const API_CONFIG = '/api/configuracao-escala';
+const API_CONFIG = '/api/ministerios';
 /** URL da API de ministérios (áreas) exibidas como colunas. */
-const API_MINS   = '/api/ministerios';
+const API_MINS   = '/api/areas';
 
 /** Cache de todos os ministérios (áreas) disponíveis para seleção. */
 let todosMinisterios  = [];
@@ -174,7 +174,7 @@ async function salvarNovaClassificacao() {
         const r = await fetch(API_CONFIG, {
             method:  'POST',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ nome, titulo, cor, ministerioIds: [] })
+            body:    JSON.stringify({ nome, titulo, cor, areaIds: [] })
         });
 
         if (!r.ok) {
@@ -222,7 +222,7 @@ function abrirModalEditar(key) {
     document.getElementById('editar-cor-preview').style.background = cor;
 
     // Grade de ministérios
-    const selecionados = (config.ministerios || []).map(m => m.id);
+    const selecionados = (config.areas || []).map(m => m.id);
     document.getElementById('editar-min-grid').innerHTML = renderMinGrid(selecionados);
 
     setStatus('editar-status', '', '');
@@ -278,7 +278,7 @@ async function salvarEdicao() {
         const r = await fetch(`${API_CONFIG}/${editandoKey}`, {
             method:  'PUT',
             headers: { 'Content-Type': 'application/json' },
-            body:    JSON.stringify({ nome, titulo, nomeOrganizacao: org, nomeSetor: setor, cor, ministerioIds: ids })
+            body:    JSON.stringify({ nome, titulo, nomeOrganizacao: org, nomeSetor: setor, cor, areaIds: ids })
         });
 
         if (!r.ok) {

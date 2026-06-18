@@ -8,8 +8,8 @@ import java.util.Objects;
  * Entidade JPA que representa um usuário do sistema (credenciais de acesso e
  * preferências de aparência).
  *
- * <p>Mapeada para a tabela {@code usuarios}. É distinta de {@link Voluntario}:
- * representa quem faz login (admin ou voluntário), enquanto Voluntario representa
+ * <p>Mapeada para a tabela {@code usuarios}. É distinta de {@link Servo}:
+ * representa quem faz login (admin ou voluntário), enquanto Servo representa
  * a pessoa escalável.</p>
  */
 @Entity
@@ -63,8 +63,8 @@ public class Usuario {
      * admin na tela de Usuários. {@code null} quando a conta não tem servo associado.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "voluntario_id", unique = true)
-    private Voluntario voluntario;
+    @JoinColumn(name = "servo_id", unique = true)
+    private Servo servo;
 
     /** Construtor padrão exigido pelo JPA. */
     public Usuario() {
@@ -179,13 +179,13 @@ public class Usuario {
     public void setUltimoLogin(LocalDateTime ultimoLogin) { this.ultimoLogin = ultimoLogin; }
 
     /** @return o servo (voluntário) vinculado a esta conta, ou {@code null}. */
-    public Voluntario getVoluntario() {
-        return voluntario;
+    public Servo getServo() {
+        return servo;
     }
 
-    /** @param voluntario define o servo (voluntário) vinculado a esta conta. */
-    public void setVoluntario(Voluntario voluntario) {
-        this.voluntario = voluntario;
+    /** @param servo define o servo (voluntário) vinculado a esta conta. */
+    public void setServo(Servo servo) {
+        this.servo = servo;
     }
 
     /**

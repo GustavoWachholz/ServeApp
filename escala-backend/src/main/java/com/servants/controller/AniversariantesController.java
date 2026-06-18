@@ -3,7 +3,7 @@ package com.servants.controller;
 import com.servants.dto.AniversarianteAgendaDTO;
 import com.servants.model.Usuario;
 import com.servants.repository.UsuarioRepository;
-import com.servants.repository.VoluntarioRepository;
+import com.servants.repository.ServoRepository;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -23,26 +23,26 @@ import java.util.stream.Collectors;
 @RequestMapping("/api/aniversariantes")
 public class AniversariantesController {
 
-    private final VoluntarioRepository voluntarioRepository;
+    private final ServoRepository servoRepository;
     private final UsuarioRepository usuarioRepository;
 
-    public AniversariantesController(VoluntarioRepository voluntarioRepository,
+    public AniversariantesController(ServoRepository servoRepository,
                                      UsuarioRepository usuarioRepository) {
-        this.voluntarioRepository = voluntarioRepository;
+        this.servoRepository = servoRepository;
         this.usuarioRepository = usuarioRepository;
     }
 
     @GetMapping
     public List<AniversarianteAgendaDTO> listar() {
-        // Monta mapa voluntarioId → foto em uma única query (evita N+1)
-        Map<Long, String> fotoMap = usuarioRepository.findAllWithVoluntario().stream()
-                .filter(u -> u.getVoluntario() != null && u.getFoto() != null)
+        // Monta mapa servoId → foto em uma única query (evita N+1)
+        Map<Long, String> fotoMap = usuarioRepository.findAllWithServo().stream()
+                .filter(u -> u.getServo() != null && u.getFoto() != null)
                 .collect(Collectors.toMap(
-                        u -> u.getVoluntario().getId(),
+                        u -> u.getServo().getId(),
                         Usuario::getFoto,
                         (existing, duplicate) -> existing));
 
-        return voluntarioRepository.findAll().stream()
+        return servoRepository.findAll().stream()
                 .filter(v -> v.getDataNascimento() != null)
                 .sorted((a, b) -> {
                     int m = Integer.compare(

@@ -11,7 +11,7 @@ import java.util.List;
  * @param data        data do evento já formatada como texto.
  * @param cor         cor (hex) do evento.
  * @param status      status de preenchimento ("COMPLETO" ou "INCOMPLETO").
- * @param voluntarios lista de voluntários escalados com seus ministérios.
+ * @param servos lista de voluntários escalados com seus ministérios.
  */
 public record EscalaDetalheDTO(
     Long id,
@@ -19,6 +19,6 @@ public record EscalaDetalheDTO(
     String data,
     String cor,
     String status,
-    List<EscalaVoluntarioDTO> voluntarios
+    List<EscalaServoDTO> servos
 ) {
 }

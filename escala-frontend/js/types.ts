@@ -5,14 +5,14 @@
 /**
  * Atribuição de um voluntário a uma função/área em uma escala.
  *
- * @property voluntarioId   identificador do voluntário.
+ * @property servoId   identificador do voluntário.
  * @property funcao         nome da função/área.
- * @property voluntarioNome nome do voluntário (opcional; presente nas respostas).
+ * @property servoNome nome do voluntário (opcional; presente nas respostas).
  */
 export interface AtribuicaoDTO {
-  voluntarioId: number;
+  servoId: number;
   funcao: string;
-  voluntarioNome?: string;
+  servoNome?: string;
 }
 
 /**

@@ -4,7 +4,7 @@
  */
 
 /** URL base da API de voluntários (servos). */
-const API_URL = '/api/voluntarios';
+const API_URL = '/api/servos';
 
 /**
  * Busca a lista de voluntários (servos) na API e a registra no console.

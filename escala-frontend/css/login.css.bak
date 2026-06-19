@@ -1,0 +1,225 @@
+/* Reset e Configurações Globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+body {
+    height: 100vh;
+    overflow: hidden;
+    background-color: #18181b;
+}
+
+/* Transição suave entre view-login e view-registro */
+#view-login,
+#view-registro {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* Lado Esquerdo: Branding */
+.branding-side {
+    flex: 1;
+    background-color: #F4F7F9;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.branding-content {
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Lado Direito: Formulário */
+.form-side {
+    flex: 1;
+    background-color: #ffffff;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: #1f2937;
+    /* Permite scroll quando o formulário de registro é maior que a viewport */
+    overflow-y: auto;
+}
+
+.form-content {
+    width: 100%;
+    max-width: 400px;
+    /* Garante que o conteúdo não fique colado no topo/bottom ao rolar */
+    padding: 1rem 0;
+}
+
+.form-content header {
+    margin-bottom: 1.75rem;
+}
+
+.form-content h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: #111827;
+}
+
+.form-content header p {
+    color: #6b7280;
+    font-size: 0.95rem;
+}
+
+/* Estilização de Inputs */
+.input-group {
+    margin-bottom: 1.25rem;
+}
+
+.input-group label {
+    display: block;
+    font-size: 0.875rem;
+    font-weight: 500;
+    margin-bottom: 0.5rem;
+    color: #374151;
+}
+
+.input-group input {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: #f9fafb;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    color: #111827;
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.input-group input:focus {
+    outline: none;
+    border-color: #004b87;
+    background-color: #ffffff;
+    box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.1);
+}
+
+.form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.forgot-link {
+    font-size: 0.875rem;
+    color: #E69F00;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+/* Botões */
+.btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #004b87;
+    color: #ffffff;
+    border: none;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: background-color 0.2s;
+}
+
+.btn-submit:hover {
+    background-color: #003a69;
+}
+
+.btn-submit:disabled {
+    background-color: #6b94b8;
+    cursor: not-allowed;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+    color: #9ca3af;
+    font-size: 0.875rem;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid #e5e7eb;
+}
+
+.divider:not(:empty)::before { margin-right: .5em; }
+.divider:not(:empty)::after { margin-left: .5em; }
+
+.btn-google {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: #ffffff;
+    color: #374151;
+    border: 1px solid #d1d5db;
+    border-radius: 6px;
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.btn-google:hover {
+    background-color: #f9fafb;
+    border-color: #9ca3af;
+}
+
+.btn-google img {
+    width: 18px;
+    height: 18px;
+}
+
+footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: #6b7280;
+    font-size: 0.875rem;
+}
+
+footer a {
+    color: #E69F00;
+    text-decoration: none;
+    font-weight: 500;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .branding-side {
+        display: none;
+    }
+}

@@ -1,3 +1,19 @@
+/* ── Tokens do tema (login é sempre escuro) ── */
+:root {
+    --login-bg:       #0a0a0b;
+    --login-surface:  #141417;
+    --login-surface-2:#0b0b0d;
+    --login-border:   #232327;
+    --login-text:     #ededf0;
+    --login-muted:    #9a9aa2;
+    --primary-color:  #c98aff;
+    --accent-rgb:     201,138,255;
+    --warn:           #e0a83a;
+    --danger:         #e0623a;
+    --radius:         10px;
+    --radius-sm:      7px;
+}
+
 /* Reset e Configurações Globais */
 * {
     margin: 0;
@@ -9,7 +25,7 @@
 body {
     height: 100vh;
     overflow: hidden;
-    background-color: #18181b;
+    background-color: var(--login-bg);
 }
 
 /* Transição suave entre view-login e view-registro */
@@ -32,7 +48,7 @@ body {
 /* Lado Esquerdo: Branding */
 .branding-side {
     flex: 1;
-    background-color: #F4F7F9;
+    background-color: var(--login-surface-2);
     display: flex;
     align-items: center;
     justify-content: center;
@@ -51,12 +67,12 @@ body {
 /* Lado Direito: Formulário */
 .form-side {
     flex: 1;
-    background-color: #ffffff;
+    background-color: var(--login-surface);
     display: flex;
     align-items: center;
     justify-content: center;
     padding: 2rem;
-    color: #1f2937;
+    color: var(--login-text);
     /* Permite scroll quando o formulário de registro é maior que a viewport */
     overflow-y: auto;
 }
@@ -76,11 +92,11 @@ body {
     font-size: 1.8rem;
     font-weight: 700;
     margin-bottom: 0.5rem;
-    color: #111827;
+    color: var(--login-text);
 }
 
 .form-content header p {
-    color: #6b7280;
+    color: var(--login-muted);
     font-size: 0.95rem;
 }
 
@@ -94,25 +110,27 @@ body {
     font-size: 0.875rem;
     font-weight: 500;
     margin-bottom: 0.5rem;
-    color: #374151;
+    color: var(--login-muted);
 }
 
-.input-group input {
+.input-group input,
+.input-group select {
     width: 100%;
     padding: 0.75rem 1rem;
-    background-color: #f9fafb;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
-    color: #111827;
+    background-color: var(--login-surface-2);
+    border: 1px solid var(--login-border);
+    border-radius: var(--radius-sm);
+    color: var(--login-text);
     font-size: 1rem;
     transition: all 0.2s;
 }
 
-.input-group input:focus {
+.input-group input:focus,
+.input-group select:focus {
     outline: none;
-    border-color: #004b87;
-    background-color: #ffffff;
-    box-shadow: 0 0 0 2px rgba(0, 75, 135, 0.1);
+    border-color: var(--primary-color);
+    background-color: var(--login-surface-2);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 
 .form-options {
@@ -123,7 +141,7 @@ body {
 
 .forgot-link {
     font-size: 0.875rem;
-    color: #E69F00;
+    color: var(--warn);
     text-decoration: none;
     font-weight: 500;
 }
@@ -136,23 +154,25 @@ body {
 .btn-submit {
     width: 100%;
     padding: 0.75rem;
-    background-color: #004b87;
+    background-color: var(--primary-color);
     color: #ffffff;
     border: none;
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     font-size: 1rem;
     font-weight: 600;
     cursor: pointer;
-    transition: background-color 0.2s;
+    transition: filter 0.2s, box-shadow 0.2s;
 }
 
 .btn-submit:hover {
-    background-color: #003a69;
+    filter: brightness(0.88);
+    box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);
 }
 
 .btn-submit:disabled {
-    background-color: #6b94b8;
+    opacity: 0.5;
     cursor: not-allowed;
+    filter: none;
 }
 
 .divider {
@@ -160,14 +180,14 @@ body {
     align-items: center;
     text-align: center;
     margin: 1.5rem 0;
-    color: #9ca3af;
+    color: var(--login-muted);
     font-size: 0.875rem;
 }
 
 .divider::before, .divider::after {
     content: '';
     flex: 1;
-    border-bottom: 1px solid #e5e7eb;
+    border-bottom: 1px solid var(--login-border);
 }
 
 .divider:not(:empty)::before { margin-right: .5em; }
@@ -176,10 +196,10 @@ body {
 .btn-google {
     width: 100%;
     padding: 0.75rem;
-    background-color: #ffffff;
-    color: #374151;
-    border: 1px solid #d1d5db;
-    border-radius: 6px;
+    background-color: var(--login-surface-2);
+    color: var(--login-text);
+    border: 1px solid var(--login-border);
+    border-radius: var(--radius-sm);
     font-size: 1rem;
     font-weight: 500;
     cursor: pointer;
@@ -191,8 +211,8 @@ body {
 }
 
 .btn-google:hover {
-    background-color: #f9fafb;
-    border-color: #9ca3af;
+    background-color: rgba(255,255,255,0.04);
+    border-color: var(--login-muted);
 }
 
 .btn-google img {
@@ -203,12 +223,12 @@ body {
 footer {
     margin-top: 2rem;
     text-align: center;
-    color: #6b7280;
+    color: var(--login-muted);
     font-size: 0.875rem;
 }
 
 footer a {
-    color: #E69F00;
+    color: var(--warn);
     text-decoration: none;
     font-weight: 500;
 }

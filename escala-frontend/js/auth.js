@@ -271,11 +271,23 @@
      */
     function aplicarCor(cor) {
         document.documentElement.style.setProperty('--primary-color', cor);
+        // Converte hex → RGB para uso em rgba(var(--accent-rgb), alpha)
+        const r = parseInt(cor.slice(1, 3), 16);
+        const g = parseInt(cor.slice(3, 5), 16);
+        const b = parseInt(cor.slice(5, 7), 16);
+        if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+            document.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
+        }
         const picker = document.getElementById('color-picker');
         if (picker) picker.value = cor;
         // Propaga para o conteúdo dentro do iframe do shell (se houver)
         const fdoc = obterFrameDoc();
-        if (fdoc) fdoc.documentElement.style.setProperty('--primary-color', cor);
+        if (fdoc) {
+            fdoc.documentElement.style.setProperty('--primary-color', cor);
+            if (!isNaN(r) && !isNaN(g) && !isNaN(b)) {
+                fdoc.documentElement.style.setProperty('--accent-rgb', `${r},${g},${b}`);
+            }
+        }
     }
 
     /**
@@ -318,7 +330,7 @@
 
         // Sincroniza a UI com os valores já aplicados pelo restaurarTema()
         aplicarTema(sessao.tema || 'light');
-        aplicarCor(sessao.corPrimaria || '#004b87');
+        aplicarCor(sessao.corPrimaria || '#c98aff');
 
         // ── Botão de configurações (abre/fecha o popover) ──────────────────
         const settingsBtn  = document.getElementById('settings-btn');

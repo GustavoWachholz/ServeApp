@@ -60,7 +60,13 @@ async function carregarUsuarios() {
 function renderUsuarios(lista) {
     const tbody = document.getElementById('usuarios-list');
     if (!lista.length) {
-        tbody.innerHTML = `<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;font-style:italic;">Nenhum usuário encontrado.</td></tr>`;
+        tbody.innerHTML = `<tr><td colspan="4" style="padding:0;border:none;">
+            <div class="empty-state">
+                <i data-lucide="users"></i>
+                <h3>Nenhum usuário</h3>
+                <p>Nenhum usuário encontrado.</p>
+            </div>
+        </td></tr>`;
         return;
     }
     tbody.innerHTML = lista.map(u => {
@@ -75,7 +81,7 @@ function renderUsuarios(lista) {
             <td><div class="user-cell">${avatar}<div class="user-cell-text"><span class="user-name">${escHtml(nomeSeguro)}</span><span class="user-role-mobile">${papelTexto}</span></div></div></td>
             <td>${escHtml(u.email)}</td>
             <td>${badge}</td>
-            <td><button type="button" class="btn-sort" onclick="abrirModal(${u.id})" title="Gerenciar"><i class="fas fa-sliders"></i><span class="btn-label">Gerenciar</span></button></td>
+            <td><button type="button" class="btn-sort" onclick="abrirModal(${u.id})" title="Gerenciar"><i data-lucide="sliders-horizontal"></i><span class="btn-label">Gerenciar</span></button></td>
         </tr>`;
     }).join('');
 }

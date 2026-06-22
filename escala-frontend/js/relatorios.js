@@ -5,6 +5,12 @@
 
 const RELATORIOS_API_URL = '/api/relatorios';
 
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
+
 let relatorioCache = { dados: null, de: null, ate: null };
 
 document.addEventListener('DOMContentLoaded', () => {
@@ -70,7 +76,7 @@ async function gerarRelatorio() {
         resultado.innerHTML = `<p style="color:var(--text-muted);padding:1rem 0;">Falha ao carregar o relatório.</p>`;
     } finally {
         btn.disabled = false;
-        btn.innerHTML = '<i class="fas fa-chart-bar"></i> Gerar';
+        btn.innerHTML = '<i data-lucide="chart-column"></i> Gerar';
     }
 }
 
@@ -86,7 +92,11 @@ function renderTabela(dados, de, ate) {
     const resultado = document.getElementById('relatorio-resultado');
 
     if (!dados || dados.length === 0) {
-        resultado.innerHTML = `<div id="relatorio-vazio"><i class="fas fa-chart-bar" style="font-size:2rem;margin-bottom:.75rem;opacity:.3;display:block;"></i>Nenhuma escalação encontrada no período selecionado.</div>`;
+        resultado.innerHTML = `<div id="relatorio-vazio" class="empty-state">
+            <i data-lucide="chart-column"></i>
+            <h3>Sem dados no período</h3>
+            <p>Nenhuma escalação encontrada no período selecionado.</p>
+        </div>`;
         return;
     }
 
@@ -99,7 +109,7 @@ function renderTabela(dados, de, ate) {
         return `
         <tr>
             <td><span class="rank-badge ${rankClass(i)}">${i + 1}</span></td>
-            <td><strong>${item.servoNome}</strong></td>
+            <td><strong>${esc(item.servoNome)}</strong></td>
             <td class="freq-bar-cell">
                 <div class="freq-bar-wrapper">
                     <div class="freq-bar" style="width:${pct}%;max-width:200px;"></div>

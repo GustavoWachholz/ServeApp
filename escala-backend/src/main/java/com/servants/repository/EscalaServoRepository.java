@@ -5,6 +5,7 @@ import com.servants.model.Area;
 import com.servants.model.Servo;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
@@ -41,4 +42,14 @@ public interface EscalaServoRepository extends JpaRepository<EscalaServo, Long> 
      */
     @Query("SELECT DISTINCT ev.servo.id FROM EscalaServo ev")
     List<Long> findDistinctServoIds();
+
+    /**
+     * Retorna a contagem de escalações agrupada por servo para uma área —
+     * substitui N chamadas de {@code countByServoAndArea} em {@code AreaService.buscarPorId} (P3).
+     *
+     * @param area área alvo.
+     * @return lista de arrays {@code [servoId, count]}.
+     */
+    @Query("SELECT es.servo.id, COUNT(es) FROM EscalaServo es WHERE es.area = :area GROUP BY es.servo.id")
+    List<Object[]> countByAreaGroupByServo(@Param("area") Area area);
 }

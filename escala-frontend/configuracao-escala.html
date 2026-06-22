@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Ministérios - Serve</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
@@ -183,7 +183,7 @@
 <div class="app-container">
     <!-- Sidebar -->
     <aside class="sidebar">
-        <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+        <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i data-lucide="chevrons-left"></i></button>
         <div class="sidebar-logo">
             <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
             <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
@@ -200,15 +200,15 @@
 
         <nav class="sidebar-nav">
             <ul>
-                <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                <li><a href="index.html"><i data-lucide="house"></i> <span>Home</span></a></li>
+                <li data-tela="AGENDA"><a href="agenda.html"><i data-lucide="calendar-check"></i> <span>Agenda</span></a></li>
                 <li class="nav-section-label"><span>Cadastros</span></li>
-                <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                <li class="active" data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
-                <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
-                <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
-                <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                <li data-tela="SERVOS"><a href="voluntarios.html"><i data-lucide="users"></i> <span>Servos</span></a></li>
+                <li data-tela="AREAS"><a href="ministerios.html"><i data-lucide="church"></i> <span>Áreas</span></a></li>
+                <li class="active" data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i data-lucide="tags"></i> <span>Ministérios</span></a></li>
+                <li><a href="relatorios.html"><i data-lucide="chart-pie"></i> <span>Relatórios</span></a></li>
+                <li class="nav-admin-only"><a href="usuarios.html"><i data-lucide="shield-user"></i> <span>Usuários</span></a></li>
+                <li class="nav-admin-only"><a href="auditoria.html"><i data-lucide="clipboard-list"></i> <span>Auditoria</span></a></li>
             </ul>
         </nav>
 
@@ -225,12 +225,12 @@
                     </div>
                     <div class="setting-item">
                         <label for="color-picker">Cor Principal</label>
-                        <input type="color" id="color-picker" value="#004b87">
+                        <input type="color" id="color-picker" value="#c98aff">
                     </div>
                 </div>
             </div>
-            <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
-            <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+            <button id="settings-btn" class="sidebar-btn"><i data-lucide="settings"></i> <span>Configurações</span></button>
+            <button id="logout-btn" class="sidebar-btn"><i data-lucide="log-out"></i> <span>Sair</span></button>
         </div>
     </aside>
 
@@ -245,17 +245,17 @@
             <div class="section-header">
                 <h2>MINISTÉRIOS</h2>
                 <button class="btn-primary" id="btn-novo-ministerio" onclick="abrirModalCriar()">
-                    <i class="fas fa-plus"></i> Novo Ministério
+                    <i data-lucide="plus"></i> Novo Ministério
                 </button>
             </div>
 
             <div class="toolbar" style="margin-bottom:.75rem;">
                 <div class="search-wrapper">
-                    <i class="fas fa-search search-icon"></i>
+                    <i data-lucide="search" class="search-icon"></i>
                     <input type="text" id="search-ministerios" placeholder="Pesquisar ministério…" autocomplete="off">
                 </div>
                 <button type="button" id="btn-export-ministerios" class="btn-sort" title="Exportar CSV">
-                    <i class="fas fa-download" style="margin-right:.3rem;font-size:.75rem;"></i>Exportar CSV
+                    <i data-lucide="download" style="margin-right:.3rem;font-size:.75rem;"></i>Exportar CSV
                 </button>
             </div>
 
@@ -282,7 +282,7 @@
 <!-- ══════════════════════════════ Modal: Nova Classificação ════ -->
 <div class="modal-overlay" id="modal-criar">
     <div class="modal-box">
-        <div class="modal-title"><i class="fas fa-plus" style="margin-right:.4rem;"></i>Novo Ministério</div>
+        <div class="modal-title"><i data-lucide="plus" style="margin-right:.4rem;"></i>Novo Ministério</div>
 
         <div class="form-group">
             <label for="criar-nome">Nome <small style="color:var(--text-muted);font-weight:400">(ex: Atitude, BeOne, Kids)</small></label>
@@ -311,7 +311,7 @@
         <div class="modal-footer">
             <button class="btn-secondary" onclick="fecharModalCriar()">Cancelar</button>
             <button class="btn-primary" id="criar-btn-salvar" onclick="salvarNovaClassificacao()">
-                <i class="fas fa-save"></i> Criar
+                <i data-lucide="save"></i> Criar
             </button>
         </div>
     </div>
@@ -320,7 +320,7 @@
 <!-- ══════════════════════════════ Modal: Editar Classificação ══ -->
 <div class="modal-overlay" id="modal-editar">
     <div class="modal-box modal-wide">
-        <div class="modal-title" id="editar-titulo-modal"><i class="fas fa-edit" style="margin-right:.4rem;"></i>Editar Ministério</div>
+        <div class="modal-title" id="editar-titulo-modal"><i data-lucide="square-pen" style="margin-right:.4rem;"></i>Editar Ministério</div>
 
         <!-- Identidade -->
         <div class="config-card">
@@ -374,7 +374,7 @@
         <div class="modal-footer">
             <button class="btn-secondary" onclick="fecharModalEditar()">Cancelar</button>
             <button class="btn-primary" id="editar-btn-salvar" onclick="salvarEdicao()">
-                <i class="fas fa-save"></i> Salvar
+                <i data-lucide="save"></i> Salvar
             </button>
         </div>
     </div>
@@ -384,13 +384,13 @@
 <div class="modal-overlay" id="modal-confirmar-excluir">
     <div class="modal-box" style="max-width:420px;">
         <div class="modal-title" style="color:#ef4444;">
-            <i class="fas fa-exclamation-triangle" style="margin-right:.4rem;"></i>Excluir Ministério
+            <i data-lucide="triangle-alert" style="margin-right:.4rem;"></i>Excluir Ministério
         </div>
         <p id="confirmar-excluir-texto" style="font-size:0.9rem;color:var(--text-muted);margin-bottom:0;"></p>
         <div class="modal-footer">
             <button class="btn-secondary" onclick="fecharModalExcluir()">Cancelar</button>
             <button class="btn-danger" id="btn-confirmar-excluir" onclick="executarExclusao()">
-                <i class="fas fa-trash"></i> Excluir
+                <i data-lucide="trash-2"></i> Excluir
             </button>
         </div>
     </div>

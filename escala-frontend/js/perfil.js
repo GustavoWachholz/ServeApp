@@ -236,7 +236,7 @@ function verificarMenorPerfil() {
         warnEl = document.createElement('span');
         warnEl.id = warnId;
         warnEl.style.cssText = 'font-size:.8rem;color:#92400e;background:#fffbeb;border:1px solid #fcd34d;border-radius:4px;padding:.3rem .6rem;margin-top:.3rem;display:none;';
-        warnEl.innerHTML = '<i class="fas fa-triangle-exclamation"></i> Você é menor de 18 anos. O tratamento dos seus dados requer consentimento do responsável legal (LGPD Art. 14).';
+        warnEl.innerHTML = '<i data-lucide="triangle-alert"></i> Você é menor de 18 anos. O tratamento dos seus dados requer consentimento do responsável legal (LGPD Art. 14).';
         input.parentNode.appendChild(warnEl);
     }
     const val = input.value;

@@ -4,8 +4,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Auditoria - Serve</title>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
@@ -171,7 +171,7 @@
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i data-lucide="chevrons-left"></i></button>
             <div class="sidebar-logo">
                 <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
                 <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
@@ -188,15 +188,15 @@
 
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li><a href="index.html"><i data-lucide="house"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i data-lucide="calendar-check"></i> <span>Agenda</span></a></li>
                     <li class="nav-section-label"><span>Cadastros</span></li>
-                    <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                    <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
-                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
-                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
-                    <li class="nav-admin-only active"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                    <li data-tela="SERVOS"><a href="voluntarios.html"><i data-lucide="users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="ministerios.html"><i data-lucide="church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i data-lucide="tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="relatorios.html"><i data-lucide="chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i data-lucide="shield-user"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only active"><a href="auditoria.html"><i data-lucide="clipboard-list"></i> <span>Auditoria</span></a></li>
                 </ul>
             </nav>
 
@@ -213,12 +213,12 @@
                         </div>
                         <div class="setting-item">
                             <label for="color-picker">Cor Principal</label>
-                            <input type="color" id="color-picker" value="#004b87">
+                            <input type="color" id="color-picker" value="#c98aff">
                         </div>
                     </div>
                 </div>
-                <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
-                <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+                <button id="settings-btn" class="sidebar-btn"><i data-lucide="settings"></i> <span>Configurações</span></button>
+                <button id="logout-btn" class="sidebar-btn"><i data-lucide="log-out"></i> <span>Sair</span></button>
             </div>
         </aside>
 
@@ -282,10 +282,10 @@
                     </div>
                     <div class="audit-filter-actions">
                         <button type="button" class="btn-primary" id="btn-filtrar">
-                            <i class="fas fa-filter"></i> Filtrar
+                            <i data-lucide="filter"></i> Filtrar
                         </button>
                         <button type="button" class="btn-secondary" id="btn-limpar">
-                            <i class="fas fa-times"></i> Limpar
+                            <i data-lucide="x"></i> Limpar
                         </button>
                     </div>
                 </div>

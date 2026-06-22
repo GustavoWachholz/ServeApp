@@ -2,8 +2,11 @@ package com.servants.repository;
 
 import com.servants.model.PermissaoTela;
 import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -32,4 +35,12 @@ public interface PermissaoTelaRepository extends JpaRepository<PermissaoTela, Lo
     Optional<PermissaoTela> findByUsuarioIdAndTela(Long usuarioId, String tela);
 
     void deleteByUsuarioId(Long usuarioId);
+
+    /**
+     * Carrega todas as permissões de um conjunto de usuários em uma única query —
+     * usado por {@code PermissaoService.listarDTOParaUsuarios} para evitar N+1 em
+     * {@code UsuarioService.listarTodos}.
+     */
+    @Query("SELECT p FROM PermissaoTela p WHERE p.usuario.id IN :usuarioIds")
+    List<PermissaoTela> findByUsuarioIdIn(@Param("usuarioIds") Collection<Long> usuarioIds);
 }

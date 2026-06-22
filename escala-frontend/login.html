@@ -4,6 +4,7 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Login - Serve</title>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/login.css">
 </head>
 <body>
@@ -11,9 +12,9 @@
         <!-- Lado Esquerdo: Branding -->
         <section class="branding-side">
             <div class="branding-content">
-                <img src="assets/img/logo.png" alt="Logo Serve" style="max-width: 250px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;">
-                <p style="color: #333333; font-size: 1.2rem; font-weight: 500; margin-top: 15px; text-align: center; max-width: 80%;">
-                    Uma geração que adora, ama e <strong style="color: #004b87;">Serve</strong><strong style="color: #E69F00;">.</strong>
+                <img src="assets/img/logo.png" alt="Logo Serve" style="max-width: 250px; border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,0.4); margin-bottom: 20px;">
+                <p style="color: var(--login-muted); font-size: 1.2rem; font-weight: 500; margin-top: 15px; text-align: center; max-width: 80%;">
+                    Uma geração que adora, ama e <strong style="color: var(--primary-color);">Serve</strong><strong style="color: var(--warn);">.</strong>
                 </p>
             </div>
         </section>
@@ -40,7 +41,7 @@
                             <input type="password" id="password" name="password" placeholder="••••••••" required>
                         </div>
 
-                        <p id="msg-erro" style="display:none; color:#ef4444; font-size:0.875rem; margin-bottom:0.5rem; background:#fef2f2; padding:0.6rem 0.8rem; border-radius:6px; border:1px solid #fecaca;"></p>
+                        <p id="msg-erro" style="display:none; color:var(--danger); font-size:0.875rem; margin-bottom:0.5rem; background:rgba(224,98,58,0.12); padding:0.6rem 0.8rem; border-radius:6px; border:1px solid rgba(224,98,58,0.35);"></p>
 
                         <button type="submit" class="btn-submit">Entrar</button>
                     </form>
@@ -80,7 +81,7 @@
                             </div>
                             <div>
                                 <label for="reg-genero">Gênero</label>
-                                <select id="reg-genero" name="genero" required style="width:100%;padding:0.65rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.95rem;background:#fff;color:#1a1a2e;outline:none;">
+                                <select id="reg-genero" name="genero" required style="width:100%;padding:0.65rem 0.75rem;border:1px solid var(--login-border);border-radius:8px;font-size:0.95rem;background:var(--login-surface-2);color:var(--login-text);outline:none;">
                                     <option value="">Selecione…</option>
                                     <option value="MASCULINO">Masculino</option>
                                     <option value="FEMININO">Feminino</option>
@@ -99,9 +100,9 @@
                         </div>
 
                         <div class="input-group" style="flex-direction:row; align-items:flex-start; gap:0.5rem;">
-                            <input type="checkbox" id="reg-consentimento" name="consentimento" style="margin-top:3px; flex-shrink:0; width:16px; height:16px; accent-color:#004b87; cursor:pointer;">
-                            <label for="reg-consentimento" style="font-size:0.85rem; color:#555; cursor:pointer; line-height:1.4;">
-                                Li e aceito a <a href="privacidade.html" target="_blank" style="color:#004b87; text-decoration:underline;">Política de Privacidade</a> e concordo com o tratamento dos meus dados.
+                            <input type="checkbox" id="reg-consentimento" name="consentimento" style="margin-top:3px; flex-shrink:0; width:16px; height:16px; accent-color:var(--primary-color); cursor:pointer;">
+                            <label for="reg-consentimento" style="font-size:0.85rem; color:var(--login-muted); cursor:pointer; line-height:1.4;">
+                                Li e aceito a <a href="privacidade.html" target="_blank" style="color:var(--primary-color); text-decoration:underline;">Política de Privacidade</a> e concordo com o tratamento dos meus dados.
                             </label>
                         </div>
 

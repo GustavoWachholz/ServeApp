@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Áreas - Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirPermissao('AREAS');</script>
+    <style>
+
+        /* View Mode specific */
+        .view-data-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .view-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .view-value {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+
+        .sub-table-title {
+            font-size: 0.85rem;
+            font-weight: 700;
+            margin: 2rem 0 1rem 0;
+            color: var(--text-muted);
+            text-transform: uppercase;
+        }
+
+        .sub-table {
+            width: 100%;
+            border-top: 1px solid var(--border-color);
+        }
+
+        .sub-table td {
+            padding: 0.8rem 0;
+            font-size: 0.85rem;
+        }
+        
+        select {
+            width: 100%;
+            padding: 0.75rem;
+            background-color: var(--bg-main);
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            color: var(--text-color);
+            font-size: 0.9rem;
+            outline: none;
+        }
+
+        select:focus {
+            border-color: var(--primary-color);
+        }
+
+        /* ── Classificações ── */
+        .classif-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+        }
+
+        .classif-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1.5px solid;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .classif-chip input[type="checkbox"] {
+            display: none;
+        }
+
+        .classif-chip:not(.checked) {
+            opacity: 0.45;
+            filter: grayscale(0.3);
+        }
+
+        .classif-chip.checked {
+            opacity: 1;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li class="nav-section-label"><span>Cadastros</span></li>
+                    <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                    <li class="active" data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header"><span>Aparência</span></div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+                <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
+                <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>GESTÃO DE ÁREAS</h2>
+                    <button class="btn-primary" id="btn-new-ministerio">
+                        <i class="fas fa-plus"></i> Nova Área
+                    </button>
+                </div>
+
+                <!-- Toolbar: pesquisa + exportação -->
+                <div class="toolbar" style="margin-bottom:.75rem;">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-ministerios" placeholder="Pesquisar área…" autocomplete="off">
+                    </div>
+                    <button type="button" id="btn-export-ministerios" class="btn-sort" title="Exportar CSV">
+                        <i class="fas fa-download" style="margin-right:.3rem;font-size:.75rem;"></i>Exportar CSV
+                    </button>
+                </div>
+
+                <div class="list-table-container mobile-compact">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Área</th>
+                                <th>Tipo</th>
+                                <th>Líder</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="ministerios-list">
+                            <!-- Dinâmico -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de Ministério -->
+    <div id="ministerio-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Detalhes da Área</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+
+            <!-- MODO VISUALIZAÇÃO -->
+            <div id="view-mode">
+                <div class="view-data-group">
+                    <div class="view-label">Área</div>
+                    <div class="view-value" id="view-nome">-</div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="view-data-group">
+                        <div class="view-label">Tipo</div>
+                        <div class="view-value" id="view-tipo" style="font-size: 0.95rem;">-</div>
+                    </div>
+                    <div class="view-data-group">
+                        <div class="view-label">Exclusivo na Escala</div>
+                        <div class="view-value" id="view-exclusivo" style="font-size: 0.95rem;">-</div>
+                    </div>
+                </div>
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="view-data-group">
+                        <div class="view-label">Líder</div>
+                        <div class="view-value" id="view-lider" style="font-size: 1rem;">-</div>
+                    </div>
+                    <div class="view-data-group">
+                        <div class="view-label">Co-Líder</div>
+                        <div class="view-value" id="view-colider" style="font-size: 1rem;">-</div>
+                    </div>
+                </div>
+
+                <div class="sub-table-title">Servos desta Área</div>
+                <table class="sub-table">
+                    <thead>
+                        <tr>
+                            <th style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color);">Nome</th>
+                            <th style="padding: 0.5rem 0; border-bottom: 1px solid var(--border-color); text-align: right;">Vezes Escalado</th>
+                        </tr>
+                    </thead>
+                    <tbody id="view-membros-list">
+                        <!-- Dinâmico -->
+                    </tbody>
+                </table>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-danger" id="btn-delete-ministerio">Excluir</button>
+                    <div class="footer-right">
+                        <button type="button" class="btn-secondary cancel-modal">Fechar</button>
+                        <button type="button" class="btn-primary" id="btn-switch-to-edit">Editar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODO EDIÇÃO -->
+            <form id="ministerio-form" style="display: none;">
+                <input type="hidden" id="ministerio-id">
+                
+                <div class="form-group">
+                    <label for="nome">Nome da Área</label>
+                    <input type="text" id="nome" required placeholder="Ex: Louvor">
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 1rem;">
+                    <div class="form-group">
+                        <label>Tipo</label>
+                        <div style="display:flex;gap:1rem;align-items:center;padding-top:0.35rem;">
+                            <label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="tipo" id="tipo-especifico" value="ESPECIFICO" checked> Específico
+                            </label>
+                            <label style="display:flex;align-items:center;gap:0.4rem;font-weight:400;cursor:pointer;">
+                                <input type="radio" name="tipo" id="tipo-geral" value="GERAL"> Geral
+                            </label>
+                        </div>
+                        <small style="color:var(--text-muted);font-size:0.73rem;margin-top:0.25rem;display:block;">
+                            Específico: vinculável ao servo. Geral: qualquer servo serve.
+                        </small>
+                    </div>
+                    <div class="form-group">
+                        <label for="exclusivoNaEscala">Exclusivo na Escala</label>
+                        <div style="display:flex;align-items:center;gap:0.6rem;padding-top:0.45rem;">
+                            <label class="switch">
+                                <input type="checkbox" id="exclusivoNaEscala" checked>
+                                <span class="slider"></span>
+                            </label>
+                            <span id="exclusivo-label" style="font-size:0.85rem;color:var(--text-muted);">Sim</span>
+                        </div>
+                        <small style="color:var(--text-muted);font-size:0.73rem;margin-top:0.25rem;display:block;">
+                            Quando ativo, o servo não pode servir em outra área exclusiva.
+                        </small>
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label for="liderId">Líder</label>
+                    <select id="liderId">
+                        <option value="">Nenhum</option>
+                    </select>
+                </div>
+
+                <div class="form-group">
+                    <label for="coliderId">Co-Líder</label>
+                    <select id="coliderId">
+                        <option value="">Nenhum</option>
+                    </select>
+                </div>
+
+                <div class="modal-footer">
+                    <button type="button" class="btn-danger" id="btn-form-delete" style="display: none;">Excluir</button>
+                    <div class="footer-right">
+                        <button type="button" class="btn-secondary" id="btn-back-to-view">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <!-- Modal de Confirmação de Exclusão -->
+    <div id="confirm-modal" class="modal" style="backdrop-filter: blur(4px);">
+        <div class="modal-content" style="max-width: 400px; text-align: center;">
+            <div style="margin-bottom: 1.5rem;">
+                <i class="fas fa-exclamation-circle" style="font-size: 3.5rem; color: #ef4444;"></i>
+            </div>
+            <h2 style="color: var(--text-color); margin-bottom: 1rem;">Confirmar Exclusão</h2>
+            <p style="color: var(--text-muted); margin-bottom: 2rem; line-height: 1.5;">
+                Tem certeza que deseja excluir a área <strong id="confirm-item-name" style="color: var(--text-color);"></strong>? <br>
+                Esta ação é irreversível.
+            </p>
+            <div style="display: flex; gap: 1rem; justify-content: center;">
+                <button type="button" class="btn-secondary" id="btn-confirm-cancel" style="flex: 1;">Não, manter</button>
+                <button type="button" class="btn-danger" id="btn-confirm-delete" style="flex: 1;">Sim, excluir</button>
+            </div>
+        </div>
+    </div>
+
+    <script src="js/classificacoes-cache.js"></script>
+    <script src="js/ministerios.js"></script>
+</body>
+</html>

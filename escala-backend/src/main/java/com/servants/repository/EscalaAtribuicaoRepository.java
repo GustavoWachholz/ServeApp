@@ -26,6 +26,12 @@ public interface EscalaAtribuicaoRepository extends JpaRepository<EscalaAtribuic
     void deleteByServoId(Long servoId);
 
     /**
+     * Verifica se um servo possui alguma atribuição histórica — substitui
+     * {@code findDistinctServoIds().contains(id)} por um EXISTS pontual (P8).
+     */
+    boolean existsByServoId(Long servoId);
+
+    /**
      * Renomeia a função (área) em todas as atribuições — usado para propagar a
      * renomeação de uma área e manter os vínculos íntegros.
      *

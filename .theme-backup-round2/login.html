@@ -1,0 +1,124 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Serve</title>
+    <link rel="stylesheet" href="css/login.css">
+</head>
+<body>
+    <main class="login-container">
+        <!-- Lado Esquerdo: Branding -->
+        <section class="branding-side">
+            <div class="branding-content">
+                <img src="assets/img/logo.png" alt="Logo Serve" style="max-width: 250px; border-radius: 16px; box-shadow: 0 4px 15px rgba(0,0,0,0.05); margin-bottom: 20px;">
+                <p style="color: #333333; font-size: 1.2rem; font-weight: 500; margin-top: 15px; text-align: center; max-width: 80%;">
+                    Uma geração que adora, ama e <strong style="color: #004b87;">Serve</strong><strong style="color: #E69F00;">.</strong>
+                </p>
+            </div>
+        </section>
+
+        <!-- Lado Direito: Formulário -->
+        <section class="form-side">
+            <div class="form-content">
+
+                <!-- ── View: Login ── -->
+                <div id="view-login">
+                    <header>
+                        <h2>Bem-vindo de volta</h2>
+                        <p>Entre com suas credenciais para acessar o sistema.</p>
+                    </header>
+
+                    <form id="login-form">
+                        <div class="input-group">
+                            <label for="email">E-mail</label>
+                            <input type="email" id="email" name="email" placeholder="exemplo@email.com" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="password">Senha</label>
+                            <input type="password" id="password" name="password" placeholder="••••••••" required>
+                        </div>
+
+                        <p id="msg-erro" style="display:none; color:#ef4444; font-size:0.875rem; margin-bottom:0.5rem; background:#fef2f2; padding:0.6rem 0.8rem; border-radius:6px; border:1px solid #fecaca;"></p>
+
+                        <button type="submit" class="btn-submit">Entrar</button>
+                    </form>
+
+                    <footer>
+                        <p>Não tem uma conta? <a href="#" id="link-para-registro">Solicite acesso</a></p>
+                    </footer>
+                </div>
+
+                <!-- ── View: Registro ── -->
+                <div id="view-registro" style="display:none;">
+                    <header>
+                        <h2>Criar conta</h2>
+                        <p>Preencha seus dados para acessar o sistema.</p>
+                    </header>
+
+                    <form id="registro-form">
+                        <div class="input-group">
+                            <label for="reg-nome">Nome completo</label>
+                            <input type="text" id="reg-nome" name="nome" placeholder="Seu nome" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reg-email">E-mail</label>
+                            <input type="email" id="reg-email" name="email" placeholder="exemplo@email.com" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reg-telefone">Telefone</label>
+                            <input type="tel" id="reg-telefone" name="telefone" placeholder="(11) 99999-9999" required>
+                        </div>
+
+                        <div class="input-group" style="display:grid;grid-template-columns:1fr 1fr;gap:0.75rem;">
+                            <div>
+                                <label for="reg-nascimento">Data de Nascimento</label>
+                                <input type="date" id="reg-nascimento" name="dataNascimento" required style="width:100%;">
+                            </div>
+                            <div>
+                                <label for="reg-genero">Gênero</label>
+                                <select id="reg-genero" name="genero" required style="width:100%;padding:0.65rem 0.75rem;border:1px solid #d1d5db;border-radius:8px;font-size:0.95rem;background:#fff;color:#1a1a2e;outline:none;">
+                                    <option value="">Selecione…</option>
+                                    <option value="MASCULINO">Masculino</option>
+                                    <option value="FEMININO">Feminino</option>
+                                </select>
+                            </div>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reg-senha">Senha</label>
+                            <input type="password" id="reg-senha" name="senha" placeholder="Mínimo 8 caracteres" required>
+                        </div>
+
+                        <div class="input-group">
+                            <label for="reg-senha2">Confirmar senha</label>
+                            <input type="password" id="reg-senha2" name="senha2" placeholder="Repita a senha" required>
+                        </div>
+
+                        <div class="input-group" style="flex-direction:row; align-items:flex-start; gap:0.5rem;">
+                            <input type="checkbox" id="reg-consentimento" name="consentimento" style="margin-top:3px; flex-shrink:0; width:16px; height:16px; accent-color:#004b87; cursor:pointer;">
+                            <label for="reg-consentimento" style="font-size:0.85rem; color:#555; cursor:pointer; line-height:1.4;">
+                                Li e aceito a <a href="privacidade.html" target="_blank" style="color:#004b87; text-decoration:underline;">Política de Privacidade</a> e concordo com o tratamento dos meus dados.
+                            </label>
+                        </div>
+
+                        <p id="msg-erro-registro" style="display:none; color:#ef4444; font-size:0.875rem; margin-bottom:0.5rem; background:#fef2f2; padding:0.6rem 0.8rem; border-radius:6px; border:1px solid #fecaca;"></p>
+
+                        <button type="submit" class="btn-submit">Criar Conta</button>
+                    </form>
+
+                    <footer>
+                        <p>Já tem conta? <a href="#" id="link-para-login">Entrar</a></p>
+                    </footer>
+                </div>
+
+            </div>
+        </section>
+    </main>
+
+    <script src="js/login.js"></script>
+</body>
+</html>

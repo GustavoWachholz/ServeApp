@@ -109,8 +109,11 @@ public class AuthController {
     }
 
     private String obterIp(HttpServletRequest request) {
-        String ip = request.getHeader("X-Forwarded-For");
-        if (ip != null && !ip.isBlank()) return ip.split(",")[0].trim();
+        // Prefere X-Real-IP (definido pelo nginx, não spoofável pelo cliente).
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) return realIp.trim();
+        String forwarded = request.getHeader("X-Forwarded-For");
+        if (forwarded != null && !forwarded.isBlank()) return forwarded.split(",")[0].trim();
         return request.getRemoteAddr();
     }
 

@@ -160,8 +160,8 @@ async function carregarOpcoesMinisterios() {
             const item = document.createElement('div');
             item.className = 'checkbox-item';
             item.innerHTML = `
-                <input type="checkbox" name="ministries" value="${m.nome}" id="min-${m.id}">
-                <label for="min-${m.id}">${m.nome}</label>
+                <input type="checkbox" name="ministries" value="${esc(m.nome)}" id="min-${esc(m.id)}">
+                <label for="min-${esc(m.id)}">${esc(m.nome)}</label>
             `;
             container.appendChild(item);
         });
@@ -185,7 +185,7 @@ function popularFiltroAreas(nomes) {
     if (!sel) return;
     const atual = sel.value;
     sel.innerHTML = '<option value="">Todas</option>' +
-        nomes.map(n => `<option value="${n}">${n}</option>`).join('');
+        nomes.map(n => `<option value="${esc(n)}">${esc(n)}</option>`).join('');
     sel.value = atual;
 }
 
@@ -243,7 +243,7 @@ async function carregarVoluntarios() {
 
     list.innerHTML = `
         <tr><td colspan="3" style="text-align:center;padding:2rem;opacity:0.5;">
-            <i class="fas fa-spinner fa-spin" style="margin-right:0.5rem;"></i>Carregando…
+            <i data-lucide="loader-circle" class="spin" style="margin-right:0.5rem;"></i>Carregando…
         </td></tr>`;
 
     try {
@@ -352,10 +352,18 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
     list.innerHTML = '';
 
     if (!voluntarios || voluntarios.length === 0) {
-        const msg = voluntariosCache.length > 0
+        const buscando = voluntariosCache.length > 0;
+        const titulo = buscando ? 'Nenhum resultado' : 'Sua equipe está vazia';
+        const msg = buscando
             ? 'Nenhum servo encontrado para essa pesquisa.'
-            : 'Nenhum servo cadastrado.';
-        list.innerHTML = `<tr><td colspan="3" style="text-align:center;opacity:0.5;padding:2rem;">${msg}</td></tr>`;
+            : 'Os servos aparecem aqui assim que se cadastram no sistema.';
+        list.innerHTML = `<tr><td colspan="3" style="padding:0;border:none;">
+            <div class="empty-state">
+                <i data-lucide="users"></i>
+                <h3>${titulo}</h3>
+                <p>${msg}</p>
+            </div>
+        </td></tr>`;
         return;
     }
 
@@ -371,7 +379,7 @@ function renderVoluntarios(voluntarios, termoDestaque = '') {
             </td>
             <td>${tel}</td>
             <td class="actions-cell">
-                <button class="btn-sort btn-view" data-id="${id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
+                <button class="btn-sort btn-view" data-id="${id}" title="Exibir"><i data-lucide="eye"></i><span class="btn-label">Exibir</span></button>
             </td>
         `;
         list.appendChild(tr);
@@ -594,7 +602,7 @@ async function buscarEPresentar(id, mode) {
             document.getElementById('view-genero').textContent = generoLabel(currentVolunteer.genero);
             document.getElementById('view-birthdate').textContent = formatarData(currentVolunteer.dataNascimento);
             const minDiv = document.getElementById('view-ministries');
-            minDiv.innerHTML = (currentVolunteer.areas || []).map(m => `<span class="ministry-tag">${m}</span>`).join('');
+            minDiv.innerHTML = (currentVolunteer.areas || []).map(m => `<span class="ministry-tag">${esc(m)}</span>`).join('');
             renderClassifView('view-classificacoes', currentVolunteer.classificacoes || []);
             showViewMode();
         } else {

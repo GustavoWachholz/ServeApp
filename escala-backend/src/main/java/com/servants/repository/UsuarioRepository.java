@@ -37,4 +37,12 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      */
     @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u WHERE u.servo IS NOT NULL")
     java.util.List<Usuario> findAllWithServo();
+
+    /**
+     * Retorna todos os usuários com LEFT JOIN FETCH no servo — inclui usuários sem servo
+     * (ex.: ADMIN) e evita N+1 em {@code UsuarioService.listarTodos}.
+     * Diferente de {@link #findAllWithServo()}, não filtra por {@code servo IS NOT NULL}.
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.servo")
+    java.util.List<Usuario> findAllFetchingServos();
 }

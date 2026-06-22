@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Servos - Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirPermissao('SERVOS');</script>
+    <style>
+        .ministry-tag {
+            display: inline-block;
+            padding: 0.2rem 0.6rem;
+            border-radius: 4px;
+            font-size: 0.75rem;
+            background-color: rgba(0, 75, 135, 0.1);
+            color: var(--primary-text);
+            margin-right: 0.3rem;
+            margin-bottom: 0.3rem;
+        }
+
+        /* Checkbox groups */
+        .checkbox-group {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
+            gap: 0.8rem;
+            margin-top: 0.5rem;
+        }
+
+        .checkbox-item {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            font-size: 0.85rem;
+        }
+
+        .checkbox-item input {
+            width: auto !important;
+        }
+
+        /* View Mode specific */
+        .view-data-group {
+            margin-bottom: 1.5rem;
+        }
+
+        .view-label {
+            font-size: 0.75rem;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            margin-bottom: 0.3rem;
+        }
+
+        .view-value {
+            font-size: 1rem;
+            font-weight: 500;
+        }
+
+        .btn-clear-search {
+            position: absolute;
+            right: 0.7rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            display: none;
+            align-items: center;
+            justify-content: center;
+            padding: 2px;
+            font-size: 0.8rem;
+            line-height: 1;
+            border-radius: 50%;
+            transition: color 0.2s;
+        }
+
+        .btn-clear-search:hover { color: var(--text-color); }
+
+        .sort-group {
+            display: flex;
+            align-items: center;
+            gap: 0.5rem;
+            flex-shrink: 0;
+        }
+
+        .sort-label {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+            font-weight: 500;
+            white-space: nowrap;
+        }
+
+        /* ── Barra de filtros ── */
+        .filter-bar {
+            display: flex;
+            align-items: flex-end;
+            gap: 1rem;
+            margin-bottom: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.25rem;
+        }
+
+        .filter-item label {
+            font-size: 0.7rem;
+            text-transform: uppercase;
+            letter-spacing: 0.03rem;
+            color: var(--text-muted);
+            font-weight: 600;
+        }
+
+        .filter-item select {
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-color);
+            font-size: 0.82rem;
+            min-width: 150px;
+            cursor: pointer;
+        }
+
+        .filter-item select:focus {
+            outline: none;
+            border-color: var(--primary-color);
+            box-shadow: 0 0 0 3px rgba(0,75,135,0.1);
+        }
+
+        #btn-clear-filters { align-self: flex-end; }
+
+        .toolbar-footer {
+            display: flex;
+            align-items: center;
+            justify-content: flex-end;
+            margin-bottom: 0.5rem;
+        }
+
+        .volunteers-count {
+            font-size: 0.78rem;
+            color: var(--text-muted);
+        }
+
+        /* Destaque do texto encontrado pela busca */
+        mark {
+            background-color: rgba(230,159,0,0.25);
+            color: inherit;
+            border-radius: 2px;
+            padding: 0 1px;
+        }
+
+        /* ── Chips de classificação ── */
+        .classif-grid {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.4rem;
+        }
+
+        .classif-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.35rem;
+            padding: 0.3rem 0.75rem;
+            border-radius: 20px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            border: 1.5px solid;
+            cursor: pointer;
+            transition: all 0.15s;
+            user-select: none;
+        }
+
+        .classif-chip input[type="checkbox"] {
+            display: none;
+        }
+
+        .classif-chip:not(.checked) {
+            opacity: 0.4;
+            filter: grayscale(0.35);
+        }
+
+        .classif-chip.checked {
+            opacity: 1;
+        }
+
+        /* Botão "Filtros" só existe no mobile (desktop mostra tudo) */
+        .btn-filters-toggle { display: none; }
+
+        @media (max-width: 768px) {
+            .sort-group { flex-wrap: wrap; }
+            .filter-bar { gap: 0.6rem; }
+            .filter-item select { min-width: 130px; }
+
+            /* No mobile só a busca + botão "Filtros" ficam visíveis; ordenação e
+               filtros entram num painel revelado ao tocar em "Filtros". */
+            .btn-filters-toggle { display: inline-flex; align-items: center; gap: 0.4rem; }
+            .toolbar .sort-group { display: none; }
+            .filter-bar { display: none; }
+            .filters-open .sort-group,
+            .filters-open .filter-bar { display: flex; }
+
+            /* Painel aberto: layout modular, controles empilhados em largura total */
+            .filters-open .filter-bar { flex-direction: column; align-items: stretch; }
+            .filters-open .filter-item { width: 100%; }
+            .filters-open .filter-item select { width: 100%; min-width: 0; }
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li class="nav-section-label"><span>Cadastros</span></li>
+                    <li class="active" data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Menu Flutuante de Configurações -->
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header">
+                        <span>Aparência</span>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                </button>
+                <button id="logout-btn" class="sidebar-btn">
+                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>GESTÃO DE SERVOS</h2>
+                </div>
+
+                <!-- Toolbar: pesquisa + ordenação -->
+                <div class="toolbar" style="margin-bottom:.75rem;">
+                    <div class="search-wrapper">
+                        <i class="fas fa-search search-icon"></i>
+                        <input type="text" id="search-input" placeholder="Pesquisar por nome, e-mail ou área…" autocomplete="off">
+                        <button id="btn-clear-search" class="btn-clear-search" title="Limpar pesquisa">
+                            <i class="fas fa-times"></i>
+                        </button>
+                    </div>
+                    <button type="button" id="btn-toggle-filters" class="btn-sort btn-filters-toggle" aria-expanded="false">
+                        <i class="fas fa-sliders"></i> Filtros
+                    </button>
+                    <div class="sort-group">
+                        <span class="sort-label">Ordenar:</span>
+                        <button id="sort-cadastro" class="btn-sort active" data-sort="cadastro">
+                            <i class="fas fa-clock" style="margin-right:0.3rem;font-size:0.75rem;"></i>Cadastro
+                        </button>
+                        <button id="sort-alpha" class="btn-sort" data-sort="alpha">
+                            <i class="fas fa-sort-alpha-down" style="margin-right:0.3rem;font-size:0.75rem;"></i>A → Z
+                        </button>
+                    </div>
+                </div>
+                <!-- Filtros -->
+                <div class="filter-bar">
+                    <div class="filter-item">
+                        <label for="filter-area">Área</label>
+                        <select id="filter-area"><option value="">Todas</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filter-ministerio">Ministério</label>
+                        <select id="filter-ministerio"><option value="">Todos</option></select>
+                    </div>
+                    <div class="filter-item">
+                        <label for="filter-escala">Situação</label>
+                        <select id="filter-escala">
+                            <option value="">Todos</option>
+                            <option value="escalados">Escalados</option>
+                            <option value="nao-escalados">Não escalados</option>
+                        </select>
+                    </div>
+                    <button type="button" id="btn-clear-filters" class="btn-sort" title="Limpar filtros">
+                        <i class="fas fa-filter-circle-xmark" style="margin-right:0.3rem;font-size:0.75rem;"></i>Limpar filtros
+                    </button>
+                    <button type="button" id="btn-export-voluntarios" class="btn-sort" title="Exportar CSV">
+                        <i class="fas fa-download" style="margin-right:0.3rem;font-size:0.75rem;"></i>Exportar CSV
+                    </button>
+                </div>
+
+                <div class="toolbar-footer">
+                    <span class="volunteers-count" id="volunteers-count"></span>
+                </div>
+
+                <div class="list-table-container mobile-compact">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Nome</th>
+                                <th>Contato</th>
+                                <th>Ações</th>
+                            </tr>
+                        </thead>
+                        <tbody id="volunteers-list">
+                            <!-- Dinâmico -->
+                        </tbody>
+                    </table>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <!-- Modal de Voluntário -->
+    <div id="volunteer-modal" class="modal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h2 id="modal-title">Detalhes do Servo</h2>
+                <span class="close-modal">&times;</span>
+            </div>
+
+            <!-- MODO VISUALIZAÇÃO -->
+            <div id="view-mode">
+                <div class="view-data-group">
+                    <div class="view-label">Nome Completo</div>
+                    <div class="view-value" id="view-name">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">E-mail</div>
+                    <div class="view-value" id="view-email">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Telefone</div>
+                    <div class="view-value" id="view-phone">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Gênero</div>
+                    <div class="view-value" id="view-genero">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Data de Nascimento</div>
+                    <div class="view-value" id="view-birthdate">-</div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Áreas</div>
+                    <div id="view-ministries">
+                        <!-- Tags dinâmicas -->
+                    </div>
+                </div>
+                <div class="view-data-group">
+                    <div class="view-label">Ministérios</div>
+                    <div id="view-classificacoes" class="classif-grid">-</div>
+                </div>
+                <div class="modal-footer">
+                    <div class="footer-right">
+                        <button type="button" class="btn-secondary cancel-modal">Fechar</button>
+                        <button type="button" class="btn-primary" id="btn-switch-to-edit">Editar</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- MODO EDIÇÃO (apenas áreas e ministérios) -->
+            <form id="volunteer-form" style="display: none;">
+                <input type="hidden" id="volunteer-id">
+
+                <p id="edit-nome-display" style="font-weight:600;font-size:1rem;color:var(--text-color);margin-bottom:0.25rem;"></p>
+                <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
+                    <i class="fas fa-circle-info" style="margin-right:0.3rem;"></i>
+                    Dados pessoais são editados em <strong>Meu Perfil</strong>.
+                </p>
+
+                <div class="form-group">
+                    <label>Áreas</label>
+                    <div class="checkbox-group" id="ministerios-checkbox-container">
+                        <!-- Dinâmico via API -->
+                    </div>
+                </div>
+
+                <div class="form-group">
+                    <label>Ministérios</label>
+                    <div class="classif-grid" id="classif-checkboxes-vol">
+                        <!-- gerado por voluntarios.js -->
+                    </div>
+                    <small style="color:var(--text-muted);font-size:0.73rem;margin-top:0.4rem;display:block;">
+                        Selecione os ministérios em que este servo pode atuar.
+                    </small>
+                </div>
+
+                <div class="modal-footer">
+                    <div class="footer-right" style="width: 100%; justify-content: flex-end;">
+                        <button type="button" class="btn-secondary" id="btn-back-to-view">Cancelar</button>
+                        <button type="submit" class="btn-primary">Salvar</button>
+                    </div>
+                </div>
+            </form>
+        </div>
+    </div>
+
+    <script src="js/classificacoes-cache.js"></script>
+    <script src="js/voluntarios.js"></script>
+</body>
+</html>

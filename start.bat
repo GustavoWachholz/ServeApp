@@ -30,6 +30,13 @@ echo.
 echo Iniciando Spring Boot com timezone America/Sao_Paulo...
 echo.
 
+:: JWT_SECRET para desenvolvimento local (não usar em produção).
+:: Em produção, defina JWT_SECRET como variável de ambiente do sistema/container.
+if not defined JWT_SECRET (
+    set JWT_SECRET=serve-local-dev-secret-nao-usar-em-producao-troque-antes-do-deploy
+    echo [DEV] JWT_SECRET nao definida. Usando chave local de desenvolvimento.
+)
+
 cd /d "%~dp0escala-backend"
 call mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-Duser.timezone=America/Sao_Paulo"
 

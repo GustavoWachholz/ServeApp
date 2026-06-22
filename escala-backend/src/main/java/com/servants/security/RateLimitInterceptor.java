@@ -65,6 +65,10 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     }
 
     private String obterIp(HttpServletRequest request) {
+        // Prefere X-Real-IP (definido pelo nginx, não spoofável pelo cliente).
+        // Cai em X-Forwarded-For[0] apenas se X-Real-IP não estiver presente.
+        String realIp = request.getHeader("X-Real-IP");
+        if (realIp != null && !realIp.isBlank()) return realIp.trim();
         String forwarded = request.getHeader("X-Forwarded-For");
         return (forwarded != null && !forwarded.isBlank())
                 ? forwarded.split(",")[0].trim()

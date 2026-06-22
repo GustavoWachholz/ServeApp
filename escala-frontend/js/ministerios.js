@@ -10,6 +10,11 @@ function esc(s) {
         .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
+/** Valida um valor de cor CSS: aceita apenas #rgb ou #rrggbb. Retorna cinza neutro se inválido. */
+function safeCor(cor) {
+    return /^#[0-9a-fA-F]{3,6}$/.test(cor || '') ? cor : '#888888';
+}
+
 /** URL da API de ministérios. */
 const MINISTERIOS_API_URL = '/api/areas';
 /** URL da API de voluntários (para popular os selects de líder/co-líder). */
@@ -66,12 +71,13 @@ function renderClassifChips(containerId, selecionadas) {
     if (!container) return;
     container.innerHTML = classificacoesDisponiveis.map(cl => {
         const checked = selecionadas.includes(cl.key);
+        const cor = safeCor(cl.cor);
         return `
         <label class="classif-chip ${checked ? 'checked' : ''}"
-               style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;"
+               style="color:${cor};border-color:${cor};background:${cor}18;"
                onclick="toggleClassifChip(this)">
-            <input type="checkbox" name="classif-${containerId}" value="${cl.key}" ${checked ? 'checked' : ''}>
-            ${cl.label}
+            <input type="checkbox" name="classif-${esc(containerId)}" value="${esc(cl.key)}" ${checked ? 'checked' : ''}>
+            ${esc(cl.label)}
         </label>`;
     }).join('');
 }
@@ -118,10 +124,11 @@ function renderClassifView(containerId, selecionadas) {
     }
     container.innerHTML = selecionadas.map(key => {
         const cl = classificacoesDisponiveis.find(c => c.key === key);
-        if (!cl) return `<span class="classif-chip checked" style="cursor:default;">${key}</span>`;
+        if (!cl) return `<span class="classif-chip checked" style="cursor:default;">${esc(key)}</span>`;
+        const cor = safeCor(cl.cor);
         return `<span class="classif-chip checked"
-                      style="color:${cl.cor};border-color:${cl.cor};background:${cl.cor}18;cursor:default;">
-                    ${cl.label}
+                      style="color:${cor};border-color:${cor};background:${cor}18;cursor:default;">
+                    ${esc(cl.label)}
                 </span>`;
     }).join('');
 }
@@ -221,7 +228,7 @@ async function fetchMinisterios() {
     } catch (error) {
         console.error('Erro ao carregar ministérios:', error);
         if (list) list.innerHTML = '<tr><td colspan="4" style="text-align:center;color:#ef4444;padding:2rem;">'
-            + '<i class="fas fa-exclamation-circle" style="margin-right:.5rem;"></i>'
+            + '<i data-lucide="circle-alert" style="margin-right:.5rem;"></i>'
             + 'Erro ao carregar dados. Verifique a conexão com o servidor.</td></tr>';
     }
 }
@@ -244,12 +251,12 @@ function renderMinisteriosTable(ministerios) {
             font-weight:600;background:${tipoCor}20;color:${tipoCor};border:1px solid ${tipoCor}50;`;
         const tr = document.createElement('tr');
         tr.innerHTML = `
-            <td style="font-weight: 600;">${m.nome}</td>
+            <td style="font-weight: 600;">${esc(m.nome)}</td>
             <td><span style="${badgeStyle}">${tipoLabel}</span></td>
-            <td>${resolveName(m, 'lider') || 'Sem Líder'}</td>
+            <td>${esc(resolveName(m, 'lider') || 'Sem Líder')}</td>
             <td class="actions-cell">
-                <button class="btn-sort btn-view" data-id="${m.id || m._id}" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
-                ${Auth.podeExcluir('AREAS') ? `<button class="btn-sort btn-sort-danger btn-delete-row" data-id="${m.id || m._id}" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
+                <button class="btn-sort btn-view" data-id="${m.id || m._id}" title="Exibir"><i data-lucide="eye"></i><span class="btn-label">Exibir</span></button>
+                ${Auth.podeExcluir('AREAS') ? `<button class="btn-sort btn-sort-danger btn-delete-row" data-id="${m.id || m._id}" title="Excluir"><i data-lucide="trash-2"></i><span class="btn-label">Excluir</span></button>` : ''}
             </td>
         `;
         list.appendChild(tr);

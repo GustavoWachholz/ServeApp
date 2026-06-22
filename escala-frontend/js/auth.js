@@ -6,6 +6,22 @@
 (function () {
     const STORAGE_KEY = 'serve_session';
 
+    function esc(str) {
+        return String(str == null ? '' : str)
+            .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+    }
+
+    // Decodifica o payload do JWT sem verificar assinatura (apenas o servidor verifica).
+    // Permite ler claims como `role` a partir do token assinado, que o usuário não pode forjar.
+    function _decodificarJWT(token) {
+        try {
+            const b64 = token.split('.')[1].replace(/-/g, '+').replace(/_/g, '/');
+            const padded = b64 + '='.repeat((4 - b64.length % 4) % 4);
+            return JSON.parse(atob(padded));
+        } catch (e) { return null; }
+    }
+
     // ── Shell / iframe ─────────────────────────────────────────────────────
     // Detecta (de forma síncrona, no <head>) se esta página está sendo exibida
     // dentro do iframe de conteúdo do shell (app.html). Quando embarcada, a sidebar
@@ -41,13 +57,19 @@
 
     /**
      * Lê o usuário logado a partir do {@code localStorage}.
+     * A foto (base64) é mantida apenas em {@code sessionStorage} para não persistir
+     * além da aba/janela atual.
      *
      * @returns {Object|null} o objeto de sessão, ou {@code null} se não houver/for inválido.
      */
     function getUsuarioLogado() {
         try {
             const raw = localStorage.getItem(STORAGE_KEY);
-            return raw ? JSON.parse(raw) : null;
+            if (!raw) return null;
+            const u = JSON.parse(raw);
+            const foto = sessionStorage.getItem(STORAGE_KEY + '_foto');
+            if (foto !== null) u.foto = foto || null;
+            return u;
         } catch (e) {
             return null;
         }
@@ -55,22 +77,30 @@
 
     /**
      * Persiste o objeto de sessão do usuário no {@code localStorage}.
+     * A foto (base64) é armazenada separadamente em {@code sessionStorage}
+     * para não ficar exposta em localStorage além da sessão do navegador.
      *
      * @param {Object} usuario dados de sessão a salvar.
      * @returns {void}
      */
     function salvarSessao(usuario) {
-        localStorage.setItem(STORAGE_KEY, JSON.stringify(usuario));
+        const { foto, ...semFoto } = usuario;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(semFoto));
+        if (foto !== undefined) sessionStorage.setItem(STORAGE_KEY + '_foto', foto || '');
     }
 
     /**
      * Verifica se o usuário logado tem papel de administrador.
+     * Lê a claim `role` do JWT (assinado pelo servidor) em vez do localStorage,
+     * impedindo escalação de privilégio por edição manual do storage.
      *
-     * @returns {boolean} {@code true} se houver sessão com role "ADMIN".
+     * @returns {boolean} {@code true} se o token contiver role "ADMIN".
      */
     function isAdmin() {
         const u = getUsuarioLogado();
-        return u !== null && u.role === 'ADMIN';
+        if (!u || !u.token) return false;
+        const claims = _decodificarJWT(u.token);
+        return claims !== null && claims.role === 'ADMIN';
     }
 
     // ── Permissões por tela ────────────────────────────────────────────────
@@ -137,6 +167,7 @@
             }
         } catch (e) { /* ignora falhas de rede no logout */ }
         localStorage.removeItem(STORAGE_KEY);
+        sessionStorage.removeItem(STORAGE_KEY + '_foto');
         irPara('login.html');
     }
 
@@ -187,8 +218,11 @@
      * @returns {void}
      */
     function _atualizarIconeToggle(recolhido) {
-        const icon = document.querySelector('#sidebar-toggle i');
-        if (icon) icon.className = recolhido ? 'fas fa-bars' : 'fas fa-angles-left';
+        const btn = document.getElementById('sidebar-toggle');
+        if (btn) {
+            btn.innerHTML = `<i data-lucide="${recolhido ? 'menu' : 'chevrons-left'}"></i>`;
+            renderIcones();
+        }
     }
 
     /**
@@ -353,7 +387,7 @@
             themeToggle.onchange = () => {
                 const novoTema = themeToggle.checked ? 'dark' : 'light';
                 const cor = document.getElementById('color-picker')?.value
-                            || sessao.corPrimaria || '#004b87';
+                            || sessao.corPrimaria || '#c98aff';
                 aplicarTema(novoTema);
                 salvarPreferencias(novoTema, cor);
             };
@@ -491,6 +525,7 @@
         'voluntarios.html': 'servos',
         'ministerios.html': 'areas',
         'configuracao-escala.html': 'ministerios',
+        'relatorios.html': 'relatorios',
         'usuarios.html': 'usuarios',
         'perfil.html': 'perfil',
         'auditoria.html': 'auditoria'
@@ -617,7 +652,7 @@
     function avatarLocal(nome, cor) {
         const bg = cor
             || (document.documentElement.style.getPropertyValue('--primary-color') || '').trim()
-            || '#004b87';
+            || '#c98aff';
         const iniciais = (nome || '?')
             .trim()
             .split(/\s+/)
@@ -699,8 +734,51 @@
     }
 
     // Inicializa sidebar e aparência automaticamente quando o DOM estiver pronto
+    // ── Ícones (Lucide) ────────────────────────────────────────────────────
+    // FA era CSS puro (funcionava em HTML injetado). Lucide é SVG e precisa de um
+    // passo JS que troca cada <i data-lucide="..."> por <svg>. Em vez de chamar
+    // createIcons() em cada função de render, um único MutationObserver detecta
+    // novos [data-lucide] no DOM e re-renderiza — assim a lógica de render do app
+    // não é tocada. Debounce via requestAnimationFrame coalesce rajadas.
+    let _iconeFrame = null;
+    function renderIcones() {
+        if (!window.lucide || typeof window.lucide.createIcons !== 'function') return;
+        if (_iconeFrame) return;
+        _iconeFrame = requestAnimationFrame(function () {
+            _iconeFrame = null;
+            try {
+                window.lucide.createIcons({ attrs: { 'stroke-width': 1.75 } });
+                // O <svg> gerado mantém o data-lucide; removê-lo evita que o
+                // MutationObserver veja a própria inserção como novo ícone e
+                // entre em loop, e que createIcons reprocesse svgs já prontos.
+                document.querySelectorAll('svg.lucide[data-lucide]')
+                        .forEach(function (el) { el.removeAttribute('data-lucide'); });
+            } catch (e) {}
+        });
+    }
+
+    function iniciarIconesLucide() {
+        renderIcones();
+        if (window.__serveIconObserver) return;
+        const obs = new MutationObserver(function (muts) {
+            for (const m of muts) {
+                for (const node of m.addedNodes) {
+                    if (node.nodeType !== 1) continue;
+                    if ((node.matches && node.matches('[data-lucide]')) ||
+                        (node.querySelector && node.querySelector('[data-lucide]'))) {
+                        renderIcones();
+                        return;
+                    }
+                }
+            }
+        });
+        if (document.body) obs.observe(document.body, { childList: true, subtree: true });
+        window.__serveIconObserver = obs;
+    }
+
     document.addEventListener('DOMContentLoaded', function () {
         if (!getUsuarioLogado()) return;
+        iniciarIconesLucide();
         // Dentro do shell (iframe), a sidebar/aparência são do pai; aqui só aplicamos
         // o nome da igreja ao cabeçalho da página de conteúdo.
         if (EMBEDDED) {
@@ -757,7 +835,7 @@
             btn.type = 'button';
             btn.className = 'btn-secondary';
             btn.style.cssText = 'width:100%;margin-top:1rem;justify-content:center;';
-            btn.innerHTML = '<i class="fas fa-church"></i> Configurar Igreja';
+            btn.innerHTML = '<i data-lucide="church"></i> Configurar Igreja';
             btn.onclick = abrirModalIgreja;
             menu.appendChild(btn);
         }
@@ -769,7 +847,7 @@
             modal.innerHTML = `
                 <div class="modal-content" style="max-width:560px;">
                     <div class="modal-header">
-                        <h2><i class="fas fa-church" style="margin-right:.5rem;"></i>Dados da Igreja</h2>
+                        <h2><i data-lucide="church" style="margin-right:.5rem;"></i>Dados da Igreja</h2>
                         <span class="close-modal" id="igreja-close">&times;</span>
                     </div>
                     <div class="form-group">
@@ -799,7 +877,7 @@
                         <span></span>
                         <div class="footer-right">
                             <button type="button" class="btn-secondary" id="igreja-cancelar">Cancelar</button>
-                            <button type="button" class="btn-primary" id="igreja-salvar"><i class="fas fa-save"></i> Salvar</button>
+                            <button type="button" class="btn-primary" id="igreja-salvar"><i data-lucide="save"></i> Salvar</button>
                         </div>
                     </div>
                 </div>`;
@@ -931,11 +1009,11 @@
             overlay.setAttribute('aria-modal', 'true');
             overlay.innerHTML =
                 '<div class="modal-content confirm-modal-content">' +
-                  '<h3 class="confirm-modal-titulo">' + titulo + '</h3>' +
-                  '<p class="confirm-modal-msg">' + mensagem.replace(/\n/g, '<br>') + '</p>' +
+                  '<h3 class="confirm-modal-titulo">' + esc(titulo) + '</h3>' +
+                  '<p class="confirm-modal-msg">' + esc(mensagem).replace(/\n/g, '<br>') + '</p>' +
                   '<div class="confirm-modal-acoes">' +
                     '<button class="btn btn-secondary confirm-cancel-btn">Cancelar</button>' +
-                    '<button class="btn ' + (perigoso ? 'btn-danger' : 'btn-primary') + ' confirm-ok-btn">' + textoBotao + '</button>' +
+                    '<button class="btn ' + (perigoso ? 'btn-danger' : 'btn-primary') + ' confirm-ok-btn">' + esc(textoBotao) + '</button>' +
                   '</div>' +
                 '</div>';
             document.body.appendChild(overlay);
@@ -956,16 +1034,17 @@
             container.id = 'toast-container';
             document.body.appendChild(container);
         }
-        const icones = { success: 'fa-check-circle', error: 'fa-exclamation-circle',
-                         warning: 'fa-exclamation-triangle', info: 'fa-info-circle' };
-        const icone = icones[tipo] || 'fa-info-circle';
+        const icones = { success: 'circle-check', error: 'circle-alert',
+                         warning: 'triangle-alert', info: 'info' };
+        const icone = icones[tipo] || 'info';
         const t = document.createElement('div');
         t.className = 'toast toast-' + tipo;
-        t.innerHTML = '<i class="fas ' + icone + '"></i>'
-                    + '<span>' + msg + '</span>'
+        t.innerHTML = '<i data-lucide="' + icone + '"></i>'
+                    + '<span>' + esc(msg) + '</span>'
                     + '<button class="toast-close" aria-label="Fechar">&times;</button>';
         t.querySelector('.toast-close').onclick = function () { t.remove(); };
         container.appendChild(t);
+        renderIcones();
         setTimeout(function () { if (t.parentNode) t.remove(); }, duracao);
     }
 

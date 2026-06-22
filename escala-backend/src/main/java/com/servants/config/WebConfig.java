@@ -46,9 +46,9 @@ public class WebConfig implements WebMvcConfigurer {
 
     @Override
     public void addInterceptors(InterceptorRegistry registry) {
-        // Rate limiter aplicado apenas ao login (brute force protection)
+        // Rate limiter aplicado ao login e ao cadastro (brute force / spam protection)
         registry.addInterceptor(rateLimitInterceptor)
-                .addPathPatterns("/api/auth/login");
+                .addPathPatterns("/api/auth/login", "/api/auth/cadastro");
 
         // Autenticação JWT em todos os endpoints protegidos
         registry.addInterceptor(authInterceptor)

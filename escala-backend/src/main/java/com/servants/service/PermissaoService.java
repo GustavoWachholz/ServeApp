@@ -10,9 +10,12 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 /**
  * Serviço de permissões por tela. Centraliza a leitura, a verificação e a gravação
@@ -72,6 +75,38 @@ public class PermissaoService {
             dtos.add(new PermissaoDTO(p.getTela(), p.isAcessar(), p.isCriar(), p.isEditar(), p.isExcluir()));
         }
         return dtos;
+    }
+
+    /**
+     * Versão batch de {@link #listarDTO}: carrega todas as permissões dos usuários
+     * informados em uma única query e aplica defaults (tudo false) para telas sem linha
+     * persistida. Elimina o N+1 em {@code UsuarioService.listarTodos}.
+     *
+     * @param usuarioIds ids dos usuários a carregar.
+     * @return mapa {@code usuarioId → lista de PermissaoDTO} na ordem de {@link #TELAS}.
+     */
+    @Transactional(readOnly = true)
+    public Map<Long, List<PermissaoDTO>> listarDTOParaUsuarios(Collection<Long> usuarioIds) {
+        Map<Long, List<PermissaoTela>> porUsuario = permissaoRepository.findByUsuarioIdIn(usuarioIds)
+                .stream()
+                .collect(Collectors.groupingBy(p -> p.getUsuario().getId()));
+
+        Map<Long, List<PermissaoDTO>> resultado = new HashMap<>();
+        for (Long userId : usuarioIds) {
+            Map<String, PermissaoTela> mapa = new LinkedHashMap<>();
+            for (String tela : TELAS) {
+                mapa.put(tela, new PermissaoTela(null, tela));
+            }
+            for (PermissaoTela p : porUsuario.getOrDefault(userId, List.of())) {
+                mapa.put(p.getTela(), p);
+            }
+            List<PermissaoDTO> dtos = new ArrayList<>();
+            for (PermissaoTela p : mapa.values()) {
+                dtos.add(new PermissaoDTO(p.getTela(), p.isAcessar(), p.isCriar(), p.isEditar(), p.isExcluir()));
+            }
+            resultado.put(userId, dtos);
+        }
+        return resultado;
     }
 
     /**

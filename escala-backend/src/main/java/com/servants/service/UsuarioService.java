@@ -18,12 +18,15 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import com.servants.dto.PermissaoDTO;
 import java.time.LocalDate;
 import java.time.format.DateTimeParseException;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
+import java.util.stream.Collectors;
 
 /**
  * Serviço de autenticação e gestão de contas de usuário: login, cadastro e
@@ -187,12 +190,20 @@ public class UsuarioService {
      */
     @Transactional(readOnly = true)
     public List<UsuarioListItemDTO> listarTodos() {
+        List<Usuario> usuarios = usuarioRepository.findAllFetchingServos();
+        if (usuarios.isEmpty()) return new ArrayList<>();
+
+        List<Long> ids = usuarios.stream().map(Usuario::getId).collect(Collectors.toList());
+        Map<Long, List<PermissaoDTO>> permissoesBatch = permissaoService.listarDTOParaUsuarios(ids);
+
         List<UsuarioListItemDTO> lista = new ArrayList<>();
-        for (Usuario u : usuarioRepository.findAll()) {
-            Servo v = resolverServo(u);
+        for (Usuario u : usuarios) {
+            Servo v = u.getServo();
+            // fallback por e-mail apenas para contas legadas sem vínculo explícito
+            if (v == null) v = servoRepository.findByEmail(u.getEmail()).orElse(null);
             lista.add(new UsuarioListItemDTO(
-                    u.getId(), u.getNome(), u.getEmail(), u.getRole(), u.getFoto(),
-                    permissaoService.listarDTO(u.getId()),
+                    u.getId(), u.getNome(), u.getEmail(), u.getRole(),
+                    permissoesBatch.getOrDefault(u.getId(), List.of()),
                     v != null ? v.getId() : null, v != null ? v.getNome() : null));
         }
         return lista;
@@ -358,7 +369,7 @@ public class UsuarioService {
 
         Servo servo = resolverServo(usuario);
         boolean temHistorico = servo != null
-                && escalaAtribuicaoRepository.findDistinctServoIds().contains(servo.getId());
+                && escalaAtribuicaoRepository.existsByServoId(servo.getId());
 
         permissaoTelaRepository.deleteByUsuarioId(id);
         usuario.setServo(null);

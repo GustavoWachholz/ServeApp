@@ -17,6 +17,12 @@ var __awaiter = (this && this.__awaiter) || function (thisArg, _arguments, P, ge
 const ESCALAS_API_URL = '/api/escalas';
 /** URL da API de configurações de escala (classificações). */
 const CONFIG_ESCALA_API_URL = '/api/ministerios';
+/** Escapa caracteres HTML especiais para uso seguro em innerHTML. */
+function esc(s) {
+    return String(s == null ? '' : s)
+        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
+}
 /** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis = [];
 /** Instância do FullCalendar. */
@@ -230,8 +236,8 @@ function renderizarResultados(ul, lista, ocultosExclusividade = 0) {
     else {
         html = lista.map(v => `
             <li>
-                ${v.nome}
-                <button type="button" class="btn-add" data-id="${v.id || v._id}" data-nome="${v.nome}">+</button>
+                ${esc(v.nome)}
+                <button type="button" class="btn-add" data-id="${v.id || v._id}" data-nome="${esc(v.nome)}">+</button>
             </li>
         `).join('');
     }
@@ -239,7 +245,7 @@ function renderizarResultados(ul, lista, ocultosExclusividade = 0) {
         const plural = ocultosExclusividade > 1;
         html += `<li style="color:#f59e0b;font-size:0.78rem;padding:0.4rem 0.6rem;
                      border-top:1px solid var(--border-color);font-style:italic;list-style:none;cursor:default;">
-            <i class="fas fa-lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
+            <i data-lucide="lock" style="font-size:0.7rem;margin-right:0.3rem;"></i>
             ${ocultosExclusividade} voluntário${plural ? 's' : ''} oculto${plural ? 's' : ''} por exclusividade
         </li>`;
     }
@@ -388,7 +394,7 @@ function initModalControls() {
             !selectClass.reportValidity())
             return;
         btnIrEscala.disabled = true;
-        btnIrEscala.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Carregando...';
+        btnIrEscala.innerHTML = '<i data-lucide="loader-circle" class="spin"></i> Carregando...';
         const config = yield carregarConfigEscala(selectClass.value);
         gerarGridMinisterios((config === null || config === void 0 ? void 0 : config.areas) || []);
         // Preenche atribuições pré-carregadas (edição de evento existente)
@@ -405,7 +411,7 @@ function initModalControls() {
         });
         atribuicoesParaCarregar = [];
         btnIrEscala.disabled = false;
-        btnIrEscala.innerHTML = 'Escalar Equipe <i class="fas fa-arrow-right"></i>';
+        btnIrEscala.innerHTML = 'Escalar Equipe <i data-lucide="arrow-right"></i>';
         step1.style.display = 'none';
         step2.style.display = 'block';
     });
@@ -438,7 +444,7 @@ function initModalControls() {
                     return;
             }
             const originalText = btn.innerHTML;
-            btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Gerando...';
+            btn.innerHTML = '<i data-lucide="loader-circle" class="spin"></i> Gerando...';
             btn.disabled = true;
             const exportContainer = document.getElementById('export-container');
             const exportHeader = document.getElementById('export-header');
@@ -776,7 +782,6 @@ function initCalendar() {
                         atribuicoes: escala.atribuicoes
                     }
                 }));
-                console.log("Eventos carregados com sucesso:", eventosMapeados);
                 successCallback(eventosMapeados);
             })
                 .catch(error => {
@@ -794,7 +799,7 @@ function initCalendar() {
             const badge = document.createElement('span');
             badge.className = 'aniv-badge';
             badge.title = doAlvo.map(a => a.nome).join(', ');
-            badge.innerHTML = `<i class="fas fa-cake-candles"></i>${doAlvo.length > 1 ? ' ' + doAlvo.length : ''}`;
+            badge.innerHTML = `<i data-lucide="cake"></i>${doAlvo.length > 1 ? ' ' + doAlvo.length : ''}`;
             const top = info.el.querySelector('.fc-daygrid-day-top');
             if (top)
                 top.prepend(badge);
@@ -892,13 +897,13 @@ function abrirModalAniversariantes() {
     else {
         body.innerHTML = doMes.map(a => {
             const avatar = a.foto
-                ? `<img src="${a.foto}" alt="${a.nome}" class="aniv-avatar">`
-                : `<span class="aniv-avatar-initials">${a.nome.charAt(0).toUpperCase()}</span>`;
+                ? `<img src="${esc(a.foto)}" alt="${esc(a.nome)}" class="aniv-avatar">`
+                : `<span class="aniv-avatar-initials">${esc(a.nome.charAt(0).toUpperCase())}</span>`;
             return `
             <div class="lista-modal-item">
                 ${avatar}
                 <div>
-                    <div style="font-weight:600;">${a.nome}</div>
+                    <div style="font-weight:600;">${esc(a.nome)}</div>
                     <div style="font-size:0.8rem;color:var(--text-muted);">Dia ${a.dia}</div>
                 </div>
             </div>`;
@@ -948,12 +953,12 @@ function atualizarBannerAniversariantes(viewType, start) {
     }
     const itens = doAlvo.map(a => {
         const avatar = a.foto
-            ? `<img src="${a.foto}" alt="${a.nome}" class="aniv-avatar">`
-            : `<span class="aniv-avatar-initials">${a.nome.charAt(0).toUpperCase()}</span>`;
-        return `<div class="aniv-item">${avatar}<span class="aniv-nome">${a.nome}</span></div>`;
+            ? `<img src="${esc(a.foto)}" alt="${esc(a.nome)}" class="aniv-avatar">`
+            : `<span class="aniv-avatar-initials">${esc(a.nome.charAt(0).toUpperCase())}</span>`;
+        return `<div class="aniv-item">${avatar}<span class="aniv-nome">${esc(a.nome)}</span></div>`;
     }).join('');
     banner.innerHTML =
-        `<span class="aniv-banner-label"><i class="fas fa-cake-candles"></i> Aniversariantes</span>${itens}`;
+        `<span class="aniv-banner-label"><i data-lucide="cake"></i> Aniversariantes</span>${itens}`;
     banner.style.display = 'flex';
 }
 export {};

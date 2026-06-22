@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Relatórios - Serve</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirLogin();</script>
+    <style>
+        .relatorio-filtros {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            padding: 1.5rem;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 1rem;
+            align-items: flex-end;
+            margin-bottom: 1.5rem;
+        }
+        .filtro-grupo {
+            display: flex;
+            flex-direction: column;
+            gap: 0.35rem;
+        }
+        .filtro-grupo label {
+            font-size: 0.78rem;
+            font-weight: 600;
+            color: var(--text-muted);
+            text-transform: uppercase;
+            letter-spacing: 0.04em;
+        }
+        .filtro-grupo input[type="date"] {
+            padding: 0.5rem 0.75rem;
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+            background: var(--bg-main);
+            color: var(--text-main);
+            font-size: 0.875rem;
+            font-family: inherit;
+        }
+        .relatorio-table-wrapper {
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 12px;
+            overflow: hidden;
+        }
+        .relatorio-table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        .relatorio-table th {
+            padding: 1rem 1.5rem;
+            font-size: 0.75rem;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            color: var(--text-muted);
+            border-bottom: 1px solid var(--border-color);
+            text-align: left;
+        }
+        .relatorio-table td {
+            padding: 1rem 1.5rem;
+            font-size: 0.9rem;
+            border-bottom: 1px solid var(--border-color);
+        }
+        .relatorio-table tr:last-child td { border-bottom: none; }
+        .relatorio-table tr:hover td { background: rgba(124,124,138,.05); }
+        .freq-bar-cell { width: 40%; }
+        .freq-bar-wrapper {
+            display: flex;
+            align-items: center;
+            gap: 0.75rem;
+        }
+        .freq-bar {
+            height: 8px;
+            border-radius: 99px;
+            background: var(--primary-color);
+            min-width: 4px;
+            transition: width 0.3s ease;
+        }
+        .freq-num {
+            font-weight: 600;
+            color: var(--primary-color);
+            min-width: 1.5rem;
+            text-align: right;
+        }
+        .rank-badge {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            width: 1.6rem;
+            height: 1.6rem;
+            border-radius: 50%;
+            font-size: 0.75rem;
+            font-weight: 700;
+            background: var(--border-color);
+            color: var(--text-muted);
+        }
+        .rank-badge.top1 { background: #f59e0b; color: #fff; }
+        .rank-badge.top2 { background: #94a3b8; color: #fff; }
+        .rank-badge.top3 { background: #b45309; color: #fff; }
+        #relatorio-vazio {
+            padding: 3rem;
+            text-align: center;
+            color: var(--text-muted);
+            font-style: italic;
+        }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li class="nav-section-label"><span>Cadastros</span></li>
+                    <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    <li class="active"><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header"><span>Aparência</span></div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                </button>
+                <button id="logout-btn" class="sidebar-btn">
+                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <div class="dashboard-grid" style="max-width: 900px;">
+                <section class="dashboard-section">
+                    <div class="section-header">
+                        <h2>FREQUÊNCIA DE ESCALAÇÃO</h2>
+                    </div>
+
+                    <!-- Filtros -->
+                    <div class="relatorio-filtros">
+                        <div class="filtro-grupo">
+                            <label for="filtro-de">De</label>
+                            <input type="date" id="filtro-de">
+                        </div>
+                        <div class="filtro-grupo">
+                            <label for="filtro-ate">Até</label>
+                            <input type="date" id="filtro-ate">
+                        </div>
+                        <button type="button" id="btn-gerar" class="btn-primary" style="padding:0.5rem 1.2rem;">
+                            <i class="fas fa-chart-bar"></i> Gerar
+                        </button>
+                        <button type="button" id="btn-export-relatorio" class="btn-sort" title="Exportar CSV" style="display:none;">
+                            <i class="fas fa-download" style="margin-right:0.35rem;"></i>Exportar CSV
+                        </button>
+                    </div>
+
+                    <!-- Resultados -->
+                    <div id="relatorio-resultado"></div>
+                </section>
+            </div>
+        </main>
+    </div>
+
+    <script src="js/relatorios.js"></script>
+</body>
+</html>

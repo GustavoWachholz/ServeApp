@@ -29,4 +29,11 @@ public interface AreaRepository extends JpaRepository<Area, Long> {
      * @return lista de ministérios correspondentes (pode ser vazia).
      */
     List<Area> findByNomeIn(Collection<String> nomes);
+
+    /**
+     * Retorna apenas os nomes de todas as áreas — evita carregar entidades completas
+     * quando só o nome é necessário, como no Dashboard (P10).
+     */
+    @org.springframework.data.jpa.repository.Query("SELECT a.nome FROM Area a")
+    List<String> findAllNomes();
 }

@@ -28,7 +28,6 @@
 
     // ── Inicialização ────────────────────────────────────────────────────────
     document.addEventListener('DOMContentLoaded', () => {
-        Auth.inicializarSidebar();
         Auth.esconderLoading();
         carregarUsuariosSelect();
         carregarPagina(0);
@@ -132,9 +131,12 @@
 
     function renderVazio(msg) {
         document.getElementById('auditoria-list').innerHTML =
-            `<tr><td colspan="6" style="text-align:center;padding:2rem;color:var(--text-muted);">
-                <i class="fas fa-clipboard-list" style="font-size:1.8rem;display:block;margin-bottom:.5rem;opacity:.3;"></i>
-                ${esc(msg)}
+            `<tr><td colspan="6" style="padding:0;border:none;">
+                <div class="empty-state">
+                    <i data-lucide="clipboard-list"></i>
+                    <h3>Nada por aqui</h3>
+                    <p>${esc(msg)}</p>
+                </div>
             </td></tr>`;
         document.getElementById('auditoria-pagination').style.display = 'none';
     }
@@ -153,7 +155,7 @@
         // Botões: anterior, páginas próximas, próximo
         const btns = [];
         btns.push(`<button ${paginaAtual === 0 ? 'disabled' : ''} data-p="${paginaAtual - 1}">
-            <i class="fas fa-chevron-left"></i></button>`);
+            <i data-lucide="chevron-left"></i></button>`);
 
         const range = paginasVisiveis(paginaAtual, totalPaginas);
         range.forEach(p => {
@@ -165,7 +167,7 @@
         });
 
         btns.push(`<button ${paginaAtual >= totalPaginas - 1 ? 'disabled' : ''} data-p="${paginaAtual + 1}">
-            <i class="fas fa-chevron-right"></i></button>`);
+            <i data-lucide="chevron-right"></i></button>`);
 
         controls.innerHTML = btns.join('');
         controls.querySelectorAll('button[data-p]').forEach(btn => {

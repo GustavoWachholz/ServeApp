@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Auditoria - Serve</title>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); if (!Auth.redirecionarParaShell()) Auth.exigirAdmin();</script>
+    <style>
+        /* ── Filtros ── */
+        .audit-filters {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.75rem;
+            align-items: flex-end;
+            margin-bottom: 1rem;
+            padding: 1rem;
+            background: var(--bg-card);
+            border: 1px solid var(--border-color);
+            border-radius: 8px;
+        }
+
+        .audit-filter-item {
+            display: flex;
+            flex-direction: column;
+            gap: 0.3rem;
+        }
+
+        .audit-filter-item label {
+            font-size: 0.68rem;
+            font-weight: 700;
+            text-transform: uppercase;
+            letter-spacing: 0.05rem;
+            color: var(--text-muted);
+        }
+
+        .audit-filter-item select,
+        .audit-filter-item input[type="date"],
+        .audit-filter-item input[type="text"] {
+            padding: 0.5rem 0.7rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-main);
+            color: var(--text-color);
+            font-size: 0.83rem;
+            outline: none;
+            min-width: 140px;
+        }
+
+        .audit-filter-item select:focus,
+        .audit-filter-item input:focus {
+            border-color: var(--primary-color);
+        }
+
+        .audit-filter-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: flex-end;
+        }
+
+        /* ── Badges ── */
+        .badge {
+            display: inline-block;
+            padding: 0.2rem 0.55rem;
+            border-radius: 12px;
+            font-size: 0.7rem;
+            font-weight: 700;
+            letter-spacing: 0.03rem;
+            white-space: nowrap;
+        }
+
+        .badge-autenticacao  { background: rgba(var(--accent-rgb), 0.12); color: var(--primary-color); }
+        .badge-agenda        { background: rgba(120,60,200,0.12);  color: #7b3fc6; }
+        .badge-servos        { background: rgba(22,163,74,0.12);   color: #16a34a; }
+        .badge-areas         { background: rgba(234,88,12,0.12);   color: #ea580c; }
+        .badge-ministerios   { background: rgba(13,148,136,0.12);  color: #0d9488; }
+        .badge-avisos        { background: rgba(202,138,4,0.12);   color: #b45309; }
+        .badge-igreja        { background: rgba(79,70,229,0.12);   color: #4f46e5; }
+        .badge-classificacoes{ background: rgba(6,182,212,0.12);   color: #0891b2; }
+        .badge-usuarios      { background: rgba(var(--accent-rgb), 0.12); color: var(--primary-color); }
+        .badge-perfil        { background: rgba(236,72,153,0.12);  color: #db2777; }
+
+        .badge-login         { background: rgba(22,163,74,0.12);   color: #16a34a; }
+        .badge-logout        { background: rgba(107,114,128,0.12); color: #6b7280; }
+        .badge-login_falhou  { background: rgba(220,38,38,0.12);   color: #dc2626; }
+        .badge-criar         { background: rgba(22,163,74,0.12);   color: #16a34a; }
+        .badge-editar        { background: rgba(var(--accent-rgb), 0.12); color: var(--primary-color); }
+        .badge-excluir       { background: rgba(220,38,38,0.12);   color: #dc2626; }
+        .badge-alterar_senha        { background: rgba(234,88,12,0.12); color: #ea580c; }
+        .badge-alterar_permissoes   { background: rgba(234,88,12,0.12); color: #ea580c; }
+        .badge-vincular_servo       { background: rgba(79,70,229,0.12);  color: #4f46e5; }
+
+        /* ── Paginação ── */
+        .pagination {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-top: 1rem;
+            gap: 0.75rem;
+            flex-wrap: wrap;
+        }
+
+        .pagination-info {
+            font-size: 0.8rem;
+            color: var(--text-muted);
+        }
+
+        .pagination-controls {
+            display: flex;
+            gap: 0.4rem;
+        }
+
+        .pagination-controls button {
+            padding: 0.35rem 0.8rem;
+            border: 1px solid var(--border-color);
+            border-radius: 6px;
+            background: var(--bg-card);
+            color: var(--text-color);
+            cursor: pointer;
+            font-size: 0.82rem;
+            transition: background-color 0.15s;
+        }
+
+        .pagination-controls button:hover:not(:disabled) {
+            background: var(--bg-main);
+        }
+
+        .pagination-controls button:disabled {
+            opacity: 0.4;
+            cursor: default;
+        }
+
+        .pagination-controls button.active {
+            background: var(--primary-color);
+            color: #fff;
+            border-color: var(--primary-color);
+        }
+
+        /* ── Coluna descrição ── */
+        .descricao-cell {
+            max-width: 320px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            font-size: 0.82rem;
+            color: var(--text-muted);
+        }
+
+        .datetime-cell {
+            white-space: nowrap;
+            font-size: 0.82rem;
+            font-variant-numeric: tabular-nums;
+        }
+
+        /* ── Status HTTP ── */
+        .status-ok    { color: #16a34a; font-weight: 600; font-size: 0.78rem; }
+        .status-err   { color: #dc2626; font-weight: 600; font-size: 0.78rem; }
+        @media (max-width: 768px) {
+            .list-table-container table { min-width: 760px; }
+            .audit-filter-item select,
+            .audit-filter-item input[type="date"] { min-width: 130px; }
+        }
+        .status-warn  { color: #ea580c; font-weight: 600; font-size: 0.78rem; }
+    </style>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width:130px;height:auto;display:block;margin:0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width:44px;height:auto;margin:0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li class="nav-section-label"><span>Cadastros</span></li>
+                    <li data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only active"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header"><span>Aparência</span></div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+                <button id="settings-btn" class="sidebar-btn"><i class="fas fa-cog"></i> <span>Configurações</span></button>
+                <button id="logout-btn" class="sidebar-btn"><i class="fas fa-sign-out-alt"></i> <span>Sair</span></button>
+            </div>
+        </aside>
+
+        <main class="main-content">
+            <div id="loading-overlay"><div class="loading-spinner"></div><p>Carregando…</p></div>
+            <header class="main-header">
+                <h1 class="logo-title"><span>Serve</span></h1>
+            </header>
+
+            <section class="dashboard-section">
+                <div class="section-header">
+                    <h2>AUDITORIA</h2>
+                </div>
+
+                <!-- Filtros -->
+                <div class="audit-filters">
+                    <div class="audit-filter-item">
+                        <label for="f-modulo">Módulo</label>
+                        <select id="f-modulo">
+                            <option value="">Todos</option>
+                            <option value="AUTENTICACAO">Autenticação</option>
+                            <option value="AGENDA">Agenda</option>
+                            <option value="SERVOS">Servos</option>
+                            <option value="AREAS">Áreas</option>
+                            <option value="MINISTERIOS">Ministérios</option>
+                            <option value="AVISOS">Avisos</option>
+                            <option value="IGREJA">Igreja</option>
+                            <option value="CLASSIFICACOES">Classificações</option>
+                            <option value="USUARIOS">Usuários</option>
+                            <option value="PERFIL">Perfil</option>
+                        </select>
+                    </div>
+                    <div class="audit-filter-item">
+                        <label for="f-acao">Ação</label>
+                        <select id="f-acao">
+                            <option value="">Todas</option>
+                            <option value="LOGIN">Login</option>
+                            <option value="LOGOUT">Logout</option>
+                            <option value="LOGIN_FALHOU">Login falhou</option>
+                            <option value="CRIAR">Criar</option>
+                            <option value="EDITAR">Editar</option>
+                            <option value="EXCLUIR">Excluir</option>
+                            <option value="ALTERAR_SENHA">Alterar senha</option>
+                            <option value="ALTERAR_PERMISSOES">Alterar permissões</option>
+                            <option value="VINCULAR_SERVO">Vincular servo</option>
+                        </select>
+                    </div>
+                    <div class="audit-filter-item">
+                        <label for="f-usuario">Usuário (nome)</label>
+                        <select id="f-usuario">
+                            <option value="">Todos</option>
+                        </select>
+                    </div>
+                    <div class="audit-filter-item">
+                        <label for="f-de">De</label>
+                        <input type="date" id="f-de">
+                    </div>
+                    <div class="audit-filter-item">
+                        <label for="f-ate">Até</label>
+                        <input type="date" id="f-ate">
+                    </div>
+                    <div class="audit-filter-actions">
+                        <button type="button" class="btn-primary" id="btn-filtrar">
+                            <i class="fas fa-filter"></i> Filtrar
+                        </button>
+                        <button type="button" class="btn-secondary" id="btn-limpar">
+                            <i class="fas fa-times"></i> Limpar
+                        </button>
+                    </div>
+                </div>
+
+                <!-- Tabela -->
+                <div class="list-table-container">
+                    <table>
+                        <thead>
+                            <tr>
+                                <th>Data / Hora</th>
+                                <th>Usuário</th>
+                                <th>Módulo</th>
+                                <th>Ação</th>
+                                <th>Descrição</th>
+                                <th>Status</th>
+                            </tr>
+                        </thead>
+                        <tbody id="auditoria-list">
+                            <!-- Dinâmico -->
+                        </tbody>
+                    </table>
+                </div>
+
+                <!-- Paginação -->
+                <div class="pagination" id="auditoria-pagination" style="display:none;">
+                    <span class="pagination-info" id="pag-info"></span>
+                    <div class="pagination-controls" id="pag-controls"></div>
+                </div>
+            </section>
+        </main>
+    </div>
+
+    <script src="js/auditoria.js"></script>
+</body>
+</html>

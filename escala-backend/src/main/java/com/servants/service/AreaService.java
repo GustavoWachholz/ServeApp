@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -73,13 +74,13 @@ public class AreaService {
         Area area = areaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado com ID: " + id));
 
-        List<MembroDTO> membros = servoRepository.findAll().stream()
-                .filter(v -> v.getAreas().contains(area.getNome()))
-                .map(v -> new MembroDTO(
-                        v.getId(),
-                        v.getNome(),
-                        (int) escalaServoRepository.countByServoAndArea(v, area)
-                ))
+        Map<Long, Long> contagem = escalaServoRepository.countByAreaGroupByServo(area)
+                .stream()
+                .collect(Collectors.toMap(r -> (Long) r[0], r -> (Long) r[1]));
+        List<MembroDTO> membros = servoRepository.findByAreaNome(area.getNome())
+                .stream()
+                .map(v -> new MembroDTO(v.getId(), v.getNome(),
+                        contagem.getOrDefault(v.getId(), 0L).intValue()))
                 .collect(Collectors.toList());
 
         return new AreaDetalheDTO(
@@ -151,9 +152,7 @@ public class AreaService {
      * @param novo   novo nome da área.
      */
     private void propagarRenomeacaoArea(String antigo, String novo) {
-        List<Servo> afetados = servoRepository.findAll().stream()
-                .filter(v -> v.getAreas().contains(antigo))
-                .collect(Collectors.toList());
+        List<Servo> afetados = servoRepository.findByAreaNome(antigo);
         for (Servo v : afetados) {
             List<String> atualizados = new ArrayList<>(v.getAreas());
             atualizados.replaceAll(nome -> nome.equals(antigo) ? novo : nome);

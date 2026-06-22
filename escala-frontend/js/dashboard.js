@@ -106,16 +106,16 @@ function criarCardAviso(aviso) {
     card.dataset.id = aviso.id;
 
     const validade = aviso.validade
-        ? `<p style='font-size:.75rem;color:var(--text-muted);margin-top:.4rem;'><i class='far fa-calendar-times'></i> Válido até ${formatarData(aviso.validade)}</p>`
+        ? `<p style='font-size:.75rem;color:var(--text-muted);margin-top:.4rem;'><i data-lucide="calendar-x"></i> Válido até ${formatarData(aviso.validade)}</p>`
         : '';
 
     const adminBtns = Auth.isAdmin()
         ? `<div style='display:flex;gap:.4rem;margin-top:.6rem;'>
                <button class='btn-editar-aviso' data-id='${aviso.id}' style='background:none;border:1px solid var(--border-color);border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;color:var(--text-muted);'>
-                   <i class='fas fa-pencil'></i> Editar
+                   <i data-lucide="pencil"></i> Editar
                </button>
                <button class='btn-excluir-aviso' data-id='${aviso.id}' style='background:none;border:1px solid #ef444450;border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;color:#ef4444;'>
-                   <i class='fas fa-trash'></i> Excluir
+                   <i data-lucide="trash-2"></i> Excluir
                </button>
            </div>`
         : '';
@@ -160,7 +160,7 @@ function excluirAviso(id, card) {
         .catch(err => {
             Auth.toast(err.message || 'Erro ao excluir aviso.', 'error');
             btn.disabled = false;
-            btn.innerHTML = '<i class="fas fa-trash"></i> Excluir';
+            btn.innerHTML = '<i data-lucide="trash-2"></i> Excluir';
         });
 }
 
@@ -284,8 +284,8 @@ function renderMinhasEscalas(lista) {
         card.className = 'card card-escala';
         card.innerHTML = `
             <h4>${esc(item.titulo)}</h4>
-            <p><i class="fas fa-calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
-            <p style='font-size:.8rem;color:var(--text-muted);margin-top:.3rem;'><i class="fas fa-hand-holding-heart"></i> ${esc(item.funcao)}</p>
+            <p><i data-lucide="calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
+            <p style='font-size:.8rem;color:var(--text-muted);margin-top:.3rem;'><i data-lucide="hand-heart"></i> ${esc(item.funcao)}</p>
         `;
         container.appendChild(card);
     });
@@ -398,7 +398,7 @@ function criarCardCompromisso(item) {
     if (item.cor) card.style.borderLeft = `5px solid ${item.cor}`;
     card.innerHTML = `
         <h4>${esc(item.title || item.titulo)}</h4>
-        <p><i class="far fa-calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
+        <p><i data-lucide="calendar-check"></i> ${esc(formatarDataHora(item.dataEscala))}</p>
     `;
     return card;
 }
@@ -448,9 +448,9 @@ function abrirListaCompromissos() {
     const html = escalasFuturas.length
         ? escalasFuturas.map(e => `
             <div class="lista-modal-item">
-                <i class="far fa-calendar-check"></i>
+                <i data-lucide="calendar-check"></i>
                 <div>
-                    <div style="font-weight:600;">${e.title || e.titulo}</div>
+                    <div style="font-weight:600;">${esc(e.title || e.titulo)}</div>
                     <div style="font-size:0.8rem;color:var(--text-muted);">${formatarDataHora(e.dataEscala)}</div>
                 </div>
             </div>`).join('')

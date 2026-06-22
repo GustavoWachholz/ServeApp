@@ -58,7 +58,7 @@ public class EscalaService {
      */
     @Transactional(readOnly = true)
     public List<EscalaDTO> listarTodas() {
-        return escalaRepository.findAll().stream()
+        return escalaRepository.findAllWithAtribuicoes().stream()
                 .map(this::convertToEscalaDTO)
                 .collect(Collectors.toList());
     }
@@ -72,7 +72,7 @@ public class EscalaService {
      */
     @Transactional(readOnly = true)
     public EscalaDTO buscarDTO(Long id) {
-        Escala escala = escalaRepository.findById(id)
+        Escala escala = escalaRepository.findByIdWithAtribuicoes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
         return convertToEscalaDTO(escala);
     }
@@ -87,9 +87,9 @@ public class EscalaService {
      */
     @Transactional
     public EscalaDTO criarComAtribuicoes(EscalaDTO dto) {
-        validarRegraDeAtribuicoes(dto);
+        Map<Long, Servo> servoMap = validarRegraDeAtribuicoes(dto);
         Escala escala = new Escala();
-        updateEscalaFromDTO(escala, dto);
+        updateEscalaFromDTO(escala, dto, servoMap);
         Escala salva = escalaRepository.save(escala);
         return convertToEscalaDTO(salva);
     }
@@ -107,11 +107,11 @@ public class EscalaService {
     @Transactional
     public EscalaDTO atualizarComAtribuicoes(Long id, EscalaDTO dto) {
         if (dto.getId() == null) dto.setId(id);
-        validarRegraDeAtribuicoes(dto);
+        Map<Long, Servo> servoMap = validarRegraDeAtribuicoes(dto);
         Escala escala = escalaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
 
-        updateEscalaFromDTO(escala, dto);
+        updateEscalaFromDTO(escala, dto, servoMap);
 
         Escala atualizada = escalaRepository.save(escala);
         return convertToEscalaDTO(atualizada);
@@ -135,9 +135,9 @@ public class EscalaService {
      * @param dto escala (com classificação, janela de tempo e atribuições) a validar.
      * @throws IllegalArgumentException se alguma regra for violada.
      */
-    private void validarRegraDeAtribuicoes(EscalaDTO dto) {
+    private Map<Long, Servo> validarRegraDeAtribuicoes(EscalaDTO dto) {
         List<AtribuicaoDTO> atribuicoes = dto.getAtribuicoes();
-        if (atribuicoes == null || atribuicoes.isEmpty()) return;
+        if (atribuicoes == null || atribuicoes.isEmpty()) return Map.of();
 
         String classificacao = dto.getClassificacao();
 
@@ -225,6 +225,7 @@ public class EscalaService {
                         + conflitoEntreEscalas.get(servoId) + "\".");
             }
         }
+        return servoMap;
     }
 
     /**
@@ -264,7 +265,7 @@ public class EscalaService {
      * @param dto    fonte dos dados.
      * @throws ResourceNotFoundException se algum voluntário referenciado não existir.
      */
-    private void updateEscalaFromDTO(Escala escala, EscalaDTO dto) {
+    private void updateEscalaFromDTO(Escala escala, EscalaDTO dto, Map<Long, Servo> servoMap) {
         escala.setTitulo(dto.getTitulo());
         escala.setDataEscala(dto.getDataEscala());
         escala.setDataFim(dto.getDataFim());
@@ -282,8 +283,8 @@ public class EscalaService {
                 EscalaAtribuicao novaAtrib = new EscalaAtribuicao();
                 novaAtrib.setFuncao(aDto.getFuncao());
                 
-                Servo servo = servoRepository.findById(aDto.getServoId())
-                        .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado: " + aDto.getServoId()));
+                Servo servo = servoMap.get(aDto.getServoId());
+                if (servo == null) throw new ResourceNotFoundException("Voluntário não encontrado: " + aDto.getServoId());
                 novaAtrib.setServo(servo);
                 
                 novaAtrib.setEscala(escala); // <-- OBRIGATÓRIO (Vínculo bidirecional)

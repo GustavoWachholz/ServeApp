@@ -20,6 +20,7 @@
         'voluntarios.html': 'servos',
         'ministerios.html': 'areas',
         'configuracao-escala.html': 'ministerios',
+        'relatorios.html': 'relatorios',
         'usuarios.html': 'usuarios',
         'perfil.html': 'perfil',
         'auditoria.html': 'auditoria'

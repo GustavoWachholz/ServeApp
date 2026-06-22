@@ -1,0 +1,150 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Política de Privacidade - Serve</title>
+    <style>
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        body {
+            font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+            background: #f8f9fa;
+            color: #1f2937;
+            line-height: 1.7;
+        }
+        header {
+            background: #004b87;
+            color: #fff;
+            padding: 1.25rem 2rem;
+            display: flex;
+            align-items: center;
+            gap: 1rem;
+        }
+        header h1 { font-size: 1.2rem; font-weight: 600; }
+        header span { font-size: 0.85rem; opacity: 0.75; }
+        main {
+            max-width: 780px;
+            margin: 2.5rem auto;
+            background: #fff;
+            border-radius: 12px;
+            box-shadow: 0 2px 12px rgba(0,0,0,0.07);
+            padding: 2.5rem 3rem;
+        }
+        h2 { font-size: 1.5rem; font-weight: 700; color: #004b87; margin-bottom: 0.4rem; }
+        .versao { font-size: 0.8rem; color: #6b7280; margin-bottom: 2rem; }
+        h3 { font-size: 1rem; font-weight: 600; color: #1f2937; margin: 1.75rem 0 0.5rem; }
+        p { font-size: 0.92rem; color: #374151; margin-bottom: 0.75rem; }
+        ul { padding-left: 1.4rem; margin-bottom: 0.75rem; }
+        li { font-size: 0.92rem; color: #374151; margin-bottom: 0.3rem; }
+        .destaque {
+            background: #eff6ff;
+            border-left: 4px solid #004b87;
+            border-radius: 0 6px 6px 0;
+            padding: 0.75rem 1rem;
+            margin: 1rem 0;
+        }
+        footer {
+            text-align: center;
+            font-size: 0.8rem;
+            color: #9ca3af;
+            padding: 2rem;
+        }
+        @media (max-width: 600px) {
+            main { margin: 1rem; padding: 1.5rem; }
+        }
+    </style>
+</head>
+<body>
+    <header>
+        <div>
+            <h1>Política de Privacidade</h1>
+            <span>Sistema Serve — Gestão de Escalas para Voluntários</span>
+        </div>
+    </header>
+
+    <main>
+        <h2>Política de Privacidade</h2>
+        <p class="versao">Versão 1.0 &mdash; Vigente a partir de junho de 2025</p>
+
+        <p>Esta Política de Privacidade descreve como o <strong>Sistema Serve</strong> coleta, utiliza, armazena e protege seus dados pessoais, em conformidade com a <strong>Lei Geral de Proteção de Dados Pessoais (LGPD — Lei nº 13.709/2018)</strong>.</p>
+
+        <h3>1. Responsável pelo Tratamento</h3>
+        <p>O controlador dos dados é a organização responsável pelo Sistema Serve. Para dúvidas ou exercício de direitos, entre em contato com o administrador do sistema.</p>
+
+        <h3>2. Dados Coletados</h3>
+        <p>Coletamos apenas os dados necessários para o funcionamento do sistema:</p>
+        <ul>
+            <li><strong>Nome completo</strong> — identificação nas escalas e na interface.</li>
+            <li><strong>E-mail</strong> — credencial de acesso único.</li>
+            <li><strong>Senha</strong> — armazenada de forma irreversível (hash BCrypt).</li>
+            <li><strong>Foto de perfil</strong> (opcional) — armazenada localmente no servidor.</li>
+            <li><strong>Dados do voluntário</strong> (opcionais): telefone, gênero, data de nascimento — usados apenas para gestão interna de escalas.</li>
+            <li><strong>Registros de auditoria</strong> — ações realizadas no sistema (endereço IP, data/hora, operação).</li>
+        </ul>
+
+        <h3>3. Finalidade do Tratamento</h3>
+        <p>Seus dados são utilizados exclusivamente para:</p>
+        <ul>
+            <li>Autenticação e controle de acesso ao sistema.</li>
+            <li>Gestão de escalas, voluntários e ministérios da organização.</li>
+            <li>Rastreabilidade e segurança das operações (auditoria interna).</li>
+        </ul>
+
+        <div class="destaque">
+            <strong>Sem dados enviados a terceiros.</strong> Nenhum dado pessoal é compartilhado com serviços externos. O sistema não utiliza serviços de terceiros para geração de avatares ou qualquer outro processamento de dados pessoais.
+        </div>
+
+        <h3>4. Base Legal (LGPD Art. 7)</h3>
+        <p>O tratamento de dados é realizado com base no <strong>consentimento</strong> do titular (Art. 7, I) e na <strong>execução de contrato ou procedimentos preliminares</strong> (Art. 7, V), necessários para o uso do sistema.</p>
+
+        <h3>5. Armazenamento e Segurança</h3>
+        <p>Os dados são armazenados em banco de dados local da organização. Adotamos medidas de segurança técnicas e organizacionais para proteção contra acesso não autorizado, incluindo:</p>
+        <ul>
+            <li>Senhas com hash BCrypt (irreversível).</li>
+            <li>Autenticação via tokens JWT com expiração definida.</li>
+            <li>Controle de acesso por papel (administrador / voluntário).</li>
+        </ul>
+
+        <h3>6. Retenção dos Dados</h3>
+        <p>Os dados são mantidos enquanto a conta estiver ativa. Após exclusão da conta, os dados pessoais identificáveis são removidos ou anonimizados. Registros históricos de escalas são mantidos de forma anonimizada para integridade dos relatórios.</p>
+
+        <h3>7. Seus Direitos (LGPD Art. 18)</h3>
+        <p>Como titular dos dados, você tem direito a:</p>
+        <ul>
+            <li>Confirmação e acesso aos seus dados (via tela "Meu Perfil").</li>
+            <li>Correção de dados incompletos ou desatualizados.</li>
+            <li>Eliminação dos dados pessoais (exclusão de conta).</li>
+            <li>Revogação do consentimento a qualquer momento.</li>
+            <li>Informação sobre o compartilhamento de dados (não aplicável — não compartilhamos).</li>
+        </ul>
+        <p>Para exercer esses direitos, utilize as funcionalidades da tela "Meu Perfil" ou entre em contato com o administrador do sistema.</p>
+
+        <h3>8. Encarregado pelo Tratamento de Dados (DPO)</h3>
+        <p>Nos termos do Art. 41 da LGPD, a organização responsável por esta instância do Sistema Serve deverá designar um Encarregado pelo Tratamento de Dados (DPO — <em>Data Protection Officer</em>) e tornar público o seu contato.</p>
+        <div class="destaque">
+            <strong>Contato do Encarregado:</strong><br>
+            O contato do encarregado desta instância deve ser informado pelo administrador da organização.
+            Para solicitar informações, exercer direitos ou registrar reclamações, entre em contato com o administrador do sistema.
+        </div>
+
+        <h3>9. Resposta a Incidentes de Segurança (Art. 48)</h3>
+        <p>Em caso de incidente de segurança que possa acarretar risco ou dano relevante aos titulares (ex.: acesso não autorizado a dados pessoais), a organização se compromete a:</p>
+        <ul>
+            <li>Notificar a Autoridade Nacional de Proteção de Dados (ANPD) em prazo razoável após a ciência do incidente.</li>
+            <li>Comunicar os titulares afetados quando o incidente puder lhes causar risco ou dano significativo.</li>
+            <li>Registrar e investigar o incidente, adotando medidas corretivas e preventivas.</li>
+        </ul>
+
+        <h3>10. Tratamento de Dados de Menores de Idade (Art. 14)</h3>
+        <p>Se a organização contar com voluntários menores de 18 anos, o tratamento de seus dados pessoais requer o consentimento específico de ao menos um dos pais ou responsável legal, conforme o Art. 14 da LGPD.</p>
+        <p>O sistema exibirá um aviso ao cadastrar um voluntário com data de nascimento que indique menoridade. A organização é responsável por obter e registrar o consentimento do responsável legal antes de incluir dados de menores no sistema.</p>
+
+        <h3>11. Alterações nesta Política</h3>
+        <p>Esta política pode ser atualizada periodicamente. A versão vigente é sempre indicada no cabeçalho. Alterações significativas serão comunicadas no sistema.</p>
+    </main>
+
+    <footer>
+        &copy; Sistema Serve &mdash; Todos os direitos reservados. Esta política está em conformidade com a LGPD (Lei nº 13.709/2018).
+    </footer>
+</body>
+</html>

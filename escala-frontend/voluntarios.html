@@ -4,10 +4,10 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Servos - Serve</title>
-    <!-- Font Awesome para ícones -->
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Lucide Icons -->
+    <script src="https://unpkg.com/lucide@latest"></script>
     <!-- Google Fonts -->
-    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="css/dashboard.css">
     <script src="js/auth.js"></script>
     <script src="js/igreja-cache.js"></script>
@@ -219,7 +219,7 @@
     <div class="app-container">
         <!-- Sidebar -->
         <aside class="sidebar">
-            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i data-lucide="chevrons-left"></i></button>
             <div class="sidebar-logo">
                 <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
                 <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
@@ -236,15 +236,15 @@
 
             <nav class="sidebar-nav">
                 <ul>
-                    <li><a href="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
-                    <li data-tela="AGENDA"><a href="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li><a href="index.html"><i data-lucide="house"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="agenda.html"><i data-lucide="calendar-check"></i> <span>Agenda</span></a></li>
                     <li class="nav-section-label"><span>Cadastros</span></li>
-                    <li class="active" data-tela="SERVOS"><a href="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
-                    <li data-tela="AREAS"><a href="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
-                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
-                    <li><a href="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
-                    <li class="nav-admin-only"><a href="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
-                    <li class="nav-admin-only"><a href="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                    <li class="active" data-tela="SERVOS"><a href="voluntarios.html"><i data-lucide="users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="ministerios.html"><i data-lucide="church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="configuracao-escala.html"><i data-lucide="tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="relatorios.html"><i data-lucide="chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="usuarios.html"><i data-lucide="shield-user"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="auditoria.html"><i data-lucide="clipboard-list"></i> <span>Auditoria</span></a></li>
                 </ul>
             </nav>
 
@@ -264,16 +264,16 @@
                         </div>
                         <div class="setting-item">
                             <label for="color-picker">Cor Principal</label>
-                            <input type="color" id="color-picker" value="#004b87">
+                            <input type="color" id="color-picker" value="#c98aff">
                         </div>
                     </div>
                 </div>
 
                 <button id="settings-btn" class="sidebar-btn">
-                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                    <i data-lucide="settings"></i> <span>Configurações</span>
                 </button>
                 <button id="logout-btn" class="sidebar-btn">
-                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                    <i data-lucide="log-out"></i> <span>Sair</span>
                 </button>
             </div>
         </aside>
@@ -293,22 +293,22 @@
                 <!-- Toolbar: pesquisa + ordenação -->
                 <div class="toolbar" style="margin-bottom:.75rem;">
                     <div class="search-wrapper">
-                        <i class="fas fa-search search-icon"></i>
+                        <i data-lucide="search" class="search-icon"></i>
                         <input type="text" id="search-input" placeholder="Pesquisar por nome, e-mail ou área…" autocomplete="off">
                         <button id="btn-clear-search" class="btn-clear-search" title="Limpar pesquisa">
-                            <i class="fas fa-times"></i>
+                            <i data-lucide="x"></i>
                         </button>
                     </div>
                     <button type="button" id="btn-toggle-filters" class="btn-sort btn-filters-toggle" aria-expanded="false">
-                        <i class="fas fa-sliders"></i> Filtros
+                        <i data-lucide="sliders-horizontal"></i> Filtros
                     </button>
                     <div class="sort-group">
                         <span class="sort-label">Ordenar:</span>
                         <button id="sort-cadastro" class="btn-sort active" data-sort="cadastro">
-                            <i class="fas fa-clock" style="margin-right:0.3rem;font-size:0.75rem;"></i>Cadastro
+                            <i data-lucide="clock" style="margin-right:0.3rem;font-size:0.75rem;"></i>Cadastro
                         </button>
                         <button id="sort-alpha" class="btn-sort" data-sort="alpha">
-                            <i class="fas fa-sort-alpha-down" style="margin-right:0.3rem;font-size:0.75rem;"></i>A → Z
+                            <i data-lucide="arrow-down-a-z" style="margin-right:0.3rem;font-size:0.75rem;"></i>A → Z
                         </button>
                     </div>
                 </div>
@@ -331,10 +331,10 @@
                         </select>
                     </div>
                     <button type="button" id="btn-clear-filters" class="btn-sort" title="Limpar filtros">
-                        <i class="fas fa-filter-circle-xmark" style="margin-right:0.3rem;font-size:0.75rem;"></i>Limpar filtros
+                        <i data-lucide="filter-x" style="margin-right:0.3rem;font-size:0.75rem;"></i>Limpar filtros
                     </button>
                     <button type="button" id="btn-export-voluntarios" class="btn-sort" title="Exportar CSV">
-                        <i class="fas fa-download" style="margin-right:0.3rem;font-size:0.75rem;"></i>Exportar CSV
+                        <i data-lucide="download" style="margin-right:0.3rem;font-size:0.75rem;"></i>Exportar CSV
                     </button>
                 </div>
 
@@ -414,7 +414,7 @@
 
                 <p id="edit-nome-display" style="font-weight:600;font-size:1rem;color:var(--text-color);margin-bottom:0.25rem;"></p>
                 <p style="font-size:0.78rem;color:var(--text-muted);margin-bottom:1.25rem;">
-                    <i class="fas fa-circle-info" style="margin-right:0.3rem;"></i>
+                    <i data-lucide="info" style="margin-right:0.3rem;"></i>
                     Dados pessoais são editados em <strong>Meu Perfil</strong>.
                 </p>
 

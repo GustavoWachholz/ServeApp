@@ -107,10 +107,21 @@ body {
 
 .input-group label {
     display: block;
-    font-size: 0.875rem;
-    font-weight: 500;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--login-muted);
+}
+
+.form-content h2 {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.btn-submit {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 .input-group input,

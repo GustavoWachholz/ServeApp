@@ -24,7 +24,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     initToolbar();
     wireEditarListeners();
     aplicarPermissoesMinisterios();
-    Auth.inicializarAparencia();
     Auth.esconderLoading();
 });
 
@@ -88,14 +87,19 @@ function renderLista(filtro) {
         : classificacoesList;
 
     if (!lista.length) {
-        const msg = classificacoesList.length
+        const buscando = classificacoesList.length > 0;
+        const titulo = buscando ? 'Nenhum resultado' : 'Nenhum ministério ainda';
+        const msg = buscando
             ? 'Nenhum ministério encontrado para a pesquisa.'
-            : 'Nenhum ministério cadastrado ainda. Crie o primeiro clicando em "Novo Ministério".';
+            : 'Crie o primeiro clicando em "Novo Ministério".';
         tbody.innerHTML = `
             <tr>
-                <td colspan="5" style="text-align:center;padding:3rem 1.5rem;color:var(--text-muted);">
-                    <i class="fas fa-tags" style="font-size:2rem;margin-bottom:.75rem;opacity:.3;display:block;"></i>
-                    ${msg}
+                <td colspan="5" style="padding:0;border:none;">
+                    <div class="empty-state">
+                        <i data-lucide="tags"></i>
+                        <h3>${titulo}</h3>
+                        <p>${msg}</p>
+                    </div>
                 </td>
             </tr>`;
         return;
@@ -111,8 +115,8 @@ function renderLista(filtro) {
             <td><span class="classif-key">${escapeHtml(c.classificacao)}</span></td>
             <td>
                 <div class="actions-cell">
-                    <button class="btn-sort" onclick="abrirModalEditar('${c.classificacao}')" title="Exibir"><i class="fas fa-eye"></i><span class="btn-label">Exibir</span></button>
-                    ${Auth.podeExcluir('MINISTERIOS') ? `<button class="btn-sort btn-sort-danger" onclick="abrirModalExcluir('${c.classificacao}')" title="Excluir"><i class="fas fa-trash"></i><span class="btn-label">Excluir</span></button>` : ''}
+                    <button class="btn-sort" onclick="abrirModalEditar('${c.classificacao}')" title="Exibir"><i data-lucide="eye"></i><span class="btn-label">Exibir</span></button>
+                    ${Auth.podeExcluir('MINISTERIOS') ? `<button class="btn-sort btn-sort-danger" onclick="abrirModalExcluir('${c.classificacao}')" title="Excluir"><i data-lucide="trash-2"></i><span class="btn-label">Excluir</span></button>` : ''}
                 </div>
             </td>
         </tr>
@@ -209,7 +213,7 @@ function abrirModalEditar(key) {
     editandoKey = key;
 
     document.getElementById('editar-titulo-modal').innerHTML =
-        `<i class="fas fa-edit" style="margin-right:.4rem;"></i>Editar: ${escapeHtml(config.nome || key)}`;
+        `<i data-lucide="square-pen" style="margin-right:.4rem;"></i>Editar: ${escapeHtml(config.nome || key)}`;
 
     document.getElementById('editar-nome').value          = config.nome          || '';
     document.getElementById('editar-titulo-input').value  = config.titulo        || '';

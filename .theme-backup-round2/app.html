@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Serve</title>
+    <!-- Font Awesome para ícones -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="css/dashboard.css">
+    <script src="js/auth.js"></script>
+    <script src="js/igreja-cache.js"></script>
+    <script>Auth.restaurarTema(); Auth.restaurarSidebar(); Auth.marcarPapel(); Auth.exigirLogin();</script>
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar (FIXA — nunca recarrega; o conteúdo troca no iframe abaixo) -->
+        <aside class="sidebar">
+            <button id="sidebar-toggle" class="sidebar-toggle" type="button" title="Recolher menu"><i class="fas fa-angles-left"></i></button>
+            <div class="sidebar-logo">
+                <img src="assets/img/logo_t.png" alt="Serve" class="logo-full" style="max-width: 130px; height: auto; display: block; margin: 0 auto;">
+                <img src="assets/img/logo_mini_t.png" alt="S." class="logo-mini" style="max-width: 44px; height: auto; margin: 0 auto;">
+            </div>
+            <div class="user-profile">
+                <div class="avatar-wrapper">
+                    <img src="" alt="User Avatar" id="user-avatar" class="js-user-avatar">
+                </div>
+                <div class="user-info">
+                    <h3><span id="user-name-display">Carregando...</span></h3>
+                    <span class="user-role">Administrador</span>
+                </div>
+            </div>
+
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active"><a href="#" data-page="index.html"><i class="fas fa-home"></i> <span>Home</span></a></li>
+                    <li data-tela="AGENDA"><a href="#" data-page="agenda.html"><i class="fas fa-calendar-check"></i> <span>Agenda</span></a></li>
+                    <li class="nav-section-label"><span>Cadastros</span></li>
+                    <li data-tela="SERVOS"><a href="#" data-page="voluntarios.html"><i class="fas fa-users"></i> <span>Servos</span></a></li>
+                    <li data-tela="AREAS"><a href="#" data-page="ministerios.html"><i class="fas fa-church"></i> <span>Áreas</span></a></li>
+                    <li data-tela="MINISTERIOS"><a href="#" data-page="configuracao-escala.html"><i class="fas fa-tags"></i> <span>Ministérios</span></a></li>
+                    <li><a href="#" data-page="relatorios.html"><i class="fas fa-chart-pie"></i> <span>Relatórios</span></a></li>
+                    <li class="nav-admin-only"><a href="#" data-page="usuarios.html"><i class="fas fa-user-shield"></i> <span>Usuários</span></a></li>
+                    <li class="nav-admin-only"><a href="#" data-page="auditoria.html"><i class="fas fa-clipboard-list"></i> <span>Auditoria</span></a></li>
+                </ul>
+            </nav>
+
+            <div class="sidebar-footer">
+                <!-- Menu Flutuante de Configurações -->
+                <div id="settings-menu" class="settings-popover">
+                    <div class="popover-header">
+                        <span>Aparência</span>
+                    </div>
+                    <div class="settings-group">
+                        <div class="setting-item">
+                            <label for="theme-toggle">Modo Escuro</label>
+                            <label class="switch">
+                                <input type="checkbox" id="theme-toggle">
+                                <span class="slider"></span>
+                            </label>
+                        </div>
+                        <div class="setting-item">
+                            <label for="color-picker">Cor Principal</label>
+                            <input type="color" id="color-picker" value="#004b87">
+                        </div>
+                    </div>
+                </div>
+
+                <button id="settings-btn" class="sidebar-btn">
+                    <i class="fas fa-cog"></i> <span>Configurações</span>
+                </button>
+                <button id="logout-btn" class="sidebar-btn">
+                    <i class="fas fa-sign-out-alt"></i> <span>Sair</span>
+                </button>
+            </div>
+        </aside>
+
+        <!-- Conteúdo: cada tela é carregada aqui dentro, sem recarregar a sidebar -->
+        <iframe id="content-frame" class="content-frame" title="Conteúdo"></iframe>
+
+        <!-- Bottom navigation (somente mobile) -->
+        <nav class="bottom-nav">
+            <button id="bottomnav-menu" type="button" class="bottom-nav-item">
+                <i class="fas fa-bars"></i> <span>Menu</span>
+            </button>
+            <a href="#" data-page="agenda.html" data-tela="AGENDA" class="bottom-nav-item">
+                <i class="fas fa-calendar-check"></i> <span>Agenda</span>
+            </a>
+            <a href="#" data-page="index.html" class="bottom-nav-item bottom-nav-center">
+                <i class="fas fa-home"></i> <span>Home</span>
+            </a>
+            <a href="#" data-page="configuracao-escala.html" data-tela="MINISTERIOS" class="bottom-nav-item">
+                <i class="fas fa-tags"></i> <span>Ministérios</span>
+            </a>
+            <a href="#" data-page="perfil.html" class="bottom-nav-item">
+                <img src="" alt="Perfil" class="js-user-avatar bottom-nav-avatar">
+                <span>Perfil</span>
+            </a>
+        </nav>
+    </div>
+
+    <script src="js/shell.js"></script>
+</body>
+</html>

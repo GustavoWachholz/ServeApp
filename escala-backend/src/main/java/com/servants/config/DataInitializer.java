@@ -13,6 +13,9 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.security.SecureRandom;
+import java.util.Base64;
+
 /**
  * Inicializador executado na subida da aplicação ({@link CommandLineRunner}).
  * Garante a existência de um usuário ADMIN e, opcionalmente, limpa todos os dados
@@ -119,14 +122,25 @@ public class DataInitializer implements CommandLineRunner {
                 usuarioRepository.save(admin);
             }
         }, () -> {
-            Usuario admin = new Usuario("admin@admin.com", passwordEncoder.encode("123456"));
+            String senhaInicial = gerarSenhaAleatoria();
+            Usuario admin = new Usuario("admin@admin.com", passwordEncoder.encode(senhaInicial));
             admin.setNome("Administrador");
             admin.setRole("ADMIN");
             admin.setTema("light");
-            admin.setCorPrimaria("#004b87");
+            admin.setCorPrimaria("#c98aff");
             usuarioRepository.save(admin);
-            log.info("[DataInitializer] Usuário 'admin@admin.com' criado com sucesso.");
+            log.warn("[DataInitializer] ══════════════════════════════════════════════════════");
+            log.warn("[DataInitializer]  ADMIN CRIADO — anote a senha e altere no primeiro login");
+            log.warn("[DataInitializer]  E-mail : admin@admin.com");
+            log.warn("[DataInitializer]  Senha  : {}", senhaInicial);
+            log.warn("[DataInitializer] ══════════════════════════════════════════════════════");
         });
+    }
+
+    private String gerarSenhaAleatoria() {
+        byte[] bytes = new byte[18];
+        new SecureRandom().nextBytes(bytes);
+        return Base64.getUrlEncoder().withoutPadding().encodeToString(bytes);
     }
 
     // ── Reset ─────────────────────────────────────────────────────────────────

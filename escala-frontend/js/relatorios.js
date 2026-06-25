@@ -5,11 +5,7 @@
 
 const RELATORIOS_API_URL = '/api/relatorios';
 
-function esc(s) {
-    return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = Auth.esc;
 
 let relatorioCache = { dados: null, de: null, ate: null };
 

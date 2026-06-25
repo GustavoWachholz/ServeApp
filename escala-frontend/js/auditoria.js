@@ -224,13 +224,7 @@
         } catch (_) { return iso; }
     }
 
-    function esc(str) {
-        return String(str)
-            .replace(/&/g, '&amp;')
-            .replace(/</g, '&lt;')
-            .replace(/>/g, '&gt;')
-            .replace(/"/g, '&quot;');
-    }
+    const esc = Auth.esc;
 
     function obterToken() {
         try {

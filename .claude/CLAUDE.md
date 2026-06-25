@@ -33,9 +33,9 @@ ServeApp/
 │   ├── app.html             # Shell principal (iframe host + bottom-nav mobile)
 │   ├── index.html           # Dashboard (home)
 │   ├── agenda.html          # Calendário FullCalendar
-│   ├── voluntarios.html     # CRUD de voluntários (Servos)
-│   ├── ministerios.html     # CRUD de ministérios/áreas (Áreas)
-│   ├── configuracao-escala.html  # Classificações (Ministérios)
+│   ├── servos.html          # CRUD de servos
+│   ├── areas.html           # CRUD de áreas
+│   ├── ministerios.html     # Classificações (Ministérios)
 │   ├── relatorios.html      # Relatório de frequência
 │   ├── usuarios.html        # Gestão de usuários e permissões (admin)
 │   ├── perfil.html          # Meu Perfil (dados, foto, senha, excluir conta)
@@ -48,10 +48,10 @@ ServeApp/
 │   │   ├── shell.js         # Navegação via iframe (app.html)
 │   │   ├── agenda.ts/.js    # Calendário + wizard de escalas
 │   │   ├── dashboard.js     # Home, avisos, próximos compromissos
-│   │   ├── voluntarios.js   # CRUD voluntários
-│   │   ├── ministerios.js   # CRUD ministérios
+│   │   ├── servos.js        # CRUD servos
+│   │   ├── areas.js         # CRUD áreas
+│   │   ├── ministerios.js   # Classificações (Ministérios)
 │   │   ├── relatorios.js    # Relatório de frequência
-│   │   ├── configuracao-escala.js
 │   │   ├── usuarios.js      # Tela Usuários: permissões + vínculo com servo
 │   │   ├── perfil.js        # Meu Perfil: dados, upload de foto, senha, exclusão
 │   │   ├── auditoria.js     # Lista de auditoria com filtros e paginação
@@ -179,7 +179,7 @@ Todas as chamadas usam `http://localhost:8080` (desenvolvimento).
 | `GET /api/usuarios` `GET /api/usuarios/me` `GET /api/usuarios/{id}` | Lista (admin) / perfil próprio / perfil (admin ou próprio) |
 | `PUT /api/usuarios/{id}/permissoes` | Atualiza permissões (admin) |
 | `PUT /api/usuarios/{id}/perfil` `PUT /api/usuarios/{id}/senha` | Edita perfil / troca senha (só o próprio) |
-| `PUT /api/usuarios/{id}/vincular-servo` | Vincula/desvincula servo (admin); body `{voluntarioId}` (null desvincula) |
+| `PUT /api/usuarios/{id}/vincular-servo` | Vincula/desvincula servo (admin); body `{servoId}` (null desvincula) |
 | `DELETE /api/usuarios/{id}` | Exclui/anonimiza a conta (admin ou o próprio) — LGPD Art. 18 |
 | `GET /api/auditoria` | Lista registros de auditoria paginados (admin); params: `modulo, acao, usuarioId, de, ate, page, size` |
 

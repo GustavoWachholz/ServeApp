@@ -354,10 +354,4 @@ function formatarData(iso) {
     return `${d}/${m}/${y}`;
 }
 
-function escHtml(str) {
-    return String(str)
-        .replace(/&/g, '&amp;')
-        .replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;')
-        .replace(/"/g, '&quot;');
-}
+const escHtml = Auth.esc;

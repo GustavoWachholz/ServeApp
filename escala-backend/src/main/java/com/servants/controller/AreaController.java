@@ -3,6 +3,7 @@ package com.servants.controller;
 import com.servants.dto.AreaDTO;
 import com.servants.dto.AreaDetalheDTO;
 import com.servants.service.AreaService;
+import jakarta.validation.Valid;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -54,7 +55,7 @@ public class AreaController {
      * @return {@code 201 CREATED} com o {@link AreaDTO} persistido.
      */
     @PostMapping
-    public ResponseEntity<AreaDTO> criar(@RequestBody AreaDTO dto) {
+    public ResponseEntity<AreaDTO> criar(@Valid @RequestBody AreaDTO dto) {
         AreaDTO salvo = areaService.criar(dto);
         return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
     }
@@ -67,7 +68,7 @@ public class AreaController {
      * @return {@code 200 OK} com o {@link AreaDTO} atualizado.
      */
     @PutMapping("/{id}")
-    public ResponseEntity<AreaDTO> atualizar(@PathVariable Long id, @RequestBody AreaDTO dto) {
+    public ResponseEntity<AreaDTO> atualizar(@PathVariable Long id, @Valid @RequestBody AreaDTO dto) {
         AreaDTO atualizado = areaService.atualizar(id, dto);
         return ResponseEntity.ok(atualizado);
     }

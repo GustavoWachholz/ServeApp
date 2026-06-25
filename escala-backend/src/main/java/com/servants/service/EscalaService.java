@@ -4,7 +4,6 @@ import com.servants.dto.*;
 import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.*;
 import com.servants.repository.EscalaRepository;
-import com.servants.repository.EscalaServoRepository;
 import com.servants.repository.AreaRepository;
 import com.servants.repository.ServoRepository;
 import org.springframework.stereotype.Service;
@@ -29,24 +28,20 @@ import java.util.stream.Collectors;
 public class EscalaService {
 
     private final EscalaRepository escalaRepository;
-    private final EscalaServoRepository escalaServoRepository;
     private final ServoRepository servoRepository;
     private final AreaRepository areaRepository;
 
     /**
      * Injeta os repositórios necessários.
      *
-     * @param escalaRepository            repositório de escalas.
-     * @param escalaServoRepository  repositório de vínculos escala-voluntário.
-     * @param servoRepository        repositório de voluntários.
-     * @param areaRepository        repositório de ministérios.
+     * @param escalaRepository repositório de escalas.
+     * @param servoRepository  repositório de voluntários.
+     * @param areaRepository   repositório de ministérios.
      */
     public EscalaService(EscalaRepository escalaRepository,
-                         EscalaServoRepository escalaServoRepository,
                          ServoRepository servoRepository,
                          AreaRepository areaRepository) {
         this.escalaRepository = escalaRepository;
-        this.escalaServoRepository = escalaServoRepository;
         this.servoRepository = servoRepository;
         this.areaRepository = areaRepository;
     }
@@ -71,7 +66,7 @@ public class EscalaService {
      * @throws ResourceNotFoundException se a escala não for encontrada.
      */
     @Transactional(readOnly = true)
-    public EscalaDTO buscarDTO(Long id) {
+    public EscalaDTO buscarPorId(Long id) {
         Escala escala = escalaRepository.findByIdWithAtribuicoes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
         return convertToEscalaDTO(escala);
@@ -143,7 +138,7 @@ public class EscalaService {
 
         // Carrega metadados das áreas citadas em uma única query
         Set<String> nomesAreas = atribuicoes.stream()
-                .map(AtribuicaoDTO::getFuncao)
+                .map(AtribuicaoDTO::funcao)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<String, Area> areaMap = areaRepository.findByNomeIn(nomesAreas)
@@ -152,7 +147,7 @@ public class EscalaService {
 
         // Carrega os servos citados em uma única query
         Set<Long> servoIds = atribuicoes.stream()
-                .map(AtribuicaoDTO::getServoId)
+                .map(AtribuicaoDTO::servoId)
                 .filter(Objects::nonNull)
                 .collect(Collectors.toSet());
         Map<Long, Servo> servoMap = servoRepository.findAllById(servoIds)
@@ -163,8 +158,8 @@ public class EscalaService {
         Map<Long, String> conflitoEntreEscalas = mapearConflitosEntreEscalas(dto, servoIds);
 
         Map<Long, List<AtribuicaoDTO>> porServo = atribuicoes.stream()
-                .filter(a -> a.getServoId() != null)
-                .collect(Collectors.groupingBy(AtribuicaoDTO::getServoId));
+                .filter(a -> a.servoId() != null)
+                .collect(Collectors.groupingBy(AtribuicaoDTO::servoId));
 
         for (Map.Entry<Long, List<AtribuicaoDTO>> entry : porServo.entrySet()) {
             Long servoId = entry.getKey();
@@ -178,9 +173,9 @@ public class EscalaService {
 
             // Regra 1: a área (função) precisa existir
             for (AtribuicaoDTO f : funcoes) {
-                if (areaMap.get(f.getFuncao()) == null) {
+                if (areaMap.get(f.funcao()) == null) {
                     throw new IllegalArgumentException(
-                            "A área \"" + f.getFuncao() + "\" não existe mais. "
+                            "A área \"" + f.funcao() + "\" não existe mais. "
                             + "Atualize a escala antes de salvar.");
                 }
             }
@@ -195,8 +190,8 @@ public class EscalaService {
 
             // Regra 3: não pode acumular duas áreas exclusivas
             List<String> exclusivas = funcoes.stream()
-                    .filter(f -> areaMap.get(f.getFuncao()).isExclusivoNaEscala())
-                    .map(AtribuicaoDTO::getFuncao)
+                    .filter(f -> areaMap.get(f.funcao()).isExclusivoNaEscala())
+                    .map(AtribuicaoDTO::funcao)
                     .collect(Collectors.toList());
             if (exclusivas.size() > 1) {
                 throw new IllegalArgumentException(
@@ -207,8 +202,8 @@ public class EscalaService {
 
             // Regra 4: área ESPECIFICO exige vínculo no perfil do servo
             List<String> especificosSemVinculo = funcoes.stream()
-                    .filter(f -> "ESPECIFICO".equals(areaMap.get(f.getFuncao()).getTipo()))
-                    .map(AtribuicaoDTO::getFuncao)
+                    .filter(f -> "ESPECIFICO".equals(areaMap.get(f.funcao()).getTipo()))
+                    .map(AtribuicaoDTO::funcao)
                     .filter(funcao -> !servo.getAreas().contains(funcao))
                     .collect(Collectors.toList());
             if (!especificosSemVinculo.isEmpty()) {
@@ -281,10 +276,10 @@ public class EscalaService {
         if (dto.getAtribuicoes() != null && !dto.getAtribuicoes().isEmpty()) {
             for (AtribuicaoDTO aDto : dto.getAtribuicoes()) {
                 EscalaAtribuicao novaAtrib = new EscalaAtribuicao();
-                novaAtrib.setFuncao(aDto.getFuncao());
-                
-                Servo servo = servoMap.get(aDto.getServoId());
-                if (servo == null) throw new ResourceNotFoundException("Voluntário não encontrado: " + aDto.getServoId());
+                novaAtrib.setFuncao(aDto.funcao());
+
+                Servo servo = servoMap.get(aDto.servoId());
+                if (servo == null) throw new ResourceNotFoundException("Voluntário não encontrado: " + aDto.servoId());
                 novaAtrib.setServo(servo);
                 
                 novaAtrib.setEscala(escala); // <-- OBRIGATÓRIO (Vínculo bidirecional)
@@ -348,48 +343,6 @@ public class EscalaService {
     }
 
     /**
-     * Adiciona um voluntário a um ministério dentro de uma escala (vínculo legado
-     * {@link EscalaServo}).
-     *
-     * @param escalaId     identificador da escala.
-     * @param servoId identificador do voluntário.
-     * @param areaId identificador do ministério.
-     * @return o {@link EscalaServoDTO} do vínculo criado.
-     * @throws ResourceNotFoundException se escala, voluntário ou ministério não existirem.
-     */
-    @Transactional
-    public EscalaServoDTO adicionarServo(Long escalaId, Long servoId, Long areaId) {
-        Escala escala = escalaRepository.findById(escalaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada"));
-        Servo servo = servoRepository.findById(servoId)
-                .orElseThrow(() -> new ResourceNotFoundException("Voluntário não encontrado"));
-        Area area = areaRepository.findById(areaId)
-                .orElseThrow(() -> new ResourceNotFoundException("Ministério não encontrado"));
-
-        EscalaServo ev = new EscalaServo();
-        ev.setEscala(escala);
-        ev.setServo(servo);
-        ev.setArea(area);
-
-        EscalaServo salvo = escalaServoRepository.save(ev);
-        return convertToEscalaServoDTO(salvo);
-    }
-
-    /**
-     * Remove um vínculo voluntário↔ministério de uma escala pelo id do vínculo.
-     *
-     * @param assignmentId identificador do vínculo {@link EscalaServo}.
-     * @throws ResourceNotFoundException se o vínculo não for encontrado.
-     */
-    @Transactional
-    public void removerServo(Long assignmentId) {
-        if (!escalaServoRepository.existsById(assignmentId)) {
-            throw new ResourceNotFoundException("Atribuição não encontrada");
-        }
-        escalaServoRepository.deleteById(assignmentId);
-    }
-
-    /**
      * Converte uma {@link Escala} no formato de evento do FullCalendar (id, título,
      * início ISO e cor).
      *
@@ -424,13 +377,9 @@ public class EscalaService {
         dto.setClassificacao(escala.getClassificacao());
 
         if (escala.getAtribuicoes() != null && !escala.getAtribuicoes().isEmpty()) {
-            List<AtribuicaoDTO> atribsDTO = escala.getAtribuicoes().stream().map(a -> {
-                AtribuicaoDTO aDto = new AtribuicaoDTO();
-                aDto.setServoId(a.getServo().getId());
-                aDto.setServoNome(a.getServo().getNome());
-                aDto.setFuncao(a.getFuncao());
-                return aDto;
-            }).collect(Collectors.toList());
+            List<AtribuicaoDTO> atribsDTO = escala.getAtribuicoes().stream()
+                    .map(a -> new AtribuicaoDTO(a.getServo().getId(), a.getServo().getNome(), a.getFuncao()))
+                    .collect(Collectors.toList());
             dto.setAtribuicoes(atribsDTO);
         } else {
             dto.setAtribuicoes(new ArrayList<>());
@@ -439,34 +388,4 @@ public class EscalaService {
         return dto;
     }
 
-    /**
-     * Converte uma {@link EscalaAtribuicao} em {@link AtribuicaoDTO}.
-     *
-     * @param ea atribuição a converter.
-     * @return o DTO correspondente.
-     */
-    private AtribuicaoDTO convertToAtribuicaoDTO(EscalaAtribuicao ea) {
-        return new AtribuicaoDTO(
-                ea.getServo().getId(),
-                ea.getServo().getNome(),
-                ea.getFuncao()
-        );
-    }
-
-    /**
-     * Converte um vínculo {@link EscalaServo} em {@link EscalaServoDTO},
-     * achatando voluntário e ministério em id/nome.
-     *
-     * @param ev vínculo a converter.
-     * @return o DTO correspondente.
-     */
-    private EscalaServoDTO convertToEscalaServoDTO(EscalaServo ev) {
-        return new EscalaServoDTO(
-                ev.getId(),
-                ev.getServo().getId(),
-                ev.getServo().getNome(),
-                ev.getArea().getId(),
-                ev.getArea().getNome()
-        );
-    }
 }

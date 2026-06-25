@@ -71,7 +71,7 @@ public class MinisterioController {
      * @return {@code 200 OK} com o {@link MinisterioDTO} atualizado.
      */
     @PutMapping("/{classificacao}")
-    public ResponseEntity<MinisterioDTO> salvar(
+    public ResponseEntity<MinisterioDTO> atualizar(
             @PathVariable String classificacao,
             @Valid @RequestBody MinisterioRequest request) {
         return ResponseEntity.ok(service.salvar(classificacao, request));

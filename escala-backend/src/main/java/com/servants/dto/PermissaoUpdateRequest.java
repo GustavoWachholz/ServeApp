@@ -7,4 +7,4 @@ import java.util.List;
  *
  * @param permissoes lista de permissões por tela a aplicar.
  */
-public record PermissoesUpdateRequest(List<PermissaoDTO> permissoes) {}
+public record PermissaoUpdateRequest(List<PermissaoDTO> permissoes) {}

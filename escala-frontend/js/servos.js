@@ -3,12 +3,7 @@
  * ordenação, CRUD via modal e vínculo a áreas e classificações.
  */
 
-/** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
-function esc(s) {
-    return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = Auth.esc;
 
 /** URL da API de voluntários. */
 const API_URL = '/api/servos';

@@ -437,7 +437,18 @@
             tokenAnexado = true;
         }
 
+        // Timeout de 15 s em chamadas à API sem signal próprio do chamador
+        let tid;
+        if (isApi && !init.signal) {
+            const controller = new AbortController();
+            tid = setTimeout(function () { controller.abort(); }, 15000);
+            init.signal = controller.signal;
+        }
+
+        function limparTimer() { if (tid) clearTimeout(tid); }
+
         return originalFetch(input, init).then(function (res) {
+            limparTimer();
             // Token inválido/expirado → encerra sessão e volta ao login
             if (res.status === 401 && tokenAnexado) {
                 localStorage.removeItem(STORAGE_KEY);
@@ -458,6 +469,9 @@
                 }).catch(function () {});
             }
             return res;
+        }).catch(function (err) {
+            limparTimer();
+            throw err;
         });
     };
 
@@ -522,9 +536,9 @@
     const PAGINA_PARA_HASH_SHELL = {
         'index.html': 'home',
         'agenda.html': 'agenda',
-        'voluntarios.html': 'servos',
-        'ministerios.html': 'areas',
-        'configuracao-escala.html': 'ministerios',
+        'servos.html': 'servos',
+        'areas.html': 'areas',
+        'ministerios.html': 'ministerios',
         'relatorios.html': 'relatorios',
         'usuarios.html': 'usuarios',
         'perfil.html': 'perfil',
@@ -1087,6 +1101,7 @@
         // Toasts e diálogos
         toast,
         confirmar,
+        esc,
     };
 
     /**

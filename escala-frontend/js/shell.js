@@ -17,9 +17,9 @@
     const ARQUIVO_PARA_HASH = {
         'index.html': 'home',
         'agenda.html': 'agenda',
-        'voluntarios.html': 'servos',
-        'ministerios.html': 'areas',
-        'configuracao-escala.html': 'ministerios',
+        'servos.html': 'servos',
+        'areas.html': 'areas',
+        'ministerios.html': 'ministerios',
         'relatorios.html': 'relatorios',
         'usuarios.html': 'usuarios',
         'perfil.html': 'perfil',

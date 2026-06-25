@@ -12,12 +12,7 @@ const ESCALAS_API_URL = '/api/escalas';
 /** URL da API de avisos. */
 const AVISOS_API_URL = '/api/avisos';
 
-/** Escapa caracteres HTML especiais para evitar XSS ao injetar via innerHTML. */
-function esc(s) {
-    return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = Auth.esc;
 
 /** Período ativo dos compromissos: 'semana' (Seg–Dom) ou 'mes'. */
 let periodoAtual = 'semana';

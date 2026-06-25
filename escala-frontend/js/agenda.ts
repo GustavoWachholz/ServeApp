@@ -34,12 +34,7 @@ interface AniversarianteAgendaDTO {
     foto: string | null;
 }
 
-/** Escapa caracteres HTML especiais para uso seguro em innerHTML. */
-function esc(s: string | null | undefined): string {
-    return String(s == null ? '' : s)
-        .replace(/&/g, '&amp;').replace(/</g, '&lt;')
-        .replace(/>/g, '&gt;').replace(/"/g, '&quot;');
-}
+const esc = Auth.esc;
 
 /** Classificações (ministérios, na UI) carregadas do backend para o select. */
 let classificacoesDisponiveis: any[] = [];
@@ -379,7 +374,7 @@ function gerarGridMinisterios(ministerios: any[]): void {
     if (!ministerios || ministerios.length === 0) {
         grid.innerHTML = `<p style="grid-column:1/-1;text-align:center;color:var(--text-muted);
             padding:2rem;font-style:italic;">Nenhum ministério configurado para esta classificação.
-            <a href="configuracao-escala.html">Configure aqui</a>.</p>`;
+            <a href="ministerios.html">Configure aqui</a>.</p>`;
         return;
     }
 

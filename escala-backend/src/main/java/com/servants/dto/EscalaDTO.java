@@ -10,6 +10,12 @@ import java.util.List;
  * DTO principal de transporte de uma escala entre frontend e backend, usado tanto
  * na listagem quanto na criação/edição. Espelha {@link com.servants.model.Escala}
  * com a lista de atribuições em formato simples.
+ *
+ * <p>Implementado como {@code class} mutável (e não {@code record}) porque
+ * {@link com.servants.service.EscalaService#atualizarComAtribuicoes} precisa
+ * normalizar o campo {@code id} quando ele vem nulo no corpo do PUT, e
+ * {@link com.servants.service.EscalaService#convertToEscalaDTO} preenche os campos
+ * incrementalmente após construção.</p>
  */
 public class EscalaDTO {
     /** Identificador da escala ({@code null} ao criar uma nova). */

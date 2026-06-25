@@ -2,7 +2,7 @@ package com.servants.controller;
 
 import com.servants.dto.PerfilDTO;
 import com.servants.dto.PerfilUpdateRequest;
-import com.servants.dto.PermissoesUpdateRequest;
+import com.servants.dto.PermissaoUpdateRequest;
 import com.servants.dto.SenhaUpdateRequest;
 import com.servants.dto.UsuarioListItemDTO;
 import com.servants.dto.VincularServoRequest;
@@ -38,7 +38,7 @@ public class UsuarioController {
      * {@code GET /api/usuarios} — lista todos os usuários com permissões. Somente ADMIN.
      */
     @GetMapping
-    public ResponseEntity<List<UsuarioListItemDTO>> listar(HttpServletRequest request) {
+    public ResponseEntity<List<UsuarioListItemDTO>> listarTodos(HttpServletRequest request) {
         if (!isAdmin(request)) return ResponseEntity.status(403).build();
         return ResponseEntity.ok(usuarioService.listarTodos());
     }
@@ -66,7 +66,7 @@ public class UsuarioController {
      */
     @PutMapping("/{id}/permissoes")
     public ResponseEntity<Void> atualizarPermissoes(@PathVariable Long id,
-                                                    @RequestBody PermissoesUpdateRequest body,
+                                                    @RequestBody PermissaoUpdateRequest body,
                                                     HttpServletRequest request) {
         if (!isAdmin(request)) return ResponseEntity.status(403).build();
         permissaoService.salvar(id, body.permissoes());

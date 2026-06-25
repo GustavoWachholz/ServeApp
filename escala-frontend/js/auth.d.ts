@@ -29,6 +29,9 @@ declare namespace Auth {
     /** Oculta o overlay de carregamento. */
     function esconderLoading(): void;
 
+    /** Escapa caracteres HTML especiais para uso seguro em innerHTML. */
+    function esc(str: string | null | undefined): string;
+
     /** Inicializa sidebar, tema e outros elementos de layout. */
     function inicializar(): void;
 }

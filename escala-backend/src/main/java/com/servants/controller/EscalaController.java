@@ -1,7 +1,6 @@
 package com.servants.controller;
 
 import com.servants.dto.EscalaDTO;
-import com.servants.dto.EscalaServoDTO;
 import com.servants.dto.EventoAgendaDTO;
 import com.servants.service.EscalaService;
 import jakarta.validation.Valid;
@@ -13,8 +12,7 @@ import java.util.List;
 
 /**
  * Controller REST de escalas, exposto em {@code /api/escalas}. Oferece CRUD de
- * escalas (com suas atribuições de equipe) e endpoints auxiliares para adicionar
- * ou remover voluntários de uma escala.
+ * escalas com suas atribuições de equipe.
  */
 @RestController
 @RequestMapping("/api/escalas")
@@ -47,7 +45,7 @@ public class EscalaController {
      */
     @GetMapping("/{id}")
     public ResponseEntity<EscalaDTO> buscarPorId(@PathVariable Long id) {
-        return ResponseEntity.ok(escalaService.buscarDTO(id));
+        return ResponseEntity.ok(escalaService.buscarPorId(id));
     }
 
     /**
@@ -87,34 +85,4 @@ public class EscalaController {
         return ResponseEntity.noContent().build();
     }
 
-    /**
-     * {@code POST /api/escalas/{escalaId}/servos} — adiciona um voluntário a um
-     * ministério dentro da escala (vínculo legado).
-     *
-     * @param escalaId     identificador da escala.
-     * @param servoId identificador do voluntário (query param).
-     * @param areaId identificador do ministério (query param).
-     * @return {@code 201 CREATED} com o {@link EscalaServoDTO} criado.
-     */
-    @PostMapping("/{escalaId}/servos")
-    public ResponseEntity<EscalaServoDTO> adicionarServo(
-            @PathVariable Long escalaId,
-            @RequestParam Long servoId,
-            @RequestParam Long areaId) {
-        EscalaServoDTO salvo = escalaService.adicionarServo(escalaId, servoId, areaId);
-        return ResponseEntity.status(HttpStatus.CREATED).body(salvo);
-    }
-
-    /**
-     * {@code DELETE /api/escalas/servos/{assignmentId}} — remove um vínculo
-     * voluntário↔ministério de uma escala.
-     *
-     * @param assignmentId identificador do vínculo.
-     * @return {@code 204 NO CONTENT}.
-     */
-    @DeleteMapping("/servos/{assignmentId}")
-    public ResponseEntity<Void> removerServo(@PathVariable Long assignmentId) {
-        escalaService.removerServo(assignmentId);
-        return ResponseEntity.noContent().build();
-    }
 }

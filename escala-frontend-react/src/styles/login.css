@@ -1,0 +1,256 @@
+/* ── Tokens do tema (login é sempre escuro) ── */
+:root {
+    --login-bg:       #0a0a0b;
+    --login-surface:  #141417;
+    --login-surface-2:#0b0b0d;
+    --login-border:   #232327;
+    --login-text:     #ededf0;
+    --login-muted:    #9a9aa2;
+    --primary-color:  #c98aff;
+    --accent-rgb:     201,138,255;
+    --warn:           #e0a83a;
+    --danger:         #e0623a;
+    --radius:         10px;
+    --radius-sm:      7px;
+}
+
+/* Reset e Configurações Globais */
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
+}
+
+body {
+    height: 100vh;
+    overflow: hidden;
+    background-color: var(--login-bg);
+}
+
+/* Transição suave entre view-login e view-registro */
+#view-login,
+#view-registro {
+    animation: fadeIn 0.2s ease;
+}
+
+@keyframes fadeIn {
+    from { opacity: 0; transform: translateY(6px); }
+    to   { opacity: 1; transform: translateY(0); }
+}
+
+.login-container {
+    display: flex;
+    height: 100%;
+    width: 100%;
+}
+
+/* Lado Esquerdo: Branding */
+.branding-side {
+    flex: 1;
+    background-color: var(--login-surface-2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    text-align: center;
+}
+
+.branding-content {
+    max-width: 400px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Lado Direito: Formulário */
+.form-side {
+    flex: 1;
+    background-color: var(--login-surface);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    padding: 2rem;
+    color: var(--login-text);
+    /* Permite scroll quando o formulário de registro é maior que a viewport */
+    overflow-y: auto;
+}
+
+.form-content {
+    width: 100%;
+    max-width: 400px;
+    /* Garante que o conteúdo não fique colado no topo/bottom ao rolar */
+    padding: 1rem 0;
+}
+
+.form-content header {
+    margin-bottom: 1.75rem;
+}
+
+.form-content h2 {
+    font-size: 1.8rem;
+    font-weight: 700;
+    margin-bottom: 0.5rem;
+    color: var(--login-text);
+}
+
+.form-content header p {
+    color: var(--login-muted);
+    font-size: 0.95rem;
+}
+
+/* Estilização de Inputs */
+.input-group {
+    margin-bottom: 1.25rem;
+}
+
+.input-group label {
+    display: block;
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    font-size: 0.7rem;
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--login-muted);
+}
+
+.form-content h2 {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.btn-submit {
+    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+}
+
+.input-group input,
+.input-group select {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    background-color: var(--login-surface-2);
+    border: 1px solid var(--login-border);
+    border-radius: var(--radius-sm);
+    color: var(--login-text);
+    font-size: 1rem;
+    transition: all 0.2s;
+}
+
+.input-group input:focus,
+.input-group select:focus {
+    outline: none;
+    border-color: var(--primary-color);
+    background-color: var(--login-surface-2);
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
+}
+
+.form-options {
+    display: flex;
+    justify-content: flex-end;
+    margin-bottom: 1.5rem;
+}
+
+.forgot-link {
+    font-size: 0.875rem;
+    color: var(--warn);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+.forgot-link:hover {
+    text-decoration: underline;
+}
+
+/* Botões */
+.btn-submit {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--primary-color);
+    color: #ffffff;
+    border: none;
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 600;
+    cursor: pointer;
+    transition: filter 0.2s, box-shadow 0.2s;
+}
+
+.btn-submit:hover {
+    filter: brightness(0.88);
+    box-shadow: 0 4px 14px rgba(var(--accent-rgb), 0.35);
+}
+
+.btn-submit:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+}
+
+.divider {
+    display: flex;
+    align-items: center;
+    text-align: center;
+    margin: 1.5rem 0;
+    color: var(--login-muted);
+    font-size: 0.875rem;
+}
+
+.divider::before, .divider::after {
+    content: '';
+    flex: 1;
+    border-bottom: 1px solid var(--login-border);
+}
+
+.divider:not(:empty)::before { margin-right: .5em; }
+.divider:not(:empty)::after { margin-left: .5em; }
+
+.btn-google {
+    width: 100%;
+    padding: 0.75rem;
+    background-color: var(--login-surface-2);
+    color: var(--login-text);
+    border: 1px solid var(--login-border);
+    border-radius: var(--radius-sm);
+    font-size: 1rem;
+    font-weight: 500;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.75rem;
+    transition: background-color 0.2s;
+}
+
+.btn-google:hover {
+    background-color: rgba(255,255,255,0.04);
+    border-color: var(--login-muted);
+}
+
+.btn-google img {
+    width: 18px;
+    height: 18px;
+}
+
+footer {
+    margin-top: 2rem;
+    text-align: center;
+    color: var(--login-muted);
+    font-size: 0.875rem;
+}
+
+footer a {
+    color: var(--warn);
+    text-decoration: none;
+    font-weight: 500;
+}
+
+footer a:hover {
+    text-decoration: underline;
+}
+
+/* Responsividade */
+@media (max-width: 768px) {
+    .branding-side {
+        display: none;
+    }
+}

@@ -2,10 +2,28 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "frontend",
+      "name": "escala-backend",
+      "runtimeExecutable": "cmd",
+      "runtimeArgs": ["/c", "start.bat"],
+      "port": 8080
+    },
+    {
+      "name": "escala-frontend (Live Server)",
       "runtimeExecutable": "npx",
       "runtimeArgs": ["serve", "-s", "escala-frontend", "-l", "5500"],
       "port": 5500
+    },
+    {
+      "name": "escala-frontend (TypeScript Watch)",
+      "runtimeExecutable": "npx",
+      "runtimeArgs": ["tsc", "--watch", "--project", "escala-frontend/tsconfig.json"],
+      "port": 5500
+    },
+    {
+      "name": "escala-frontend-react",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev", "--prefix", "escala-frontend-react"],
+      "port": 5173
     }
   ]
 }

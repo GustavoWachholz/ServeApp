@@ -628,3 +628,84 @@ separador de seção, grupo de botões da Agenda) e `.claude/progress.md`.
 - Parte 5: cadastro de usuário cria o servo com todos os dados pessoais (obrigatórios); não há mais botão
   "Novo Servo" nem edição de dados pessoais na tela Servos (só permissões de escala); dados pessoais
   editáveis em Meu Perfil; exclusão de usuário trata o servo vinculado; admin permanece sem servo (exceção).
+
+---
+
+# Fase 9 — Observabilidade (logging estruturado, contexto e data masking)
+
+> **Status:** ⏳ Planejado (não iniciado).
+> **Escopo:** backend Spring Boot (`escala-backend`) e, opcionalmente, frontend React (`escala-frontend-react`).
+
+## Correção de premissa (tooling)
+`Winston`/`Pino` são bibliotecas **Node.js** e **não se aplicam** a este backend Java/Spring (que já roda sobre
+**SLF4J + Logback**). O equivalente profissional aqui é **Logback + `logstash-logback-encoder` (JSON) + MDC**.
+No frontend (browser) não há logger de servidor: o análogo é um wrapper de telemetria + Error Boundary
+(opcionalmente Sentry). Observação: Logback **não tem nível `FATAL`** (TRACE/DEBUG/INFO/WARN/ERROR); "fatal"
+mapeia para `ERROR` + `Marker("FATAL")`.
+
+## Diagnóstico (estado atual medido no código)
+- Apenas **1** logger em toda a aplicação (`DataInitializer`); **4** blocos `catch`; **1** `System.err`.
+- **Sem** `logback-spring.xml` → formato texto default, **sem JSON estruturado**.
+- Existe trilha de **auditoria de negócio** sólida (tabela `auditoria` + `AuditInterceptor`) — é *audit*, **não**
+  observabilidade operacional.
+
+### 1) Falta de log estruturado em try/catch críticos
+| Local | Problema | Severidade |
+|---|---|---|
+| `GlobalExceptionHandler.handleGeneralException` | Catch-all de **500** diz "detalhes nos logs", mas a classe **não tem logger e não loga** → todo erro 500 some sem rastro. | 🔴 Crítico |
+| `AuditoriaService` (`catch (Exception)`) | Grava em `System.err.println(...getMessage())` — sem stack trace, sem nível, fora do pipeline. | 🔴 Alto |
+| `JwtService` (`catch (JwtException \| IllegalArgumentException)`) | Retorna `Optional.empty()` — falha de token sem log. | 🟠 Médio |
+
+### 2) Falhas silenciosas
+- **500 sem log** (acima). · Falha ao gravar auditoria só em `stderr`. · Falhas de token descartadas.
+- **Rate-limit 429** (`RateLimitInterceptor`) sem log de alerta. · Frontend: erros de runtime não reportados
+  (sem Error Boundary; `api/client.ts` só faz `console.warn` em 404).
+
+### 3) Ausência de contexto
+- Nenhum log carrega `requestId`, `userId`, `action`, `path`, `ip`. **Sem MDC.** Impossível correlacionar
+  linhas de uma mesma requisição. `AuthInterceptor` já resolve o usuário do JWT — ponto natural para o MDC.
+
+### ⚠️ Dados sensíveis já em risco
+- `DataInitializer` faz `log.warn(... Senha : {}, senhaInicial)` → **senha inicial do admin em texto puro**.
+- `application.properties`: `show-sql` e `org.hibernate.SQL` em **DEBUG** no default local → loga SQL/valores.
+- Não há **nenhuma** barreira (masking) impedindo que futuros logs gravem senha/token.
+
+## Mudanças (faseadas)
+
+### Fase 9-A — Fundação estruturada + contexto
+1. Dependência `net.logstash.logback:logstash-logback-encoder` no `pom.xml`.
+2. `logback-spring.xml` com appenders **por profile**: console legível em `dev`; **JSON** (`LogstashEncoder`)
+   em `homolog`/`prod`. O encoder inclui o MDC automaticamente.
+3. `MdcRequestFilter` (`OncePerRequestFilter`): gera/lê `requestId` (header `X-Request-Id` ou UUID); popula MDC
+   com `requestId`, `method`, `path`, `ip`; adiciona `userId`/`role` quando o `AuthInterceptor` resolve o token.
+   `finally { MDC.clear(); }`.
+
+### Fase 9-B — Fechar falhas silenciosas
+4. Logger no `GlobalExceptionHandler`: `log.error("erro nao tratado", ex)` no handler 500 (stack + MDC);
+   `WARN` para 409/validação; `DEBUG` para 400 de regra de negócio.
+5. `AuditoriaService`: trocar `System.err` por `log.error("falha ao gravar auditoria", ex)` (mantendo
+   não-bloqueante).
+6. `JwtService`/`RateLimitInterceptor`: `log.debug`/`log.warn` das falhas — **sem** logar o token.
+
+### Fase 9-C — Data masking (defesa em profundidade)
+7. `MaskingPatternLayout`/converter no Logback com regex para `password`, `senha`, `token`, `authorization`,
+   `Bearer …`, e-mail/CPF → `***`.
+8. Garantir `toString()`/serialização sem segredos (`Usuario.senha` nunca em `toString`).
+9. Remover o log da senha no `DataInitializer` (logar só "admin criado, redefina no 1º login"; senha temporária
+   por canal seguro, nunca no log).
+
+### Fase 9-D (opcional) — Frontend
+10. Wrapper `logger.ts` (silencia em prod, formata em dev) + **Error Boundary** no root da app React
+    + integração opcional com Sentry para exceções de runtime do cliente.
+
+## Níveis de log (mapeados p/ Logback)
+`DEBUG` diagnóstico dev · `INFO` eventos de negócio (login, CRUD) · `WARN` degradação/segurança (429, 401,
+constraint) · `ERROR` exceções não tratadas / falha de auditoria · `FATAL` → `ERROR` + `Marker("FATAL")`
+para indisponibilidade de infra.
+
+## Verificação
+- `mvnw.cmd clean compile -q` sem erros.
+- Em `homolog`/`prod`: log sai em **JSON** com `requestId`/`userId`/`path` presentes; forçar um 500 gera
+  uma linha `ERROR` com stack trace e contexto.
+- `grep` nos logs por senha/token/`Bearer` retorna apenas `***` (masking ativo).
+- `DataInitializer` não emite mais a senha do admin.

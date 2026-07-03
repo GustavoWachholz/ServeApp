@@ -73,12 +73,12 @@ public class EscalaService {
     }
 
     /**
-     * Cria uma nova escala com suas atribuições, validando antes a regra de
-     * ministérios exclusivos.
+     * Cria uma nova escala com suas atribuições, validando antes as regras de
+     * integridade das atribuições (ver {@link #validarRegraDeAtribuicoes}).
      *
      * @param dto dados da escala e suas atribuições.
      * @return o {@link EscalaDTO} persistido.
-     * @throws IllegalArgumentException se um voluntário for escalado em dois ministérios exclusivos.
+     * @throws IllegalArgumentException se alguma regra de atribuição for violada.
      */
     @Transactional
     public EscalaDTO criarComAtribuicoes(EscalaDTO dto) {
@@ -90,14 +90,14 @@ public class EscalaService {
     }
 
     /**
-     * Atualiza uma escala existente e suas atribuições, validando antes a regra de
-     * ministérios exclusivos.
+     * Atualiza uma escala existente e suas atribuições, validando antes as regras
+     * de integridade das atribuições (ver {@link #validarRegraDeAtribuicoes}).
      *
      * @param id  identificador da escala.
      * @param dto novos dados da escala e suas atribuições.
      * @return o {@link EscalaDTO} atualizado.
      * @throws ResourceNotFoundException se a escala não for encontrada.
-     * @throws IllegalArgumentException  se um voluntário for escalado em dois ministérios exclusivos.
+     * @throws IllegalArgumentException  se alguma regra de atribuição for violada.
      */
     @Transactional
     public EscalaDTO atualizarComAtribuicoes(Long id, EscalaDTO dto) {
@@ -119,8 +119,8 @@ public class EscalaService {
      *       ({@link Area}) cadastrada — funções órfãs (área renomeada/excluída) são rejeitadas.</li>
      *   <li><b>Ministério do servo:</b> o servo só pode ser escalado se o ministério
      *       (classificação) da escala estiver no seu perfil ({@code servo.classificacoes}).</li>
-     *   <li><b>Exclusividade:</b> um servo não pode ocupar duas áreas {@code exclusivoNaEscala}
-     *       na mesma escala.</li>
+     *   <li><b>Exclusividade (não bloqueante):</b> {@code exclusivoNaEscala} é apenas
+     *       advisory — o acúmulo de áreas exclusivas gera aviso no front, não erro aqui.</li>
      *   <li><b>Vínculo ESPECIFICO:</b> para áreas {@code tipo = "ESPECIFICO"}, o servo deve ter
      *       a área registrada no perfil ({@code servo.areas}).</li>
      *   <li><b>Conflito entre escalas:</b> o servo não pode estar escalado em outra escala
@@ -188,17 +188,9 @@ public class EscalaService {
                         + "Adicione o ministério ao perfil do servo antes de escalá-lo.");
             }
 
-            // Regra 3: não pode acumular duas áreas exclusivas
-            List<String> exclusivas = funcoes.stream()
-                    .filter(f -> areaMap.get(f.funcao()).isExclusivoNaEscala())
-                    .map(AtribuicaoDTO::funcao)
-                    .collect(Collectors.toList());
-            if (exclusivas.size() > 1) {
-                throw new IllegalArgumentException(
-                        "O voluntário " + nome + " está escalado em duas áreas exclusivas: "
-                        + String.join(" e ", exclusivas)
-                        + ". Áreas exclusivas não podem ser acumuladas na mesma escala.");
-            }
+            // Exclusividade (exclusivoNaEscala) é apenas ADVISORY: o front exibe um
+            // aviso quando o servo já está em outra área exclusiva, mas quem decide é
+            // o usuário. Portanto não bloqueamos o acúmulo de áreas exclusivas aqui.
 
             // Regra 4: área ESPECIFICO exige vínculo no perfil do servo
             List<String> especificosSemVinculo = funcoes.stream()

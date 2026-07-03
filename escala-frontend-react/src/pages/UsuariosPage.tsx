@@ -1,3 +1,4 @@
+import { Icon } from '../lib/Icon';
 import { useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getUsuarios, getUsuario, updatePermissoes, vincularServo, deleteUsuario } from '../api/usuarios';
@@ -181,8 +182,8 @@ export function UsuariosPage() {
 
       <div className="section-card" style={{ padding: 0 }}>
         <div className="list-table-toolbar">
-          <div className="search-wrap">
-            <i data-lucide="search" />
+          <div className="search-wrapper">
+            <Icon name="search" className="search-icon" />
             <input
               type="search"
               placeholder="Buscar usuário…"
@@ -207,7 +208,7 @@ export function UsuariosPage() {
                 <tr>
                   <td colSpan={4} style={{ padding: 0, border: 'none' }}>
                     <div className="empty-state">
-                      <i data-lucide="users" />
+                      <Icon name="users" />
                       <h3>Nenhum usuário</h3>
                       <p>Nenhum usuário encontrado.</p>
                     </div>
@@ -233,7 +234,7 @@ export function UsuariosPage() {
                   </td>
                   <td className="actions-cell">
                     <button className="btn-sort" onClick={() => abrirModal(u.id)} title="Gerenciar">
-                      <i data-lucide="sliders-horizontal" /><span className="btn-label">Gerenciar</span>
+                      <Icon name="sliders-horizontal" /><span className="btn-label">Gerenciar</span>
                     </button>
                   </td>
                 </tr>
@@ -260,7 +261,7 @@ export function UsuariosPage() {
                 onClick={() => setConfirmOpen(true)}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '.4rem' }}
               >
-                <i data-lucide="trash-2" /> Excluir conta
+                <Icon name="trash-2" /> Excluir conta
               </button>
             </>
           ) : (
@@ -284,7 +285,7 @@ export function UsuariosPage() {
 
             {isAdmin ? (
               <div className="admin-aviso">
-                <i data-lucide="shield-check" style={{ marginRight: '.4rem' }} />
+                <Icon name="shield-check" style={{ marginRight: '.4rem' }} />
                 Administrador — permissões totais, não editáveis.
               </div>
             ) : (
@@ -341,7 +342,7 @@ export function UsuariosPage() {
                   disabled={savingVinculo}
                   style={{ marginTop: '.5rem', display: 'flex', alignItems: 'center', gap: '.4rem' }}
                 >
-                  <i data-lucide="link" />
+                  <Icon name="link" />
                   {savingVinculo ? 'Salvando…' : 'Salvar vínculo'}
                 </button>
               </>

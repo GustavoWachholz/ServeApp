@@ -17,6 +17,12 @@ import { useToast } from '../hooks/useToast';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
 import type { EscalaDTO, ServoDTO, MinisterioDTO, AreaDTO, AtribuicaoDTO, AniversarianteDTO } from '../types';
+import { Icon } from '../lib/Icon';
+
+// SVG estático do ícone "cake" (lucide) para uso em `innerHTML` imperativo do
+// FullCalendar, onde não há árvore React para renderizar um <Icon>.
+const CAKE_SVG =
+  '<svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-cake"><path d="M20 21v-8a2 2 0 0 0-2-2H6a2 2 0 0 0-2 2v8"/><path d="M4 16s.5-1 2-1 2.5 2 4 2 2.5-2 4-2 2.5 2 4 2 2-1 2-1"/><path d="M2 21h20"/><path d="M7 8v3"/><path d="M12 8v3"/><path d="M17 8v3"/><path d="M7 4h.01"/><path d="M12 4h.01"/><path d="M17 4h.01"/></svg>';
 
 const STYLES = `
   .agenda-toolbar { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap; }
@@ -39,6 +45,7 @@ const STYLES = `
   .voluntarios-list { display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem;min-height:4px; }
   .voluntario-tag { display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-color);color:#fff;font-size:.76rem;padding:.2rem .5rem;border-radius:10px; }
   .voluntario-tag.invalido { background:#dc2626; }
+  .voluntario-tag.aviso { background:#f59e0b; }
   .voluntario-tag button { background:none;border:none;color:#fff;cursor:pointer;font-size:.85rem;line-height:1;padding:0; }
   .busca-container { position:relative; }
   .busca-container input { width:100%;padding:.35rem .5rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text-primary);font-size:.82rem; }
@@ -48,6 +55,8 @@ const STYLES = `
   .resultados-busca .btn-add { background:var(--primary-color);color:#fff;border:none;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:.95rem;line-height:1; }
   .resultados-busca .nota-exclusividade { color:#f59e0b;font-size:.74rem;font-style:italic;border-top:1px solid var(--border-color);justify-content:flex-start; }
   .resultados-busca .sem-result { color:var(--text-muted);font-style:italic;justify-content:flex-start; }
+  .resultados-busca li .res-nome { display:flex;flex-direction:column;gap:.1rem;min-width:0; }
+  .resultados-busca .aviso-inline { display:flex;align-items:center;gap:.25rem;color:#b45309;font-size:.68rem;font-style:italic;font-weight:600; }
 `;
 
 const DURACAO_PRESETS = ['30', '60', '90', '120', '180'];
@@ -220,29 +229,36 @@ export function AgendaPage() {
     return r;
   }
 
-  function resultadosPara(area: AreaDTO): { lista: ServoDTO[]; ocultos: number } {
+  // Áreas exclusivas em que o servo já foi escalado nesta escala (fora da área atual).
+  function outrasAreasExclusivas(area: AreaDTO, id: number): string[] {
+    return (jaEscalados()[id] || []).filter((f) => {
+      if (f === area.nome) return false;
+      const a = areas.find((x) => x.nome === f);
+      return !!a && a.exclusivoNaEscala;
+    });
+  }
+
+  function resultadosPara(area: AreaDTO): { lista: ServoDTO[]; avisos: Record<number, string> } {
     const termo = (busca[area.nome] || '').toLowerCase().trim();
-    if (!termo) return { lista: [], ocultos: 0 };
+    if (!termo) return { lista: [], avisos: {} };
     const escalados = jaEscalados();
-    const exclusivo = area.exclusivoNaEscala;
-    let ocultos = 0;
     const lista: ServoDTO[] = [];
+    const avisos: Record<number, string> = {};
     servos.forEach((v) => {
       if (!v.nome.toLowerCase().includes(termo)) return;
       if (classificacao && !v.classificacoes?.includes(classificacao)) return;
       if (area.tipo === 'ESPECIFICO' && !v.areas?.includes(area.nome)) return;
       const funcoes = escalados[v.id] || [];
       if (funcoes.includes(area.nome)) return;
-      if (exclusivo) {
-        const temOutroExclusivo = funcoes.some((f) => {
-          const a = areas.find((x) => x.nome === f);
-          return a && a.exclusivoNaEscala;
-        });
-        if (temOutroExclusivo) { ocultos++; return; }
+      // Exclusividade agora é apenas um AVISO: o servo continua na lista e pode
+      // ser escalado; quem decide é o usuário.
+      if (area.exclusivoNaEscala) {
+        const outras = outrasAreasExclusivas(area, v.id);
+        if (outras.length) avisos[v.id] = `Já em ${outras.join(', ')} (área exclusiva)`;
       }
       lista.push(v);
     });
-    return { lista, ocultos };
+    return { lista, avisos };
   }
 
   function addVoluntario(area: AreaDTO, servo: Tag) {
@@ -267,6 +283,12 @@ export function AgendaPage() {
     if (classificacao && !(servo.classificacoes || []).includes(classificacao)) motivos.push('não atua neste ministério');
     if (area && area.tipo === 'ESPECIFICO' && !(servo.areas || []).includes(areaNome)) motivos.push('não está vinculado a esta área');
     return motivos.length ? `${servo.nome} ${motivos.join(' e ')} — remova ou ajuste o cadastro.` : null;
+  }
+
+  // Aviso (não bloqueante) de exclusividade para uma tag já escalada em outra área exclusiva.
+  function avisoTag(area: AreaDTO, id: number): string | null {
+    const outras = area.exclusivoNaEscala ? outrasAreasExclusivas(area, id) : [];
+    return outras.length ? `Também escalado em ${outras.join(', ')} — áreas exclusivas.` : null;
   }
 
   function validarStep1(): boolean {
@@ -399,7 +421,7 @@ export function AgendaPage() {
     const badge = document.createElement('span');
     badge.className = 'aniv-badge';
     badge.title = lista.map((a) => a.nome).join(', ');
-    badge.innerHTML = `<i data-lucide="cake"></i>${lista.length > 1 ? ' ' + lista.length : ''}`;
+    badge.innerHTML = `${CAKE_SVG}${lista.length > 1 ? ' ' + lista.length : ''}`;
     const top = arg.el.querySelector('.fc-daygrid-day-top');
     if (top) top.prepend(badge);
   }
@@ -425,11 +447,11 @@ export function AgendaPage() {
         <h1 className="logo-title">Agenda</h1>
         <div className="agenda-toolbar-actions">
           <button className="btn-secondary" onClick={() => setAnivOpen(true)}>
-            <i data-lucide="cake" /> Aniversariantes
+            <Icon name="cake" /> Aniversariantes
           </button>
           {perm.criar && (
             <button className="btn-primary" onClick={abrirNova}>
-              <i data-lucide="plus" /> Novo Compromisso
+              <Icon name="plus" /> Novo Compromisso
             </button>
           )}
         </div>
@@ -437,7 +459,7 @@ export function AgendaPage() {
 
       {diaBanner.length > 0 && (
         <div className="aniv-day-banner">
-          <span className="aniv-banner-label"><i data-lucide="cake" /> Aniversariantes</span>
+          <span className="aniv-banner-label"><Icon name="cake" /> Aniversariantes</span>
           {diaBanner.map((a, i) => (
             <span className="aniv-item" key={i}>
               {a.foto
@@ -478,23 +500,23 @@ export function AgendaPage() {
             <div className="footer-right" style={{ width: '100%', display: 'flex', alignItems: 'center' }}>
               {escalaId && perm.excluir && (
                 <button className="btn-danger" onClick={() => setConfirmDelete(true)} style={{ marginRight: 'auto' }}>
-                  <i data-lucide="trash-2" /> Excluir
+                  <Icon name="trash-2" /> Excluir
                 </button>
               )}
               <button className="btn-secondary" onClick={() => salvar(false)} disabled={salvando}>
                 {salvando ? 'Salvando…' : 'Salvar dados'}
               </button>
               <button className="btn-primary" onClick={irParaEquipe}>
-                Escalar Equipe <i data-lucide="arrow-right" />
+                Escalar Equipe <Icon name="arrow-right" />
               </button>
             </div>
           ) : (
             <div className="footer-right" style={{ width: '100%', display: 'flex', alignItems: 'center' }}>
               <button className="btn-secondary" onClick={() => setStep(1)} style={{ marginRight: 'auto' }}>
-                <i data-lucide="arrow-left" /> Voltar
+                <Icon name="arrow-left" /> Voltar
               </button>
               <button className="btn-secondary" onClick={onFinalizarClick} disabled={gerandoImg}>
-                <i data-lucide="image" /> {gerandoImg ? 'Gerando…' : 'Imprimir'}
+                <Icon name="image" /> {gerandoImg ? 'Gerando…' : 'Imprimir'}
               </button>
               <button className="btn-primary" onClick={() => salvar(true)} disabled={salvando}>
                 {salvando ? 'Salvando…' : 'Salvar Equipe'}
@@ -554,7 +576,7 @@ export function AgendaPage() {
             ) : (
               <div className="equipe-grid">
                 {areas.map((area) => {
-                  const { lista, ocultos } = resultadosPara(area);
+                  const { lista, avisos } = resultadosPara(area);
                   const tags = equipe[area.nome] || [];
                   const termo = busca[area.nome] || '';
                   return (
@@ -568,8 +590,10 @@ export function AgendaPage() {
                       <div className="voluntarios-list">
                         {tags.map((t) => {
                           const motivo = tagInelegivel(area.nome, t.id);
+                          const aviso = motivo ? null : avisoTag(area, t.id);
+                          const cls = motivo ? ' invalido' : aviso ? ' aviso' : '';
                           return (
-                            <span key={t.id} className={`voluntario-tag${motivo ? ' invalido' : ''}`} title={motivo || undefined}>
+                            <span key={t.id} className={`voluntario-tag${cls}`} title={motivo || aviso || undefined}>
                               {t.nome}
                               <button type="button" onClick={() => removeVoluntario(area.nome, t.id)} aria-label="Remover">×</button>
                             </span>
@@ -585,20 +609,22 @@ export function AgendaPage() {
                         />
                         {termo.trim() && (
                           <ul className="resultados-busca">
-                            {lista.length === 0 && ocultos === 0 && (
+                            {lista.length === 0 && (
                               <li className="sem-result">Nenhum voluntário disponível</li>
                             )}
                             {lista.map((v) => (
-                              <li key={v.id}>
-                                {v.nome}
+                              <li key={v.id} className={avisos[v.id] ? 'com-aviso' : ''}>
+                                <span className="res-nome">
+                                  {v.nome}
+                                  {avisos[v.id] && (
+                                    <span className="aviso-inline">
+                                      <Icon name="alert-triangle" size={12} /> {avisos[v.id]}
+                                    </span>
+                                  )}
+                                </span>
                                 <button type="button" className="btn-add" onClick={() => addVoluntario(area, { id: v.id, nome: v.nome })}>+</button>
                               </li>
                             ))}
-                            {ocultos > 0 && (
-                              <li className="nota-exclusividade">
-                                <i data-lucide="lock" /> {ocultos} oculto{ocultos > 1 ? 's' : ''} por exclusividade
-                              </li>
-                            )}
                           </ul>
                         )}
                       </div>

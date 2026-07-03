@@ -1,3 +1,4 @@
+import { Icon } from '../lib/Icon';
 import { useMemo, useState } from 'react';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getDashboard } from '../api/dashboard';
@@ -154,7 +155,7 @@ export function DashboardPage() {
       {/* Próximos compromissos */}
       <section className="home-section">
         <div className="home-section-head">
-          <h2><i data-lucide="calendar-clock" /> Próximos Compromissos</h2>
+          <h2><Icon name="calendar-clock" /> Próximos Compromissos</h2>
           <div className="home-head-actions">
             <div className="periodo-toggle" id="periodo-toggle">
               <button className={`periodo-btn${periodo === 'semana' ? ' active' : ''}`} onClick={() => setPeriodo('semana')}>Semana</button>
@@ -170,7 +171,7 @@ export function DashboardPage() {
             {noPeriodo.map((e) => (
               <div key={e.id} className="card card-escala" style={e.cor ? { borderLeft: `5px solid ${e.cor}` } : undefined}>
                 <h4>{e.titulo}</h4>
-                <p><i data-lucide="calendar-check" /> {formatDataHora(e.dataEscala)}</p>
+                <p><Icon name="calendar-check" /> {formatDataHora(e.dataEscala)}</p>
               </div>
             ))}
           </div>
@@ -180,10 +181,10 @@ export function DashboardPage() {
       {/* Quadro de avisos */}
       <section className="home-section">
         <div className="home-section-head">
-          <h2><i data-lucide="megaphone" /> Quadro de Avisos</h2>
+          <h2><Icon name="megaphone" /> Quadro de Avisos</h2>
           {admin && (
             <button className="btn-primary" onClick={abrirNovoAviso} style={{ fontSize: '.82rem', padding: '.4rem .85rem' }}>
-              <i data-lucide="plus" /> Novo aviso
+              <Icon name="plus" /> Novo aviso
             </button>
           )}
         </div>
@@ -199,13 +200,13 @@ export function DashboardPage() {
                 <p style={{ fontSize: '.875rem', lineHeight: 1.5, whiteSpace: 'pre-wrap' }}>{aviso.texto}</p>
                 {aviso.validade && (
                   <p style={{ fontSize: '.75rem', color: 'var(--text-muted)', marginTop: '.4rem', display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-                    <i data-lucide="calendar-x" /> Válido até {formatDate(aviso.validade)}
+                    <Icon name="calendar-x" /> Válido até {formatDate(aviso.validade)}
                   </p>
                 )}
                 {admin && (
                   <div className="aviso-admin-btns">
-                    <button onClick={() => abrirEditarAviso(aviso)}><i data-lucide="pencil" /> Editar</button>
-                    <button className="excluir" onClick={() => setConfirmAviso(aviso)}><i data-lucide="trash-2" /> Excluir</button>
+                    <button onClick={() => abrirEditarAviso(aviso)}><Icon name="pencil" /> Editar</button>
+                    <button className="excluir" onClick={() => setConfirmAviso(aviso)}><Icon name="trash-2" /> Excluir</button>
                   </div>
                 )}
               </div>
@@ -217,7 +218,7 @@ export function DashboardPage() {
       {/* Minhas escalas */}
       <section className="home-section">
         <div className="home-section-head">
-          <h2><i data-lucide="hand-heart" /> Minhas Escalas</h2>
+          <h2><Icon name="hand-heart" /> Minhas Escalas</h2>
         </div>
         {minhasEscalas.length === 0 ? (
           <p className="home-empty">Nenhuma escala futura encontrada para o seu perfil.</p>
@@ -226,8 +227,8 @@ export function DashboardPage() {
             {minhasEscalas.map((e) => (
               <div key={e.id} className="card card-escala">
                 <h4>{e.titulo}</h4>
-                <p><i data-lucide="calendar-check" /> {formatDataHora(e.dataEscala)}</p>
-                <p><i data-lucide="hand-heart" /> {e.funcao}</p>
+                <p><Icon name="calendar-check" /> {formatDataHora(e.dataEscala)}</p>
+                <p><Icon name="hand-heart" /> {e.funcao}</p>
               </div>
             ))}
           </div>
@@ -242,7 +243,7 @@ export function DashboardPage() {
         ) : (
           escalasFuturas.map((e) => (
             <div key={e.id} className="lista-modal-item">
-              <i data-lucide="calendar-check" />
+              <Icon name="calendar-check" />
               <div>
                 <div style={{ fontWeight: 600 }}>{e.titulo}</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>{formatDataHora(e.dataEscala)}</div>

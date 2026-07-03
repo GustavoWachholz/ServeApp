@@ -188,6 +188,51 @@ select.field-invalid {
     .list-table-container .btn-sort i { margin-right: 0; }
 }
 
+/* ── Cartão de seção e cabeçalhos de página ─────────────────────────────────
+   .section-card é o contêiner branco padrão das telas (CRUD, filtros, etc.).
+   As páginas o usam com padding:0 quando ele envolve uma tabela/toolbar. */
+.section-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+}
+
+/* Cabeçalho de página com ações (título à esquerda, botões à direita).
+   Só os cabeçalhos que contêm .header-actions viram flex — o cabeçalho
+   centralizado do Dashboard (sem ações) permanece como está. */
+.main-header:has(.header-actions) {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    text-align: left;
+    gap: 1rem;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+.header-actions {
+    display: flex;
+    align-items: center;
+    gap: 0.6rem;
+    flex-wrap: wrap;
+}
+
+/* Barra de ferramentas acima das tabelas (busca + ordenar + exportar). */
+.list-table-toolbar {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+    padding: 1rem;
+    border-bottom: 1px solid var(--border-color);
+}
+.sort-btn-wrap {
+    display: flex;
+    align-items: center;
+    gap: 0.4rem;
+}
+
 /* ── Tabela padrão de listagem ──────────────────────────────────── */
 .list-table-container {
     background-color: var(--bg-card);
@@ -929,7 +974,8 @@ html.embedded .sidebar { display: none; }
     margin-bottom: 1.5rem;
 }
 
-.form-group label {
+.form-group label,
+.form-label {
     display: block;
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
@@ -937,7 +983,23 @@ html.embedded .sidebar { display: none; }
     font-weight: 500;
 }
 
-.form-group input, .form-group select {
+/* ── Campo de formulário canônico ──────────────────────────────────────────
+   .form-control é a primitiva de campo de texto/seleção. O mesmo visual é
+   aplicado automaticamente a qualquer input/select/textarea dentro de
+   .form-group, de um modal (.modal-body) ou de uma barra de filtros
+   (.aud-filters / .filter-row) — assim as telas não precisam repetir a classe
+   em cada campo. Controles especiais (checkbox, radio, color, range, file)
+   ficam de fora e mantêm suas regras próprias; a validação (.field-invalid)
+   usa !important e continua prevalecendo. */
+.form-control,
+.form-group input:not([type="checkbox"]):not([type="radio"]):not([type="color"]),
+.form-group select,
+.form-group textarea,
+.modal-body input:not([type="checkbox"]):not([type="radio"]):not([type="color"]):not([type="range"]):not([type="file"]),
+.modal-body select,
+.modal-body textarea,
+.aud-filters input, .aud-filters select,
+.filter-row input, .filter-row select {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--bg-main);
@@ -945,30 +1007,56 @@ html.embedded .sidebar { display: none; }
     border-radius: var(--radius-sm);
     color: var(--text-color);
     font-size: 0.9rem;
+    font-family: inherit;
 }
 
-.form-group input:focus, .form-group select:focus {
+textarea.form-control,
+.form-group textarea,
+.modal-body textarea {
+    resize: vertical;
+    min-height: 92px;
+    line-height: 1.5;
+}
+
+.form-control:focus,
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus,
+.modal-body input:focus,
+.modal-body select:focus,
+.modal-body textarea:focus,
+.aud-filters input:focus, .aud-filters select:focus,
+.filter-row input:focus, .filter-row select:focus {
     outline: none;
     border-color: var(--primary-color);
     background-color: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
-/* ── Dark mode: inputs e selects ── */
-:root.dark-mode .form-group input,
-:root.dark-mode .form-group select {
-    background-color: var(--bg-main);
-    color: var(--text-color);
-}
+.form-control::placeholder,
+.modal-body input::placeholder,
+.modal-body textarea::placeholder { color: var(--text-faint); }
 
+/* ── Dark mode ── */
+:root.dark-mode .form-control:focus,
 :root.dark-mode .form-group input:focus,
-:root.dark-mode .form-group select:focus {
+:root.dark-mode .form-group select:focus,
+:root.dark-mode .form-group textarea:focus,
+:root.dark-mode .modal-body input:focus,
+:root.dark-mode .modal-body select:focus,
+:root.dark-mode .modal-body textarea:focus,
+:root.dark-mode .aud-filters input:focus, :root.dark-mode .aud-filters select:focus,
+:root.dark-mode .filter-row input:focus, :root.dark-mode .filter-row select:focus {
     background-color: rgba(255, 255, 255, 0.04);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 
+:root.dark-mode .form-control::placeholder,
 :root.dark-mode .form-group input::placeholder,
-:root.dark-mode .form-group select::placeholder {
+:root.dark-mode .form-group select::placeholder,
+:root.dark-mode .form-group textarea::placeholder,
+:root.dark-mode .modal-body input::placeholder,
+:root.dark-mode .modal-body textarea::placeholder {
     color: var(--text-muted);
 }
 

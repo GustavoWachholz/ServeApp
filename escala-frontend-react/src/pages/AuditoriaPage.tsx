@@ -1,4 +1,5 @@
-import { useState, useEffect } from 'react';
+import { Icon } from '../lib/Icon';
+import { useState } from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getAuditoria } from '../api/auditoria';
 import { getUsuarios } from '../api/usuarios';
@@ -137,12 +138,6 @@ export function AuditoriaPage() {
     (a.nome ?? '').localeCompare(b.nome ?? '', 'pt-BR')
   );
 
-  useEffect(() => {
-    if (typeof window !== 'undefined' && (window as any).lucide) {
-      (window as any).lucide.createIcons();
-    }
-  });
-
   return (
     <>
       <style>{STYLES}</style>
@@ -184,11 +179,11 @@ export function AuditoriaPage() {
             <input type="date" value={filtros.ate} onChange={(e) => setFiltros(f => ({ ...f, ate: e.target.value }))} />
           </div>
           <button className="btn-primary" onClick={aplicar} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <i data-lucide="filter" />
+            <Icon name="filter" />
             Filtrar
           </button>
           <button className="btn-sort" onClick={limpar} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <i data-lucide="x" />
+            <Icon name="x" />
             Limpar
           </button>
         </div>
@@ -218,7 +213,7 @@ export function AuditoriaPage() {
               {isError && (
                 <tr>
                   <td colSpan={6} style={{ textAlign: 'center', color: '#ef4444', padding: '2rem' }}>
-                    <i data-lucide="circle-alert" style={{ marginRight: '.5rem' }} />
+                    <Icon name="circle-alert" style={{ marginRight: '.5rem' }} />
                     Erro ao carregar registros.
                   </td>
                 </tr>
@@ -227,7 +222,7 @@ export function AuditoriaPage() {
                 <tr>
                   <td colSpan={6} style={{ padding: 0, border: 'none' }}>
                     <div className="empty-state">
-                      <i data-lucide="clipboard-list" />
+                      <Icon name="clipboard-list" />
                       <h3>Nada por aqui</h3>
                       <p>Nenhum registro encontrado com os filtros selecionados.</p>
                     </div>
@@ -255,7 +250,7 @@ export function AuditoriaPage() {
             <span>Exibindo {inicio}–{fim} de {totalElementos} registros</span>
             <div className="pag-controls">
               <button disabled={pagina === 0} onClick={() => setPagina(p => p - 1)}>
-                <i data-lucide="chevron-left" />
+                <Icon name="chevron-left" />
               </button>
               {paginasVisiveis(pagina, totalPaginas).map((p, i) =>
                 p === '…'
@@ -271,7 +266,7 @@ export function AuditoriaPage() {
                   )
               )}
               <button disabled={pagina >= totalPaginas - 1} onClick={() => setPagina(p => p + 1)}>
-                <i data-lucide="chevron-right" />
+                <Icon name="chevron-right" />
               </button>
             </div>
           </div>

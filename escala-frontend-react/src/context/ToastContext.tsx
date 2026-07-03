@@ -1,3 +1,4 @@
+import { Icon, type IconName } from '../lib/Icon';
 import {
   createContext,
   useCallback,
@@ -24,7 +25,7 @@ interface ToastContextValue {
 
 export const ToastContext = createContext<ToastContextValue | null>(null);
 
-const ICONS: Record<ToastTipo, string> = {
+const ICONS: Record<ToastTipo, IconName> = {
   success: 'check-circle',
   error: 'x-circle',
   warning: 'alert-triangle',
@@ -43,7 +44,7 @@ function ToastContainer({
     <div id="toast-container">
       {toasts.map((t) => (
         <div key={t.id} className={`toast toast-${t.tipo}`}>
-          <i data-lucide={ICONS[t.tipo]} />
+          <Icon name={ICONS[t.tipo]} />
           <span>{t.message}</span>
           <button
             className="toast-close"

@@ -12,7 +12,6 @@ import { ServosPage } from './pages/ServosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { PerfilPage } from './pages/PerfilPage';
 import { DashboardPage } from './pages/DashboardPage';
-import { LucideIcons } from './lib/lucide';
 
 // Agenda carrega FullCalendar + html2canvas (pesados) — code-split por rota.
 const AgendaPage = lazy(() => import('./pages/AgendaPage').then((m) => ({ default: m.AgendaPage })));
@@ -23,8 +22,6 @@ function PageFallback() {
 
 export default function App() {
   return (
-    <>
-    <LucideIcons />
     <Routes>
       <Route path="/login" element={<LoginPage />} />
       <Route path="/privacidade" element={<PrivacidadePage />} />
@@ -101,6 +98,5 @@ export default function App() {
 
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>
-    </>
   );
 }

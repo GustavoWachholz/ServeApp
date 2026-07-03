@@ -14,29 +14,15 @@
     --radius-sm:      7px;
 }
 
-/* Reset e Configurações Globais */
-* {
+/* Reset local do login (escopado — não vaza para o resto do app SPA).
+   O box-sizing global e o estilo de body já vêm do dashboard.css /
+   do próprio LoginPage (que ajusta o body via JS enquanto montado). */
+.login-container,
+.login-container * {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
     font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-}
-
-body {
-    height: 100vh;
-    overflow: hidden;
-    background-color: var(--login-bg);
-}
-
-/* Transição suave entre view-login e view-registro */
-#view-login,
-#view-registro {
-    animation: fadeIn 0.2s ease;
-}
-
-@keyframes fadeIn {
-    from { opacity: 0; transform: translateY(6px); }
-    to   { opacity: 1; transform: translateY(0); }
 }
 
 .login-container {
@@ -231,20 +217,20 @@ body {
     height: 18px;
 }
 
-footer {
+.login-container footer {
     margin-top: 2rem;
     text-align: center;
     color: var(--login-muted);
     font-size: 0.875rem;
 }
 
-footer a {
+.login-container footer a {
     color: var(--warn);
     text-decoration: none;
     font-weight: 500;
 }
 
-footer a:hover {
+.login-container footer a:hover {
     text-decoration: underline;
 }
 

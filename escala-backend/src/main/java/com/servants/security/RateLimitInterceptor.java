@@ -1,7 +1,10 @@
 package com.servants.security;
 
+import com.servants.util.IpUtils;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -21,6 +24,8 @@ import java.util.concurrent.ConcurrentHashMap;
  */
 @Component
 public class RateLimitInterceptor implements HandlerInterceptor {
+
+    private static final Logger log = LoggerFactory.getLogger(RateLimitInterceptor.class);
 
     private final int maxTentativas;
     private final long janelMs;
@@ -42,7 +47,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
     @Override
     public boolean preHandle(HttpServletRequest request, HttpServletResponse response, Object handler)
             throws IOException {
-        String ip = obterIp(request);
+        String ip = IpUtils.resolver(request);
         long agora = System.currentTimeMillis();
 
         Queue<Long> timestamps = registros.computeIfAbsent(ip, k -> new LinkedList<>());
@@ -53,6 +58,7 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             while (it.hasNext() && agora - it.next() > janelMs) it.remove();
 
             if (timestamps.size() >= maxTentativas) {
+                log.warn("Rate limit excedido para IP {} em {} (possível brute force)", ip, request.getServletPath());
                 response.setStatus(429);
                 response.setContentType("application/json;charset=UTF-8");
                 response.getWriter().write(
@@ -62,16 +68,5 @@ public class RateLimitInterceptor implements HandlerInterceptor {
             timestamps.add(agora);
         }
         return true;
-    }
-
-    private String obterIp(HttpServletRequest request) {
-        // Prefere X-Real-IP (definido pelo nginx, não spoofável pelo cliente).
-        // Cai em X-Forwarded-For[0] apenas se X-Real-IP não estiver presente.
-        String realIp = request.getHeader("X-Real-IP");
-        if (realIp != null && !realIp.isBlank()) return realIp.trim();
-        String forwarded = request.getHeader("X-Forwarded-For");
-        return (forwarded != null && !forwarded.isBlank())
-                ? forwarded.split(",")[0].trim()
-                : request.getRemoteAddr();
     }
 }

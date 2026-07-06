@@ -129,11 +129,19 @@ public class DataInitializer implements CommandLineRunner {
             admin.setTema("light");
             admin.setCorPrimaria("#c98aff");
             usuarioRepository.save(admin);
-            log.warn("[DataInitializer] ══════════════════════════════════════════════════════");
-            log.warn("[DataInitializer]  ADMIN CRIADO — anote a senha e altere no primeiro login");
-            log.warn("[DataInitializer]  E-mail : admin@admin.com");
-            log.warn("[DataInitializer]  Senha  : {}", senhaInicial);
-            log.warn("[DataInitializer] ══════════════════════════════════════════════════════");
+            log.warn("[DataInitializer] Admin criado (admin@admin.com) — credencial de acesso "
+                    + "exibida uma única vez no console (stdout), fora do pipeline de log.");
+            // Deliberadamente System.out, não o logger: esta senha é descartável (o admin
+            // deve trocá-la no primeiro login) e não pode passar pelo pipeline de log —
+            // isso a tornaria uma entrada agregada/indexada permanentemente (ELK/CloudWatch)
+            // e, se mascarada pelo SensitiveDataMasker (Fase 9-C), ilegível para quem precisa
+            // dela agora. Ver .claude/PLANO DE ACAO.md (Fase 9) para o racional completo.
+            System.out.println("══════════════════════════════════════════════════════");
+            System.out.println(" ADMIN CRIADO — anote a senha e altere no primeiro login");
+            System.out.println(" E-mail : admin@admin.com");
+            System.out.println(" Senha  : " + senhaInicial);
+            System.out.println(" (esta senha não será exibida novamente)");
+            System.out.println("══════════════════════════════════════════════════════");
         });
     }
 

@@ -4,6 +4,8 @@ import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.JwtException;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.security.Keys;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
@@ -21,6 +23,8 @@ import java.util.Optional;
  */
 @Component
 public class JwtService {
+
+    private static final Logger log = LoggerFactory.getLogger(JwtService.class);
 
     private final SecretKey key;
     private final long expirationMs;
@@ -71,6 +75,8 @@ public class JwtService {
                     .getPayload();
             return Optional.of(claims);
         } catch (JwtException | IllegalArgumentException e) {
+            // DEBUG: token expirado é rotina (expira a cada 8h); nunca logar o token em si.
+            log.debug("Token JWT rejeitado: {} — {}", e.getClass().getSimpleName(), e.getMessage());
             return Optional.empty();
         }
     }

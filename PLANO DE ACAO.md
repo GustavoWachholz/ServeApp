@@ -633,7 +633,7 @@ separador de seção, grupo de botões da Agenda) e `.claude/progress.md`.
 
 # Fase 9 — Observabilidade (logging estruturado, contexto e data masking)
 
-> **Status:** ⏳ Planejado (não iniciado).
+> **Status:** ✅ **Fase 9-A** · ✅ **Fase 9-B** · ✅ **Fase 9-C** (backend) — ⏳ Fase 9-D (frontend, opcional, não iniciada).
 > **Escopo:** backend Spring Boot (`escala-backend`) e, opcionalmente, frontend React (`escala-frontend-react`).
 
 ## Correção de premissa (tooling)
@@ -670,42 +670,71 @@ mapeia para `ERROR` + `Marker("FATAL")`.
 - `application.properties`: `show-sql` e `org.hibernate.SQL` em **DEBUG** no default local → loga SQL/valores.
 - Não há **nenhuma** barreira (masking) impedindo que futuros logs gravem senha/token.
 
-## Mudanças (faseadas)
+## Mudanças aplicadas
 
 ### Fase 9-A — Fundação estruturada + contexto
-1. Dependência `net.logstash.logback:logstash-logback-encoder` no `pom.xml`.
-2. `logback-spring.xml` com appenders **por profile**: console legível em `dev`; **JSON** (`LogstashEncoder`)
-   em `homolog`/`prod`. O encoder inclui o MDC automaticamente.
-3. `MdcRequestFilter` (`OncePerRequestFilter`): gera/lê `requestId` (header `X-Request-Id` ou UUID); popula MDC
-   com `requestId`, `method`, `path`, `ip`; adiciona `userId`/`role` quando o `AuthInterceptor` resolve o token.
-   `finally { MDC.clear(); }`.
+1. Dependência `net.logstash.logback:logstash-logback-encoder:7.4` no `pom.xml` (compatível com o Logback
+   1.5.32 já trazido pelo Spring Boot 4.0.6 — verificado via `javap` antes de escrever o encoder).
+2. `logback-spring.xml`: appender por perfil — texto legível quando **`prod` não está ativo** (default local
+   e **homolog inclusos**) e **JSON** (`LogstashEncoder`) só com **`SPRING_PROFILES_ACTIVE=prod`**.
+   > **Desvio deliberado do plano original** ("JSON em homolog/prod"): homolog roda localmente e é lido por
+   > um humano no terminal (`start-homolog.bat`) — JSON ali piora a leitura sem nenhum ganho, já que nada
+   > agrega esses logs. Só produção (que hoje roda sem nenhum profile ativo) ganhou o novo profile `prod`
+   > explícito; ver `application-prod.properties` e a nota em `DEPLOY.md`. **Sem essa variável, produção
+   > continua em texto legível — fallback seguro, não é uma mudança que quebra nada em produção hoje.**
+3. `com.servants.logging.MdcContextFilter` (`OncePerRequestFilter`, `@Order(HIGHEST_PRECEDENCE)`): gera/lê
+   `requestId` (header `X-Request-Id`, ecoado na resposta), popula MDC com `requestId`/`method`/`path`/`ip`/
+   `action` (baseline `"<METODO> <path>"`). `AuthInterceptor` enriquece com `userId`/`userRole` e refina
+   `action` para `"<ACAO>:<TELA>"` (ex.: `CRIAR:AGENDA`) assim que valida o JWT — mesmo thread, mesmo MDC.
+   `com.servants.util.IpUtils` extraído (deduplicado de `RateLimitInterceptor`) para resolução de IP.
 
 ### Fase 9-B — Fechar falhas silenciosas
-4. Logger no `GlobalExceptionHandler`: `log.error("erro nao tratado", ex)` no handler 500 (stack + MDC);
-   `WARN` para 409/validação; `DEBUG` para 400 de regra de negócio.
-5. `AuditoriaService`: trocar `System.err` por `log.error("falha ao gravar auditoria", ex)` (mantendo
-   não-bloqueante).
-6. `JwtService`/`RateLimitInterceptor`: `log.debug`/`log.warn` das falhas — **sem** logar o token.
+4. `GlobalExceptionHandler`: logger adicionado (não existia nenhum) — `ERROR` com stack trace no catch-all de
+   500 (o ponto mais crítico: antes desaparecia sem rastro), `WARN` em 409/validação, `DEBUG` em 400/404
+   (fluxo esperado, incluindo bots sondando rotas — não gera ruído em produção).
+5. `AuditoriaService`: `System.err.println` → `log.error(..., ex)` com stack trace (falha ao gravar auditoria
+   não interrompe a requisição, mas agora fica rastreável).
+6. `JwtService`: `log.debug` no rejeitar token (classe da exceção + mensagem, nunca o token).
+   `RateLimitInterceptor`: `log.warn` ao bloquear por excesso de tentativas (possível brute force).
+   `AuthInterceptor`: `log.debug` em cada 401 (motivo específico), `log.warn` em cada 403 (usuário autenticado
+   tentando ação sem permissão).
 
 ### Fase 9-C — Data masking (defesa em profundidade)
-7. `MaskingPatternLayout`/converter no Logback com regex para `password`, `senha`, `token`, `authorization`,
-   `Bearer …`, e-mail/CPF → `***`.
-8. Garantir `toString()`/serialização sem segredos (`Usuario.senha` nunca em `toString`).
-9. Remover o log da senha no `DataInitializer` (logar só "admin criado, redefina no 1º login"; senha temporária
-   por canal seguro, nunca no log).
+7. `com.servants.logging.SensitiveDataMasker` (utilitário puro, testado) + `com.servants.logging.MaskingEncoder`
+   (decorator de `Encoder<ILoggingEvent>` do Logback — envolve o encoder configurado, seja texto ou JSON, e
+   aplica a máscara sobre a saída já formatada). Cobre pares chave/valor sensíveis (senha/password/token/
+   secret/etc.), `Authorization: Bearer <token>`, e-mail e CPF — sem tocar em menções sem valor associado
+   (ex.: "senha incorreta" permanece intacto).
+8. `Usuario` **não** sobrescreve `toString()` — usa o padrão do `Object` (classe+hashcode), que nunca expõe
+   campos. Verificado, nenhuma mudança necessária.
+9. `DataInitializer`: removido o `log.warn` com a senha em texto puro. A credencial de bootstrap (só existe
+   na primeiríssima subida, antes de qualquer admin existir) agora sai por `System.out.println` direto —
+   deliberadamente fora do pipeline SLF4J/Logback, então nunca vira uma entrada agregada/indexada (ELK/
+   CloudWatch) nem é tocada pelo `MaskingEncoder` (que a deixaria ilegível "***", inutilizável no primeiro
+   login). Comprovado ao vivo: a linha de log correspondente ("Admin criado") aparece com `[req=.../user=...]`
+   e o e-mail mascarado; a senha em si aparece em linhas **sem** esse prefixo, fora do Logback.
 
 ### Fase 9-D (opcional) — Frontend
-10. Wrapper `logger.ts` (silencia em prod, formata em dev) + **Error Boundary** no root da app React
-    + integração opcional com Sentry para exceções de runtime do cliente.
+Não implementado nesta rodada (fora do pedido original, que era "revise a arquitetura de observabilidade da
+aplicação" com foco relatado nos try/catch do backend). Fica como próximo passo se decidido depois.
 
 ## Níveis de log (mapeados p/ Logback)
-`DEBUG` diagnóstico dev · `INFO` eventos de negócio (login, CRUD) · `WARN` degradação/segurança (429, 401,
-constraint) · `ERROR` exceções não tratadas / falha de auditoria · `FATAL` → `ERROR` + `Marker("FATAL")`
-para indisponibilidade de infra.
+`DEBUG` diagnóstico/fluxo esperado (400/404, token expirado) · `INFO` eventos de negócio · `WARN`
+degradação/segurança (429, 403, 409/validação) · `ERROR` exceções não tratadas / falha de auditoria ·
+`FATAL` → `ERROR` + `Marker("FATAL")` (não usado ainda — não há hoje um cenário de indisponibilidade de
+infra tratado no código; documentado para uso futuro).
 
-## Verificação
-- `mvnw.cmd clean compile -q` sem erros.
-- Em `homolog`/`prod`: log sai em **JSON** com `requestId`/`userId`/`path` presentes; forçar um 500 gera
-  uma linha `ERROR` com stack trace e contexto.
-- `grep` nos logs por senha/token/`Bearer` retorna apenas `***` (masking ativo).
-- `DataInitializer` não emite mais a senha do admin.
+## Verificação (executada, não apenas planejada)
+- `mvnw.cmd clean compile -q` sem erros; **9 testes automatizados** novos/existentes passando
+  (`SensitiveDataMaskerTest`, `MaskingEncoderTest`, `EscalaBackendApplicationTests`).
+- Backend subido de verdade (MySQL local) nos dois perfis:
+  - **Default**: console em texto com `[req=... user=... action=...]` em toda linha.
+  - **`SPRING_PROFILES_ACTIVE=prod`**: mesma informação em **JSON** (`requestId`/`userId`/`action`/`method`/
+    `path`/`ip` como campos de primeiro nível).
+- Requisições reais confirmaram: `requestId` único por chamada; `user=anon` → `user=<id>` mudando no meio da
+  mesma requisição assim que o JWT é validado; 404 e 401 agora logam (antes, silêncio total); rate-limit e
+  403 logam em `WARN`.
+- Masking comprovado ao vivo, não só em teste unitário: uma mensagem com `admin@admin.com` **hardcoded no
+  código** saiu como `(***@***)` no log — prova de que a defesa não depende de o desenvolvedor lembrar de
+  mascarar nada.
+- Senha de bootstrap do admin confirmada **fora** do pipeline de log (sem o prefixo `[req=.../user=...]`).

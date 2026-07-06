@@ -4,6 +4,8 @@ import com.servants.dto.RegistroAuditoriaDTO;
 import com.servants.model.RegistroAuditoria;
 import com.servants.repository.AuditoriaRepository;
 import jakarta.persistence.criteria.Predicate;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.domain.Specification;
@@ -15,6 +17,8 @@ import java.util.List;
 
 @Service
 public class AuditoriaService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuditoriaService.class);
 
     // ── Constantes de módulo ──────────────────────────────────────────────────
     public static final String MOD_AUTENTICACAO  = "AUTENTICACAO";
@@ -66,8 +70,10 @@ public class AuditoriaService {
             r.setIp(ip);
             repo.save(r);
         } catch (Exception ex) {
-            // Nunca interrompe a requisição original
-            System.err.println("[Auditoria] Falha ao gravar registro: " + ex.getMessage());
+            // Nunca interrompe a requisição original — mas a falha precisa ficar visível
+            // nos logs, senão a trilha de auditoria se perde silenciosamente (antes ia
+            // só para stderr, fora do pipeline de log e sem stack trace).
+            log.error("Falha ao gravar registro de auditoria (modulo={}, acao={})", modulo, acao, ex);
         }
     }
 

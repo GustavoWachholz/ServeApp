@@ -6,6 +6,9 @@ import com.servants.service.PermissaoService;
 import io.jsonwebtoken.Claims;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.slf4j.MDC;
 import org.springframework.http.HttpMethod;
 import org.springframework.stereotype.Component;
 import org.springframework.web.servlet.HandlerInterceptor;
@@ -31,6 +34,7 @@ import java.util.Set;
 @Component
 public class AuthInterceptor implements HandlerInterceptor {
 
+    private static final Logger log = LoggerFactory.getLogger(AuthInterceptor.class);
     private static final Set<String> METODOS_ESCRITA = Set.of("POST", "PUT", "DELETE", "PATCH");
 
     private final JwtService jwtService;
@@ -54,6 +58,9 @@ public class AuthInterceptor implements HandlerInterceptor {
         String token = extrairToken(request);
         Optional<Claims> claimsOpt = jwtService.validar(token);
         if (claimsOpt.isEmpty()) {
+            // Causa específica (expirado/adulterado/ausente) já fica em DEBUG no JwtService;
+            // aqui é só o registro de que a requisição foi rejeitada, sem o token.
+            log.debug("Requisição rejeitada (401): token ausente ou inválido em {}", request.getServletPath());
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
@@ -66,6 +73,7 @@ public class AuthInterceptor implements HandlerInterceptor {
         // Verifica se a conta existe e se o token não foi revogado (logout/troca de senha)
         Optional<Usuario> usuarioOpt = usuarioRepository.findById(userId);
         if (usuarioOpt.isEmpty()) {
+            log.debug("Requisição rejeitada (401): usuário {} do token não existe mais", userId);
             response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
             return false;
         }
@@ -74,6 +82,7 @@ public class AuthInterceptor implements HandlerInterceptor {
             LocalDateTime iat = claims.getIssuedAt().toInstant()
                     .atZone(ZoneId.systemDefault()).toLocalDateTime();
             if (iat.isBefore(invalidacaoAntes)) {
+                log.debug("Requisição rejeitada (401): token do usuário {} foi revogado (troca de senha/exclusão)", userId);
                 response.setStatus(HttpServletResponse.SC_UNAUTHORIZED);
                 return false;
             }
@@ -83,6 +92,11 @@ public class AuthInterceptor implements HandlerInterceptor {
         request.setAttribute("userId", userId);
         request.setAttribute("role", role);
         request.setAttribute("nome", nome);
+
+        // Enriquece o contexto de log (MDC) já populado por MdcContextFilter — a partir
+        // daqui toda linha de log da requisição carrega quem a fez.
+        MDC.put("userId", String.valueOf(userId));
+        MDC.put("userRole", role);
 
         // 2. Autorização
         boolean isAdmin = "ADMIN".equals(role);
@@ -101,12 +115,15 @@ public class AuthInterceptor implements HandlerInterceptor {
         String tela = resolverTela(path);
         if (tela != null) {
             String acao = resolverAcao(metodo);
+            MDC.put("action", acao + ":" + tela);
             if (permissaoService.pode(userId, tela, acao)) return true;
+            log.warn("Permissão negada: usuário {} tentou {} em {}", userId, acao, tela);
             response.setStatus(HttpServletResponse.SC_FORBIDDEN);
             return false;
         }
 
         // Demais escritas (config da igreja, avisos, etc.) seguem exigindo ADMIN
+        log.warn("Permissão negada: usuário {} (não-admin) tentou {} em {}", userId, metodo, path);
         response.setStatus(HttpServletResponse.SC_FORBIDDEN);
         return false;
     }

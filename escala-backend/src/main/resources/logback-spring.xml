@@ -1,0 +1,51 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration scan="false">
+
+    <!-- Propriedades e conversores padrão do Spring Boot (%clr, %wEx, timestamps, etc.) -->
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <!-- Contexto de correlação (requestId/userId/action) populado por MdcContextFilter
+         e AuthInterceptor via MDC — aparece em toda linha, autenticada ou não. -->
+    <property name="CONSOLE_LOG_PATTERN"
+        value="%clr(%d{yyyy-MM-dd HH:mm:ss.SSS}){faint} %clr(%-5level) %clr([%thread]){faint} %clr(%-40.40logger{39}){cyan} %clr([req=%X{requestId:-N/A} user=%X{userId:-anon} action=%X{action:-N/A}]){faint} - %msg%n%wEx"/>
+
+    <!-- ── Console legível (padrão local / dev / homolog) ───────────────────────────
+         Homolog roda localmente e é lido por um humano no terminal (start-homolog.bat)
+         — mantém texto legível em vez de JSON, mesmo apontando para o banco de produção.
+         Ativa-se sempre que o perfil "prod" NÃO estiver ativo. ────────────────────── -->
+    <springProfile name="!prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="com.servants.logging.MaskingEncoder">
+                <delegate class="ch.qos.logback.classic.encoder.PatternLayoutEncoder">
+                    <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                    <charset>UTF-8</charset>
+                </delegate>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <!-- ── JSON estruturado (produção) ───────────────────────────────────────────────
+         Uma linha por evento, pronta para agregação (ELK/CloudWatch/journald).
+         Ativa-se com SPRING_PROFILES_ACTIVE=prod (ver DEPLOY.md). ───────────────────── -->
+    <springProfile name="prod">
+        <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+            <encoder class="com.servants.logging.MaskingEncoder">
+                <delegate class="net.logstash.logback.encoder.LogstashEncoder">
+                    <includeMdcKeyName>requestId</includeMdcKeyName>
+                    <includeMdcKeyName>userId</includeMdcKeyName>
+                    <includeMdcKeyName>userRole</includeMdcKeyName>
+                    <includeMdcKeyName>action</includeMdcKeyName>
+                    <includeMdcKeyName>method</includeMdcKeyName>
+                    <includeMdcKeyName>path</includeMdcKeyName>
+                    <includeMdcKeyName>ip</includeMdcKeyName>
+                    <customFields>{"app":"escala-backend"}</customFields>
+                </delegate>
+            </encoder>
+        </appender>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+    </root>
+
+</configuration>

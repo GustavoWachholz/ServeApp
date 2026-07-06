@@ -104,6 +104,14 @@ Ver conteudo atual:
 sudo cat /etc/serve-backend.env
 ```
 
+### Logging estruturado JSON (Fase 9)
+Adicionar `SPRING_PROFILES_ACTIVE=prod` em `/etc/serve-backend.env` ativa o log em
+**JSON** (pronto para ELK/CloudWatch/journald), com `requestId`/`userId`/`action`/`ip`
+como campos e mascaramento automático de senha/token/e-mail/CPF (ver
+`logback-spring.xml` e `PLANO DE ACAO.md` — Fase 9). **Sem essa variavel, o backend
+continua com log em texto legivel** (comportamento anterior, preservado como fallback
+seguro) — nao e obrigatorio, mas recomendado em producao.
+
 ---
 
 ## SSL (Certbot)

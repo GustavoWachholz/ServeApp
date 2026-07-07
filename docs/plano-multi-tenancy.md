@@ -79,7 +79,7 @@ justamente para neutralizar o único ponto fraco dele (vazamento por filtro esqu
 | Abordagem | Prós | Contras |
 |---|---|---|
 | Claim `churchId` no JWT | stateless, assinado | trocar de igreja exige **re-emitir token**; revogar acesso a uma igreja só vale quando o token (8h) expira |
-| **Header `X-Church-Id` + validação por requisição** | troca de igreja é barata; token continua sendo só identidade; revogação de vínculo vale **na hora** | exige validar vínculo/role a cada request (mitigado com cache curto) |
+| **Header `X-Church-Id` + validação por requisição** | troca de igreja é barata; token continua sendo só identidade; revogação de vínculo vale **na próxima requisição** (sem cache) ou dentro da janela do TTL (ver D2e) | exige validar vínculo/role a cada request |
 
 **Fluxo recomendado:**
 1. Token carrega só identidade (`userId`). `role`/permissões deixam de ser globais no token.
@@ -94,10 +94,59 @@ justamente para neutralizar o único ponto fraco dele (vazamento por filtro esqu
    evitando esquecimento em `save()`.
 6. `TenantContext` **sempre limpo** em `finally` (thread do pool é reciclada).
 
-> **Limitações do `@Filter` que o plano trata explicitamente (D2a):** `@Filter` **não** se aplica a
-> `findById()`/`EntityManager.find()` (busca por PK ignora filtro), **nem** a queries nativas. Portanto:
-> (a) todo carregamento por ID em serviço deve verificar `entidade.churchId == TenantContext` (ver §3, Fase 5);
-> (b) evitar SQL nativo em entidades tenant, ou escopar manualmente.
+O `@Filter` sozinho **não é suficiente**. As sub-decisões abaixo (D2a–D2e) fecham as lacunas de isolamento
+que ele deixa. Elas são **pré-requisito de implementação** e detalhadas nas Fases 2 e 5.
+
+#### D2a — Leitura por ID não passa pelo filtro → guarda **estrutural** (não opt-in)
+`@Filter` **não** se aplica a `findById()`/`EntityManager.find()` (busca por PK ignora o filtro) nem a
+queries nativas. Um `GET/PUT/DELETE /api/areas/{id}` com o ID de outra igreja passaria batido.
+**Decisão:** carregar por ID sem escopo deve ser **impossível por construção**, não uma disciplina:
+- Toda entidade tenant expõe **`findByIdAndIgrejaId(id, churchId)`** como o **único** loader sancionado
+  (numa base repository `TenantScopedRepository`); recurso de outra igreja simplesmente "não existe" → **404**
+  (nunca 403 — não vazar existência).
+- Uma **regra de arquitetura (ArchUnit)** falha o build se qualquer service chamar `.findById(`/`.getReferenceById(`
+  num repositório de entidade tenant — torna o desvio detectável em CI, não confiável à memória do dev.
+- (Opcional, backstop de runtime) aspecto AOP em torno de `find`/`getReference` de repositórios tenant que
+  injeta o `churchId` do `TenantContext` e rejeita mismatch.
+- `@Filter` continua ativo como **segunda camada** (defesa em profundidade) para os `SELECT` de listagem.
+
+#### D2b — IDOR de **escrita**: validar FKs referenciadas antes de persistir
+O `@PrePersist` (D2, item 5) carimba o `church_id` **da própria** entidade, mas **não valida as FKs que ela
+referencia**. Ex.: `POST /api/escalas/{id}/atribuicoes` com `escala_id` de outra igreja — o filho seria
+carimbado com o tenant do atacante **apontando para uma escala alheia** (vazamento/corrupção cross-tenant).
+**Decisão:** toda escrita que recebe ID de entidade-pai/relacionada resolve esse ID **via loader escopado**
+(`findByIdAndIgrejaId`, D2a) **antes** de associar; se o pai não pertence à igreja ativa, rejeita (404).
+Isso vale para **todas** as FKs de entrada (lista exaustiva no **Apêndice A**), incluindo coleções (M2M de
+`Ministerio.areas`, `lider`/`coLider` de `Area`, `escala`/`servo`/`area` de `EscalaServo`/`EscalaAtribuicao`,
+`servo` de `Membresia`). Referências **textuais** (nome de área, `classificacao`) idem — resolvidas sob
+filtro ativo (ver Apêndice B).
+
+#### D2c — `@Filter` não se propaga a associações/coleções automaticamente
+Por padrão o filtro habilitado na sessão **não** é aplicado ao carregar associações lazy nem coleções
+`@ManyToMany`/`@OneToMany` — é preciso anotar **a própria associação** com `@Filter` (e o join table com
+`@FilterJoinTable`). Sem isso, navegar `ministerio.getAreas()` ou `escala.getAtribuicoes()` pode materializar
+linhas sem reaplicar o escopo. **Decisão:** anotar cada associação de entidade tenant conforme o
+**Apêndice A** (mapa completo de associações × onde anotar).
+
+#### D2d — `church_id` **imutável** + contexto em threads assíncronas
+- **Imutabilidade:** `church_id` mapeado com **`@Column(updatable = false)`** em todas as entidades tenant —
+  o Hibernate nunca emite `UPDATE` nessa coluna, então nenhum payload/merge consegue "mudar" a entidade de
+  igreja. (O `@PrePersist` cobre só o INSERT; `updatable=false` cobre o UPDATE.) Complementar com um
+  `@PreUpdate` que rejeita se `church_id != TenantContext` (detecta merge de entidade de outro tenant).
+- **ThreadLocal não sobrevive à troca de thread.** `TenantContext` (ThreadLocal) **não** se propaga para
+  `@Async`, `@Scheduled`, `CompletableFuture` nem pools próprios — a thread worker nasce sem contexto e o
+  `@Filter`/carimbo silenciosamente **não** se aplica (risco de escrita sem `church_id` ou leitura sem escopo).
+  **Decisão:** (a) `@Async` usa um **`TaskDecorator`** que copia `TenantContext` (+ MDC) para a thread worker
+  e limpa ao fim; (b) jobs `@Scheduled`/`DataInitializer` que varrem tenants **setam o `TenantContext`
+  explicitamente por igreja** (loop) dentro de `try/finally`, nunca dependendo de contexto ambiente.
+
+#### D2e — Cache de vínculo: TTL consciente vs revogação
+Validar `(userId, churchId)` a cada request é **1 lookup indexado** — barato na nossa escala.
+**Decisão (MVP): sem cache** — a validação bate no banco por requisição e a **revogação/suspensão de vínculo
+vale na requisição seguinte** (imediato do ponto de vista prático). Se o profiling futuro exigir cache,
+adotar TTL **curto e explícito (≤ 30 s)** **com invalidação ativa** na mutação da membresia (aprovar/suspender/
+trocar role evicta a chave). Enquanto houver cache, a janela de revogação = TTL — isso deve ser documentado,
+não descrito como "na hora".
 
 ### D3 — Relação usuário↔igreja (N:N com role e permissões por vínculo)
 Nova entidade **`Membresia`** (`membresias`): `usuario_id` + `igreja_id` (**unique** o par), `role`
@@ -150,15 +199,67 @@ mudanças de schema deste plano vão como migrações versionadas e reversíveis
 
 ---
 
-### Fase 0 — Fundação de migração (Flyway) · *pré-requisito*
-**Objetivo:** ter migração versionada antes de tocar no schema.
-- **Backend:** adicionar dependência Flyway; `baseline-on-migrate`; converter o schema atual em `V1__baseline.sql`
-  (ou baseline do estado existente); mudar `application.properties`/perfis para `ddl-auto=validate`.
+### Fase 0 — Fundação de migração (Flyway) · *pré-requisito* · ✅ CONCLUÍDA (verificada local 2026-07-07)
+**Objetivo:** ter migração versionada e um baseline FIEL a produção antes de tocar no schema.
+
+> **Divergência crítica encontrada (baseline local ≠ prod):** o primeiro `V1`, gerado do schema **local**,
+> descrevia **14 tabelas**; a verificação contra o **RDS de produção** (`prod_schema.sql`, `mysqldump --no-data`)
+> revelou **21 tabelas**. Causa: `ddl-auto=update` **cria mas nunca dropa** — prod acumulou resíduo de renames
+> antigos (`Voluntario→Servo`, `Ministerio→Area`, `ConfiguracaoEscala→Ministerio`). Um baseline honesto tem
+> de refletir prod como está, e só então limpar de forma versionada.
+>
+> **Decisão: baseline fiel (V1) + limpeza versionada (V2).**
+> - **`V1__baseline.sql`** regerado a partir do `prod_schema.sql` real (21 tabelas). Limpeza de formatação:
+>   removido `AUTO_INCREMENT=<n>` de tabela e as linhas `DROP TABLE`; preservados os guards
+>   `FOREIGN_KEY_CHECKS=0` (a ordem alfabética do mysqldump quebraria as FKs sem eles) e a collation de prod
+>   (`utf8mb4_unicode_ci`). Verificado: banco vazio + só V1 reproduz prod **tabela por tabela** (diff idêntico).
+> - **`V2__limpeza_legado.sql`** remove o resíduo (21 → 14), na ordem segura junção/coleção → raiz:
+>   - **7 tabelas legadas:** `escala_voluntarios`, `voluntario_ministerios`, `voluntario_classificacoes`,
+>     `config_escala_ministerios`, `ministerio_classificacoes` (dependentes) → depois `voluntarios`,
+>     `configuracao_escala` (raiz).
+>   - **6 colunas órfãs** (nenhuma com FK/índice): `escala_atribuicoes.voluntario_id` (NOT NULL),
+>     `usuarios.voluntario_id`, e — **descobertas na verificação, além do diagnóstico inicial** —
+>     `ministerios.tipo` (NOT NULL), `ministerios.exclusivo_na_escala` (NOT NULL), `ministerios.colider_id`,
+>     `ministerios.lider_id` (resíduo da antiga entidade `Ministerio→Area`).
+>   - **Por que não era cosmético:** `validate` tolera coluna sobrando, mas as colunas **NOT NULL** órfãs
+>     (`voluntario_id`, `tipo`, `exclusivo_na_escala`) quebram `INSERT` em runtime ("Field ... doesn't have a
+>     default value") — bug real de escrita em prod.
+>
+> **Verificado (local, banco recriado do zero — resolve o checksum do baseline antigo):** Flyway aplica
+> **V1 (cria 21) + V2 (converge para 14)**; as 7 tabelas e as 6 colunas somem; `ddl-auto=validate` verde
+> **de verdade** (sem colunas órfãs toleradas); suíte de 9 testes verde. Comando de reset de dev documentado:
+> `DROP DATABASE serve; CREATE DATABASE serve CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;` (só dev).
+> Rollback de referência (não versionado, não executado): `docs/rollback_V2.sql` (recria estruturas; **não**
+> restaura dados — a rede real é o snapshot do RDS).
+>
+> **Descoberta (Spring Boot 4):** autoconfigs modularizados — `flyway-core` sozinho **não** dispara migração;
+> é obrigatório o `spring-boot-starter-flyway` (módulo `spring-boot-flyway` com `FlywayAutoConfiguration`).
+>
+> **⚠️ GATE DE PRODUÇÃO (pré-condição humana, ANTES do 1º deploy — NÃO automatizar):**
+> 1. Confirmar no RDS que as **7 tabelas legadas** estão **vazias ou já migradas** para o vocabulário novo —
+>    o **V2 dropa dados em definitivo**. Não assumir que estão vazias.
+> 2. Tirar **snapshot do RDS** (única rede de segurança — Flyway Community não tem Undo).
+> 3. O **1º deploy** vai: baselinar o RDS no novo **V1** (marca V1 como aplicado, não reexecuta) e então
+>    **aplicar o V2** (limpeza). `V1` já reflete prod fielmente, então o baseline é seguro; o risco está no V2.
+- **Backend:** adicionar dependência Flyway; `baseline-on-migrate=true` + `baseline-version=1`; mudar
+  `application.properties`/perfis para `ddl-auto=validate`.
 - **Frontend:** nenhum.
-- **Banco/migração:** *baseline* não altera dados; apenas passa a governar o schema.
-- **Riscos:** divergência entre o schema real de prod (gerado por `ddl-auto=update`) e o baseline → validar
-  com `SHOW CREATE TABLE` no RDS antes. `validate` pode falhar por drift → resolver o drift primeiro.
-- **Pronto quando:** app sobe com Flyway gerenciando o schema, `validate` verde em dev e homolog.
+- **Banco/migração:** **`V1__baseline.sql` gerado a partir de `mysqldump --no-data` do schema REAL de
+  produção (RDS)** — nunca escrito à mão. Motivo: o schema atual foi criado por `ddl-auto=update`, que pode
+  ter gerado tipos/índices/ordem sutilmente diferentes de um DDL manual; um baseline escrito à mão
+  divergiria e o `validate` quebraria (ou, pior, mascararia drift). Procedimento:
+  1. `mysqldump --no-data --skip-comments --routines serve > V1__baseline.sql` (a partir do RDS, ou de um
+     dump restaurado); revisar para remover `AUTO_INCREMENT=<n>`, `DEFINER`, charset/collation específicos
+     de instância que atrapalhem portabilidade dev↔prod.
+  2. Rodar o `V1` num banco **vazio** e comparar (`mysqldiff`/`SHOW CREATE TABLE`) com o dump de prod — devem
+     ser idênticos.
+  3. Marcar como baseline; migrações seguintes (`V2+`) são as deste plano.
+  > **Nota:** o `migration_rename.sql` existente (Fase 8) já deve estar aplicado em prod — o dump o reflete.
+- **Riscos:** drift entre o que `ddl-auto=update` criou e o que o Hibernate espera hoje → o passo 2 detecta
+  antes de subir; `validate` pode acusar divergências pré-existentes (ex.: colunas que o update criou e o
+  código não mapeia mais) → resolver o drift no `V1`/código **antes** da Fase 1.
+- **Pronto quando:** `V1` reproduz 1:1 o schema de prod num banco vazio; app sobe com Flyway + `validate`
+  verde em dev e homolog; `flyway info` mostra o baseline aplicado.
 
 ---
 
@@ -193,25 +294,43 @@ dados existentes para uma "Igreja Padrão", sem quebrar nada.
 ---
 
 ### Fase 2 — Contexto de tenant e filtragem automática no backend
-**Objetivo:** toda query passa a ser escopada por igreja automaticamente; acesso por ID é blindado.
+**Objetivo:** toda query passa a ser escopada por igreja automaticamente; acesso por ID (leitura **e**
+escrita) é blindado por construção. Implementa as sub-decisões **D2a–D2e**.
 
 - **Backend:**
   - `TenantContext` (ThreadLocal) com `churchId` (+ role/permissões resolvidos do vínculo).
   - Novo `TenantInterceptor` (depois do `AuthInterceptor`): lê `X-Church-Id`, valida `Membresia (userId, churchId, ATIVO)`,
     popula `TenantContext` + MDC; habilita o Hibernate `@Filter` na sessão. Sem vínculo → 403. Limpa em `finally`.
-  - Anotar entidades tenant com `@FilterDef`/`@Filter (church_id = :churchId)`.
-  - Listener JPA `@PrePersist` carimbando `church_id` a partir do `TenantContext` nas escritas.
+  - **Filtro em entidades E associações (D2c):** `@FilterDef`/`@Filter (church_id = :churchId)` em cada
+    entidade tenant **e** na própria associação lazy/coleção conforme o **Apêndice A** (`@ManyToMany`,
+    `@OneToMany`, e `@FilterJoinTable` no `ministerio_areas`).
+  - **Carimbo + imutabilidade (D2d):** listener JPA `@PrePersist` carimba `church_id` do `TenantContext`;
+    `church_id` mapeado `@Column(updatable=false)`; `@PreUpdate` rejeita se `church_id != TenantContext`.
+  - **Guarda de leitura por ID estrutural (D2a):** base `TenantScopedRepository` com `findByIdAndIgrejaId`
+    como único loader; **regra ArchUnit** proíbe `.findById(`/`.getReferenceById(` em repositórios tenant
+    (falha o build); (opcional) aspecto AOP de runtime.
+  - **Guarda de escrita/IDOR (D2b):** nos services, **toda FK de entrada** (Apêndice A) é resolvida via
+    `findByIdAndIgrejaId` antes de associar; pai de outra igreja → 404. Referências textuais resolvidas sob
+    filtro ativo (Apêndice B).
+  - **Contexto fora do request (D2d):** `TaskDecorator` propaga `TenantContext`+MDC para `@Async`; jobs/
+    `DataInitializer` setam `TenantContext` por igreja em `try/finally`.
+  - Auditar **cada query por nome** contra o **Apêndice B** — corrigir as que não rodam sob filtro (com
+    destaque para o **`UPDATE … SET funcao` em JPQL**, que **bulk-update ignora `@Filter`** e precisa de
+    `AND igreja_id = :churchId` explícito).
   - `PermissaoService.pode` e `isAdmin` passam a resolver por `(userId, churchId)` (via `TenantContext`).
   - Endpoints "sem tenant" (login, cadastro, criar/entrar/listar igrejas, perfil próprio) ficam **fora** do
     filtro — lista explícita, como o `excludePathPatterns` atual.
 - **Frontend:** o api client passa a enviar `X-Church-Id` (ver Fase 4) — pode ser adiantado aqui com a
   Igreja Padrão fixa para exercitar o filtro.
-- **Banco/migração:** nenhuma (usa as colunas da Fase 1).
-- **Riscos:** `@Filter` não cobre `findById`/nativas (D2a) — mapear todos os `findById`/derived-by-id e
-  adicionar guarda de propriedade; esquecer de habilitar o filtro em algum entry-point não-HTTP (jobs,
-  `DataInitializer`) → prever ativação também fora do request.
-- **Pronto quando:** com dois tenants de teste, nenhuma listagem/consulta vaza dados do outro; testes de
-  isolamento (Fase 5) começam a passar; single-church continua idêntico.
+- **Banco/migração:** nenhuma (usa as colunas da Fase 1). Avaliar `church_id` denormalizado em
+  `escala_atribuicoes`/`escala_servos` (D4a) para viabilizar o filtro no bulk-update e nos delete/exists
+  por `servoId` — decidir aqui.
+- **Riscos:** (a) `@Filter` não cobre `findById`/nativas/**bulk JPQL**/associações — cobertos por D2a–D2c +
+  Apêndice B, mas exigem revisão 1:1; (b) esquecer de habilitar o filtro fora do request (jobs) → D2d;
+  (c) associação não anotada vaza na navegação lazy → Apêndice A é a checklist.
+- **Pronto quando:** com dois tenants de teste, nenhuma listagem/consulta/navegação-lazy vaza; toda query do
+  Apêndice B está confirmada sob escopo; ArchUnit barra `findById` cru; o harness de isolamento (Fase 5)
+  começa a passar; single-church continua idêntico.
 
 ---
 
@@ -260,41 +379,66 @@ dados existentes para uma "Igreja Padrão", sem quebrar nada.
 ---
 
 ### Fase 5 — Hardening de segurança, testes e limpeza
-**Objetivo:** garantir isolamento à prova de IDOR e remover andaimes.
+**Objetivo:** garantir isolamento à prova de IDOR (leitura **e** escrita) de forma **verificável por
+máquina**, e remover andaimes.
 
 - **Backend:**
-  - **Guarda de propriedade** em todo acesso por ID (D2a): tentar acessar recurso de outra igreja por ID
-    direto retorna **404** (não 403 — não vazar existência). Centralizar num helper/base-service.
-  - Testes de isolamento: para cada endpoint, com dois tenants, garantir que A não lê/edita/deleta de B
-    (inclui `findById`, exportações CSV, relatórios, auditoria, dashboard, aniversariantes).
-  - Revisar SQL nativo/`@Query` que não passa pelo `@Filter`.
+  - **Guarda estrutural por ID (D2a), não opt-in:** confirmar que `findByIdAndIgrejaId` é o único caminho e
+    que a **regra ArchUnit** que proíbe `.findById(`/`.getReferenceById(` em repositórios tenant está no CI e
+    verde (build falha se alguém reintroduzir). Recurso de outra igreja → **404**.
+  - **Harness automatizado de isolamento (não testes manuais por endpoint):** um teste parametrizado que
+    **enumera todos os endpoints** (a partir do `RequestMappingHandlerMapping` do Spring, ou de um registro
+    declarado) e, com token do tenant A e **IDs/FKs pertencentes ao tenant B**, afirma automaticamente:
+    - `GET/PUT/DELETE /recurso/{idDeB}` → **404**;
+    - escritas cujo corpo referencia FK de B (ex.: `POST /escalas/{idB}/atribuicoes`, `PUT /areas/{id}` com
+      `liderId` de B, `Ministerio.areas` com `areaId` de B) → **rejeição** (404/400), validando o **IDOR de
+      escrita (D2b)**;
+    - listagens/exportações/relatórios/dashboard/aniversariantes de A **nunca** contêm linhas de B.
+    Novos endpoints entram no harness automaticamente (pela enumeração) — cobertura não depende de lembrar de
+    escrever um teste por rota.
+  - **Auditoria nominal das queries (Apêndice B)** revisada e marcada como concluída, incluindo o
+    `UPDATE … SET funcao` (bulk JPQL) e os `deleteByServoId`/`existsByServoId`.
+  - Revisar SQL nativo/`@Query`/**bulk update-delete** que não passa pelo `@Filter`.
   - Rate-limit/observabilidade (Fase 9 do outro plano) com `churchId` no MDC.
   - Remover colunas legadas (`usuarios.role`, `usuarios.servo_id`) e o singleton antigo, se ainda existirem.
-- **Frontend:** revisão de estados que assumem single-church; e2e do fluxo completo.
+- **Frontend:** revisão de estados que assumem single-church; e2e do fluxo completo (incl. tentativa de trocar
+  `X-Church-Id` no cliente para uma igreja sem vínculo → 403).
 - **Banco/migração:** migração final de limpeza das colunas legadas (só após leitura 100% migrada).
-- **Riscos:** remover coluna legada cedo demais; endpoints esquecidos sem guarda de ID.
-- **Pronto quando:** suíte de isolamento cross-tenant 100% verde; nenhuma rota acessa recurso fora do tenant;
-  andaimes da "Igreja Padrão" removidos (a Igreja Padrão permanece como tenant real dos dados legados).
+- **Riscos:** remover coluna legada cedo demais; endpoint novo que escapa da enumeração do harness (mitigar
+  fazendo o harness **falhar** ao encontrar endpoint tenant não classificado como "scoped" ou "público").
+- **Pronto quando:** harness de isolamento cross-tenant (leitura+escrita) 100% verde e rodando no CI; ArchUnit
+  barrando `findById` cru; Apêndice B 100% auditado; andaimes da "Igreja Padrão" removidos (a Igreja Padrão
+  permanece como tenant real dos dados legados).
 
 ---
 
-## 4. Decisões em aberto (preciso da sua confirmação antes de implementar)
+## 4. Decisões — RESOLVIDAS (base aprovada para implementar)
 
-1. **Contexto ativo — header `X-Church-Id` (recomendado) vs claim `churchId` no JWT?** Recomendo header pela
-   troca barata e revogação imediata; confirme.
-2. **`Servo` por igreja (recomendado) vs identidade de servo compartilhada entre igrejas?** Isso muda o
-   modelo (perfil de servo por vínculo). É a decisão de maior impacto — preciso do seu aval.
-3. **Criação de igreja é aberta a qualquer usuário** ou gated (só por você/plataforma)? Existe papel de
-   **super-admin de plataforma** (acima das igrejas, p/ suporte)?
-4. **Convite:** formato do código (aleatório + expiração?), e se **toda** entrada exige aprovação do admin ou
-   se há convite "de acesso direto".
-5. **Manter referências textuais no MVP (recomendado, D6)** ou já converter Servo.areas/Escala.classificacao
-   para FKs nesta refatoração?
-6. **Introduzir Flyway agora (recomendado, D7)?** É pré-requisito do meu plano de migração segura.
-7. **Confirmar** que `Usuario.email` continua identidade única global (um login para todas as igrejas).
-8. Nome/So da "Igreja Padrão" que herdará os dados de produção (sugiro reusar o nome atual de
-   `ConfiguracaoIgreja`).
-9. Escopo: **billing/limites por igreja** e **exclusão/arquivamento de igreja** entram agora ou ficam fora do MVP?
+> Fechadas em **2026-07-07**. As **arquiteturais (A)** foram escolhidas explicitamente; as **B** são defaults
+> que assumi e não foram objetados — ainda reversíveis antes da fase correspondente.
+
+**A — Arquiteturais (confirmadas):**
+1. ✅ Contexto ativo via **header `X-Church-Id`** validado por requisição (D2) — sem claim no token.
+2. ✅ **`Servo` por igreja** via `Membresia.servo`: cada usuário tem perfil próprio por igreja. Ao alternar,
+   enxerga **apenas os dados da igreja ativa**; como servo comum, vê **apenas o que é referente a si** naquela
+   igreja (visão "minhas escalas" + próprio perfil, escopada por igreja). Papel/permissões vêm do vínculo
+   (admin numa, servo comum em outra). Substitui o `Usuario↔Servo` 1:1 atual (migrado na Fase 1).
+3. ✅ **Criação de igreja self-service** — qualquer usuário cria e vira admin; demais entram por código com aprovação.
+4. ✅ **Referências textuais mantidas no MVP** (D6); conversão para FK fica como débito técnico registrado.
+
+**B — Defaults assumidos (avise antes da fase se quiser mudar):**
+5. **Convite:** código aleatório longo + expiração (7 dias); **toda** entrada exige aprovação do admin (sem acesso direto).
+6. **Flyway** introduzido agora (Fase 0). ✅ (D7)
+7. **`Usuario.email` = identidade única global** (um login para todas as igrejas). ✅
+8. **Igreja Padrão** herda os dados de produção reusando o nome atual do `ConfiguracaoIgreja`.
+9. **MVP sem** billing/limites por igreja e **sem** exclusão/arquivamento de igreja.
+10. **Guarda por ID:** regra **ArchUnit no CI** (sem aspecto AOP de runtime por ora). (D2a)
+11. **Denormalizar `church_id`** em `escala_atribuicoes`/`escala_servos` (D4a) — escopa o bulk-update de `funcao` e os delete/exists por `servoId`.
+12. **Vínculo sem cache** no MVP — revogação vale na requisição seguinte (D2e).
+13. **Sem papel de super-admin de plataforma** no MVP.
+
+> Nada mais está pendente para começar. **Não vou iniciar a implementação até seu "go"** — quando autorizar,
+> começo pela Fase 0 (Flyway), na ordem do §5.
 
 ## 5. Ordem de execução recomendada
 
@@ -303,6 +447,64 @@ dados existentes para uma "Igreja Padrão", sem quebrar nada.
 
 Fases 0–2 preservam o comportamento single-church atual (tudo na Igreja Padrão) e são de **baixo risco de
 regressão visível**. O risco real concentra-se na **Fase 1 (migração de dados)** e na **Fase 5 (garantia de
-isolamento)** — por isso as decisões em aberto #1–#6 precisam estar fechadas antes de iniciar a Fase 1.
+isolamento)**.
 
-> **Não iniciar implementação sem confirmação das decisões em aberto (§4).**
+> **Todas as decisões do §4 estão fechadas.** Plano pronto para execução — aguardando seu "go" para iniciar
+> pela Fase 0.
+
+---
+
+## Apêndice A — Associações das entidades tenant × onde anotar `@Filter` (D2b, D2c)
+
+`@Filter` habilitado na sessão **não** cobre associações lazy nem coleções — anotar **a própria associação**.
+E toda FK de entrada de escrita deve ser resolvida via loader escopado antes de associar (IDOR de escrita).
+
+| Entidade | Associação | Tipo | Anotar no carregamento? | Validar na escrita (D2b)? |
+|---|---|---|---|---|
+| `Membresia` | `usuario` | `@ManyToOne` (global) | não (Usuario não é tenant) | usuário é identidade global — ok |
+| `Membresia` | `igreja` | `@ManyToOne` | — (é o próprio tenant) | sim: só a igreja do contexto |
+| `Membresia` | `servo` | `@ManyToOne` | `@Filter` na associação | **sim** — servo deve ser da mesma igreja |
+| `Area` | `lider` | `@ManyToOne` → Servo | `@Filter` na associação | **sim** — `liderId` do corpo resolvido escopado |
+| `Area` | `coLider` | `@ManyToOne` → Servo | `@Filter` na associação | **sim** — idem |
+| `Ministerio` | `areas` | `@ManyToMany` (`ministerio_areas`) | `@Filter` na coleção + **`@FilterJoinTable`** | **sim** — cada `areaId` da lista resolvido escopado |
+| `Escala` | `atribuicoes` | `@OneToMany` | `@Filter` na coleção | filhos nascem no tenant (carimbo) |
+| `Escala` | `servos` | `@OneToMany` (EscalaServo) | `@Filter` na coleção | idem |
+| `EscalaAtribuicao` | `escala` | `@ManyToOne` | carrega por PK (ver D2a) | **sim** — `escalaId` resolvido escopado |
+| `EscalaAtribuicao` | `servo` | `@ManyToOne` | carrega por PK | **sim** — `servoId` resolvido escopado |
+| `EscalaServo` | `escala`/`servo`/`area` | `@ManyToOne` ×3 | carrega por PK | **sim** — os 3 IDs resolvidos escopados |
+| `Servo` | `areas` / `classificacoes` | `@ElementCollection` (String) | escopado pelo Servo (tenant) | textual — ver Apêndice B |
+| `PermissaoTela` | `usuario` | `@ManyToOne` | +`igreja_id` próprio | permissão sempre no tenant ativo |
+| `Usuario` | `servo` (1:1 atual) | `@OneToOne` | **removido** (migra p/ `Membresia.servo`) | n/a após Fase 1 |
+
+> `@ManyToOne` carregado por PK segue a regra da D2a (find por PK ignora `@Filter`) — por isso a **validação
+> na escrita** (coluna direita) é o que garante o isolamento nesses casos, não o filtro de leitura.
+
+## Apêndice B — Auditoria nominal das queries por nome (D2, requisito #4)
+
+Cada método derivado/`@Query` das entidades tenant, e se roda **sob `@Filter`** (HQL/derived `SELECT`/`COUNT`
+na entidade filtrada) ou precisa de **`church_id` explícito**. **Vazamento = referência textual resolvida
+fora do filtro.**
+
+| Repositório · método | Mecanismo | Sob filtro? | Ação |
+|---|---|---|---|
+| `AreaRepository.findByNome` / `findByNomeIn` | HQL SELECT em Area | ✅ sim | ok (nome único por igreja) |
+| `MinisterioRepository.findByClassificacaoIgnoreCase` | HQL SELECT | ✅ sim | ok |
+| `MinisterioRepository.existsByClassificacao` / `existsByNomeIgnoreCase` | SELECT COUNT | ✅ sim | ok — mas unicidade agora é **por igreja** (unique composto D5) |
+| `EscalaRepository.existsByClassificacao` | SELECT COUNT | ✅ sim | ok |
+| `EscalaRepository.findAll* / findByIdWithAtribuicoes` (JOIN FETCH) | HQL SELECT | ✅ sim (associações via Apêndice A) | ok se coleções anotadas |
+| `EscalaAtribuicaoRepository.` **`@Query UPDATE ea SET ea.funcao WHERE funcao=:antigo`** | **bulk UPDATE JPQL** | ❌ **NÃO** (bulk ignora `@Filter`) | **adicionar `AND ea.igreja_id = :churchId`** (exige D4a) |
+| `EscalaAtribuicaoRepository.deleteByServoId` / `existsByServoId` | derived delete/exists | ⚠️ delete=bulk ignora filtro | seguro só porque `servoId` foi resolvido escopado; **guardar** com `church_id` (D4a) |
+| `EscalaAtribuicaoRepository.@Query SELECT DISTINCT servo.id / JOIN FETCH / COUNT group by` | HQL SELECT | ✅ sim | ok |
+| `EscalaServoRepository.countByServoAndArea` / `countByAreaGroupByServo` / `@Query DISTINCT servo.id` | HQL SELECT/COUNT | ✅ sim | ok |
+| `EscalaServoRepository.deleteByServoId` | derived delete (bulk) | ⚠️ ignora filtro | idem: guardar por `church_id` (D4a) |
+| `ServoRepository.findByEmail` | HQL SELECT em Servo | ✅ sim | ok — resolve dentro da igreja ativa |
+| `ServoRepository.findByAreaNome` (`:area MEMBER OF v.areas`) | HQL SELECT em Servo | ✅ sim | ok (nome textual dentro da igreja) |
+| `ServoRepository.findAniversariantes` (MONTH) | HQL SELECT | ✅ sim | ok |
+| `Servo.areas` / `classificacoes` (resolução textual em serviços) | navegação de coleção do Servo | ✅ via Servo (tenant) | ok — o Servo já é escopado; nomes únicos por igreja |
+| `PermissaoTelaRepository.findByUsuarioId(In)` / `findByUsuarioIdAndTela` / `deleteByUsuarioId` | derived | ⚠️ hoje só por usuário | **adicionar `igreja_id`** (permissão é por `(usuario, igreja, tela)` — D3) |
+| `UsuarioRepository.findByEmail` | login (pré-tenant) | n/a | **global de propósito** (identidade) — correto |
+| `UsuarioRepository.findByServoId` / `findUsuariosComServo` | — | — | reavaliar após `servo` migrar p/ `Membresia` (Fase 1) |
+| `ConfiguracaoIgrejaRepository.findAll().findFirst()` (singleton) | — | — | **substituído** por busca da `Igreja` do tenant ativo |
+
+> Itens ❌/⚠️ são os que **exigem código explícito** — não confiar no `@Filter`. São exatamente os que o
+> harness da Fase 5 deve exercitar com dois tenants.

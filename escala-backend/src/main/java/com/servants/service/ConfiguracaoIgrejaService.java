@@ -1,10 +1,12 @@
 package com.servants.service;
 
 import com.servants.dto.ConfiguracaoIgrejaDTO;
-import com.servants.model.ConfiguracaoIgreja;
+import com.servants.model.Igreja;
 import com.servants.repository.ConfiguracaoIgrejaRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.time.LocalDateTime;
 
 /**
  * Serviço de gestão dos dados institucionais da igreja (registro único). Garante a
@@ -41,7 +43,7 @@ public class ConfiguracaoIgrejaService {
      */
     @Transactional
     public ConfiguracaoIgrejaDTO salvar(ConfiguracaoIgrejaDTO dto) {
-        ConfiguracaoIgreja c = obterOuCriar();
+        Igreja c = obterOuCriar();
         // Nenhum campo é obrigatório: sem nome preenchido, mantém o padrão "Serve".
         c.setNome(dto.nome() != null && !dto.nome().isBlank() ? dto.nome().trim() : "Serve");
         c.setTelefone(dto.telefone());
@@ -59,10 +61,14 @@ public class ConfiguracaoIgrejaService {
      *
      * @return a entidade persistida.
      */
-    private ConfiguracaoIgreja obterOuCriar() {
+    private Igreja obterOuCriar() {
         return repo.findAll().stream().findFirst().orElseGet(() -> {
-            ConfiguracaoIgreja c = new ConfiguracaoIgreja();
+            // Caminho defensivo: a migração V3 garante a Igreja Padrão, mas se a tabela
+            // estiver vazia (ex.: teste isolado), cria com os campos de tenant obrigatórios.
+            Igreja c = new Igreja();
             c.setNome("Serve");
+            c.setDataCriacao(LocalDateTime.now());
+            c.setCodigoConvite("IGREJA-" + System.currentTimeMillis());
             return repo.save(c);
         });
     }
@@ -73,7 +79,7 @@ public class ConfiguracaoIgrejaService {
      * @param c entidade a converter.
      * @return o DTO correspondente.
      */
-    private ConfiguracaoIgrejaDTO toDTO(ConfiguracaoIgreja c) {
+    private ConfiguracaoIgrejaDTO toDTO(Igreja c) {
         return new ConfiguracaoIgrejaDTO(
             c.getId(), c.getNome(), c.getTelefone(), c.getEndereco(),
             c.getInstagram(), c.getFacebook(), c.getWhatsapp(), c.getYoutube(), c.getSite()

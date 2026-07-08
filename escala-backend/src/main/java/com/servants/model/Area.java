@@ -14,7 +14,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "areas")
-public class Area {
+@EntityListeners(IgrejaStampListener.class)
+public class Area implements TenantOwned {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -53,6 +54,10 @@ public class Area {
     @ManyToOne
     @JoinColumn(name = "colider_id")
     private Servo coLider;
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public Area() {
@@ -127,6 +132,18 @@ public class Area {
     /** @param exclusivoNaEscala define se o ministério é exclusivo na escala. */
     public void setExclusivoNaEscala(boolean exclusivoNaEscala) {
         this.exclusivoNaEscala = exclusivoNaEscala;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() {
+        return igrejaId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) {
+        this.igrejaId = igrejaId;
     }
 
     /**

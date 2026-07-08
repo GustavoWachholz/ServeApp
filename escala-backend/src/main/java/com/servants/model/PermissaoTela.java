@@ -16,8 +16,9 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "permissoes_tela",
-        uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "tela"}))
-public class PermissaoTela {
+        uniqueConstraints = @UniqueConstraint(columnNames = {"usuario_id", "igreja_id", "tela"}))
+@EntityListeners(IgrejaStampListener.class)
+public class PermissaoTela implements TenantOwned {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -48,6 +49,10 @@ public class PermissaoTela {
     /** Se o usuário pode excluir registros na tela. */
     @Column(nullable = false)
     private boolean excluir = false;
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public PermissaoTela() {
@@ -132,6 +137,18 @@ public class PermissaoTela {
     /** @param excluir define se o usuário pode excluir registros. */
     public void setExcluir(boolean excluir) {
         this.excluir = excluir;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() {
+        return igrejaId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) {
+        this.igrejaId = igrejaId;
     }
 
     /**

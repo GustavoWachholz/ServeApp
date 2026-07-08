@@ -15,7 +15,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "servos")
-public class Servo {
+@EntityListeners(IgrejaStampListener.class)
+public class Servo implements TenantOwned {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -56,6 +57,10 @@ public class Servo {
     @CollectionTable(name = "servo_classificacoes", joinColumns = @JoinColumn(name = "servo_id"))
     @Column(name = "classificacao")
     private List<String> classificacoes = new ArrayList<>();
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public Servo() {
@@ -143,6 +148,18 @@ public class Servo {
      */
     public void setClassificacoes(List<String> classificacoes) {
         this.classificacoes = classificacoes != null ? classificacoes : new ArrayList<>();
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() {
+        return igrejaId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) {
+        this.igrejaId = igrejaId;
     }
 
     /**

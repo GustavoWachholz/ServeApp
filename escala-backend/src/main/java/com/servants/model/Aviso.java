@@ -12,7 +12,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "avisos")
-public class Aviso {
+@EntityListeners(IgrejaStampListener.class)
+public class Aviso implements TenantOwned {
 
     /** Identificador único, gerado automaticamente pelo banco. */
     @Id
@@ -36,6 +37,10 @@ public class Aviso {
 
     /** Nome do autor que publicou o aviso. */
     private String autor;
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public Aviso() {
@@ -99,6 +104,18 @@ public class Aviso {
     /** @param autor define o nome do autor. */
     public void setAutor(String autor) {
         this.autor = autor;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() {
+        return igrejaId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) {
+        this.igrejaId = igrejaId;
     }
 
     @Override

@@ -1,7 +1,12 @@
 package com.servants.config;
 
+import com.servants.model.Igreja;
+import com.servants.model.IgrejaStampListener;
+import com.servants.model.Membresia;
 import com.servants.model.Usuario;
 import com.servants.model.Servo;
+import com.servants.repository.ConfiguracaoIgrejaRepository;
+import com.servants.repository.MembresiaRepository;
 import com.servants.repository.UsuarioRepository;
 import com.servants.repository.ServoRepository;
 import org.slf4j.Logger;
@@ -14,6 +19,7 @@ import org.springframework.stereotype.Component;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.security.SecureRandom;
+import java.time.LocalDateTime;
 import java.util.Base64;
 
 /**
@@ -29,6 +35,8 @@ public class DataInitializer implements CommandLineRunner {
 
     private final UsuarioRepository usuarioRepository;
     private final ServoRepository servoRepository;
+    private final MembresiaRepository membresiaRepository;
+    private final ConfiguracaoIgrejaRepository igrejaRepository;
     private final PasswordEncoder passwordEncoder;
     private final JdbcTemplate jdbc;
 
@@ -43,10 +51,14 @@ public class DataInitializer implements CommandLineRunner {
      */
     public DataInitializer(UsuarioRepository usuarioRepository,
                            ServoRepository servoRepository,
+                           MembresiaRepository membresiaRepository,
+                           ConfiguracaoIgrejaRepository igrejaRepository,
                            PasswordEncoder passwordEncoder,
                            JdbcTemplate jdbc) {
         this.usuarioRepository = usuarioRepository;
         this.servoRepository = servoRepository;
+        this.membresiaRepository = membresiaRepository;
+        this.igrejaRepository = igrejaRepository;
         this.passwordEncoder = passwordEncoder;
         this.jdbc = jdbc;
     }
@@ -67,6 +79,36 @@ public class DataInitializer implements CommandLineRunner {
         }
 
         vincularServosPorEmail();
+        garantirMembresiaAdmin();
+    }
+
+    // ── Membresia do admin na Igreja Padrão ────────────────────────────────────
+
+    /**
+     * Garante que o admin tenha uma {@link Membresia} ATIVA na Igreja Padrão (id=1). Em prod o
+     * backfill (V6) já a criou; em banco novo o admin nasce DEPOIS da migração, então precisa
+     * ser vinculado aqui. Idempotente: só cria se ainda não existir.
+     */
+    private void garantirMembresiaAdmin() {
+        Usuario admin = usuarioRepository.findByEmail("admin@admin.com").orElse(null);
+        if (admin == null) return;
+
+        Igreja padrao = igrejaRepository.findById(IgrejaStampListener.IGREJA_PADRAO).orElse(null);
+        if (padrao == null) return; // a migração V3 garante a Igreja Padrão; guarda defensiva
+
+        if (membresiaRepository.findByUsuarioIdAndIgrejaId(admin.getId(), padrao.getId()).isPresent()) {
+            return;
+        }
+
+        Membresia m = new Membresia();
+        m.setUsuario(admin);
+        m.setIgreja(padrao);
+        m.setRole(admin.getRole() != null ? admin.getRole() : "ADMIN");
+        m.setStatus("ATIVO");
+        m.setServo(admin.getServo());
+        m.setDataEntrada(LocalDateTime.now());
+        membresiaRepository.save(m);
+        log.info("[DataInitializer] Membresia do admin criada na Igreja Padrão.");
     }
 
     // ── Backfill de vínculo Usuário↔Servo ──────────────────────────────────────

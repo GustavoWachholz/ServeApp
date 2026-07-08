@@ -16,7 +16,8 @@ import java.util.Objects;
  */
 @Entity
 @Table(name = "escalas")
-public class Escala {
+@EntityListeners(IgrejaStampListener.class)
+public class Escala implements TenantOwned {
 
     /** Identificador único, gerado automaticamente pelo banco (auto-increment). */
     @Id
@@ -60,6 +61,10 @@ public class Escala {
      */
     @OneToMany(mappedBy = "escala")
     private List<EscalaServo> servos;
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public Escala() {
@@ -153,6 +158,18 @@ public class Escala {
     /** @param atribuicoes define as atribuições de voluntários a funções. */
     public void setAtribuicoes(List<EscalaAtribuicao> atribuicoes) {
         this.atribuicoes = atribuicoes;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() {
+        return igrejaId;
+    }
+
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) {
+        this.igrejaId = igrejaId;
     }
 
     /**

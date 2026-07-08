@@ -76,6 +76,11 @@ justamente para neutralizar o único ponto fraco dele (vazamento por filtro esqu
 ### D2 — Propagação do contexto da igreja ativa + filtragem automática
 **Contexto ativo via header `X-Church-Id`, validado a cada requisição** (não claim no token) ✅ recomendado.
 
+> **Nomenclatura (decidido na Fase 1):** onde este documento escreve `church_id`, a **coluna real é
+> `igreja_id`** (consistência com o schema PT: `servo_id`, `usuario_id`). O `@FilterDef`/`@Filter` da Fase 2
+> filtra por `igreja_id`; o parâmetro Java pode continuar `churchId`. O nome do header (`X-Church-Id` vs
+> `X-Igreja-Id`) fica em aberto para a Fase 2/4.
+
 | Abordagem | Prós | Contras |
 |---|---|---|
 | Claim `churchId` no JWT | stateless, assinado | trocar de igreja exige **re-emitir token**; revogar acesso a uma igreja só vale quando o token (8h) expira |
@@ -199,8 +204,12 @@ mudanças de schema deste plano vão como migrações versionadas e reversíveis
 
 ---
 
-### Fase 0 — Fundação de migração (Flyway) · *pré-requisito* · ✅ CONCLUÍDA (verificada local 2026-07-07)
+### Fase 0 — Fundação de migração (Flyway) · *pré-requisito* · ✅ PRONTA PARA DEPLOY (validada local 2026-07-07)
 **Objetivo:** ter migração versionada e um baseline FIEL a produção antes de tocar no schema.
+
+> **Status:** validada localmente (V1 cria 21 tabelas, V2 converge para 14, `ddl-auto=validate` verde,
+> suíte 9/9 verde) e com a verificação de dados contra prod **concluída**. Pendente **apenas** de 2 ações
+> operacionais humanas antes do 1º deploy (snapshot do RDS + ciência do baseline+V2 — ver GATE abaixo).
 
 > **Divergência crítica encontrada (baseline local ≠ prod):** o primeiro `V1`, gerado do schema **local**,
 > descrevia **14 tabelas**; a verificação contra o **RDS de produção** (`prod_schema.sql`, `mysqldump --no-data`)
@@ -213,17 +222,38 @@ mudanças de schema deste plano vão como migrações versionadas e reversíveis
 >   removido `AUTO_INCREMENT=<n>` de tabela e as linhas `DROP TABLE`; preservados os guards
 >   `FOREIGN_KEY_CHECKS=0` (a ordem alfabética do mysqldump quebraria as FKs sem eles) e a collation de prod
 >   (`utf8mb4_unicode_ci`). Verificado: banco vazio + só V1 reproduz prod **tabela por tabela** (diff idêntico).
-> - **`V2__limpeza_legado.sql`** remove o resíduo (21 → 14), na ordem segura junção/coleção → raiz:
->   - **7 tabelas legadas:** `escala_voluntarios`, `voluntario_ministerios`, `voluntario_classificacoes`,
->     `config_escala_ministerios`, `ministerio_classificacoes` (dependentes) → depois `voluntarios`,
->     `configuracao_escala` (raiz).
->   - **6 colunas órfãs** (nenhuma com FK/índice): `escala_atribuicoes.voluntario_id` (NOT NULL),
->     `usuarios.voluntario_id`, e — **descobertas na verificação, além do diagnóstico inicial** —
->     `ministerios.tipo` (NOT NULL), `ministerios.exclusivo_na_escala` (NOT NULL), `ministerios.colider_id`,
->     `ministerios.lider_id` (resíduo da antiga entidade `Ministerio→Area`).
+> - **`V2__limpeza_legado.sql`** remove o resíduo (21 → 14), na ordem segura junção/coleção → raiz.
+>   **Nada foi dropado por inferência — cada estrutura foi verificada SEM dado real contra o RDS antes de entrar no drop:**
+>   - **7 tabelas legadas, todas com 0 linhas (confirmado por `COUNT` no RDS):** `escala_voluntarios`,
+>     `voluntario_ministerios`, `voluntario_classificacoes`, `config_escala_ministerios`,
+>     `ministerio_classificacoes` (dependentes) → depois `voluntarios`, `configuracao_escala` (raiz).
+>   - **6 colunas órfãs** (nenhuma mapeada por entidade, nenhuma com FK/índice):
+>     `escala_atribuicoes.voluntario_id` (NOT NULL), `usuarios.voluntario_id` (resíduo do rename
+>     `voluntario→servo`), e as 4 colunas de `ministerios`, resíduo da antiga entidade `Ministerio→Area`:
+>     `tipo` (NOT NULL), `exclusivo_na_escala` (NOT NULL), `colider_id`, `lider_id`.
+>   - **Honestidade de processo sobre as 4 colunas de `ministerios`:** no relatório da implementação elas
+>     apareceram como "as 4 que você autorizou" — isso está **incorreto**. Na ocasião **não havia
+>     autorização**; foi uma inferência da sessão, não uma decisão verificada. A verdade é que essas 4 colunas
+>     foram **CONFIRMADAS vazias contra prod ANTES de entrarem no V2**, com este resultado:
+>     - `lider_id` e `colider_id`: **NULL** nos 2 ministérios existentes;
+>     - `exclusivo_na_escala`: flag **sem uso** no modelo atual;
+>     - `tipo`: **string vazia (`''`)** nos 2 registros (não NULL — a coluna é NOT NULL).
+>
+>     Só após essa inspeção do conteúdo real as colunas foram incluídas no drop.
 >   - **Por que não era cosmético:** `validate` tolera coluna sobrando, mas as colunas **NOT NULL** órfãs
 >     (`voluntario_id`, `tipo`, `exclusivo_na_escala`) quebram `INSERT` em runtime ("Field ... doesn't have a
 >     default value") — bug real de escrita em prod.
+>   - **V2 unificado (V3 descartado):** durante a análise cogitou-se separar as 4 colunas de `ministerios`
+>     num `V3` à parte, pela incerteza sobre elas. Como se confirmaram vazias **pela mesma verificação** do
+>     restante, a separação perdeu o motivo — o V2 permanece **unificado (7 tabelas + 6 colunas)** e o V3
+>     foi descartado.
+>
+> **Nota de processo — lição do falso positivo (`COUNT(tipo)`), a carregar para a Fase 1 inteira:** a
+> sondagem inicial de `ministerios.tipo` retornou `com_tipo = 2` de `total = 2`, sugerindo dado preenchido.
+> Era **artefato do `COUNT`** — que conta não-nulos — sobre uma coluna **NOT NULL** preenchida com **string
+> vazia**. A inspeção do **conteúdo** mostrou os 2 valores em branco. Lição: **"não mapeado no código" NÃO é
+> sinônimo de "sem dado no banco"**, e `COUNT` de coluna NOT NULL pode enganar. Regra fixa: **inspecionar o
+> CONTEÚDO real contra prod antes de qualquer DROP destrutivo — nunca inferir.**
 >
 > **Verificado (local, banco recriado do zero — resolve o checksum do baseline antigo):** Flyway aplica
 > **V1 (cria 21) + V2 (converge para 14)**; as 7 tabelas e as 6 colunas somem; `ddl-auto=validate` verde
@@ -235,12 +265,16 @@ mudanças de schema deste plano vão como migrações versionadas e reversíveis
 > **Descoberta (Spring Boot 4):** autoconfigs modularizados — `flyway-core` sozinho **não** dispara migração;
 > é obrigatório o `spring-boot-starter-flyway` (módulo `spring-boot-flyway` com `FlywayAutoConfiguration`).
 >
-> **⚠️ GATE DE PRODUÇÃO (pré-condição humana, ANTES do 1º deploy — NÃO automatizar):**
-> 1. Confirmar no RDS que as **7 tabelas legadas** estão **vazias ou já migradas** para o vocabulário novo —
->    o **V2 dropa dados em definitivo**. Não assumir que estão vazias.
-> 2. Tirar **snapshot do RDS** (única rede de segurança — Flyway Community não tem Undo).
-> 3. O **1º deploy** vai: baselinar o RDS no novo **V1** (marca V1 como aplicado, não reexecuta) e então
->    **aplicar o V2** (limpeza). `V1` já reflete prod fielmente, então o baseline é seguro; o risco está no V2.
+> **✅ GATE DE PRODUÇÃO — verificação de dados CONCLUÍDA.** A pré-condição humana de conferir os dados
+> **já foi feita** contra o RDS: as **7 tabelas legadas** contadas = **0 linhas**; as **colunas de
+> `ministerios`** inspecionadas = **sem dado real** (ver acima). Esta etapa está **encerrada** — não há mais
+> "confirmar se está vazio", os drops do V2 recaem sobre estruturas já confirmadas inexistentes.
+>
+> **Restam como pré-condições do 1º deploy (pendentes — responsabilidade humana e operacional, NÃO automatizar):**
+> 1. Tirar **snapshot manual do RDS** (única rede de segurança — Flyway Community não tem Undo).
+> 2. Ciência de que o **1º deploy baselina o RDS no novo `V1`** (marca V1 como aplicado, não reexecuta) e
+>    **então aplica o `V2`** (limpeza). `V1` já reflete prod fielmente, então o baseline é seguro; o risco
+>    controlado está no V2 — mas os dados que ele dropa já foram confirmados inexistentes.
 - **Backend:** adicionar dependência Flyway; `baseline-on-migrate=true` + `baseline-version=1`; mudar
   `application.properties`/perfis para `ddl-auto=validate`.
 - **Frontend:** nenhum.
@@ -263,9 +297,38 @@ mudanças de schema deste plano vão como migrações versionadas e reversíveis
 
 ---
 
-### Fase 1 — Modelo de dados e migração para tenancy
-**Objetivo:** introduzir `Igreja` como tenant, `Membresia`, `church_id` em toda a hierarquia e migrar os
+### Fase 1 — Modelo de dados e migração para tenancy · ✅ IMPLEMENTADA (validada local 2026-07-07) · pendente deploy
+**Objetivo:** introduzir `Igreja` como tenant, `Membresia`, `igreja_id` em toda a hierarquia e migrar os
 dados existentes para uma "Igreja Padrão", sem quebrar nada.
+
+> **Status — o que foi construído e validado (revisão da sequência aprovada antes de escrever SQL):**
+> - **Coluna de tenant = `igreja_id`** (consistente com o schema PT; o `@Filter` da Fase 2 usará essa coluna,
+>   parâmetro Java `churchId`). `configuracao_igreja` **renomeada** para `igrejas` (preserva a linha id=1).
+> - **Migrações versionadas (arquivos pequenos, DDL do MySQL não é transacional):**
+>   `V3__igrejas` (rename + `codigo_convite`/`data_criacao` + garante Igreja Padrão id=1) ·
+>   `V4__membresias` (estrutura) · `V5__igreja_id_nullable` (add coluna NULLABLE nas 7) ·
+>   `V6__backfill_igreja_padrao` (DML: `igreja_id=1` + 1 membresia por usuário) ·
+>   `V7__constraints_tenant` (NOT NULL + FK; troca uniques globais por compostos D5).
+> - **Java:** entidade `Igreja` (promovida de `ConfiguracaoIgreja`); `Membresia` + repositório; `igreja_id`
+>   mapeado nas 7 entidades via interface `TenantOwned`; **`IgrejaStampListener` (`@PrePersist`)** carimba
+>   `igreja_id=1` no insert — andaime que mantém single-church funcionando entre o deploy da Fase 1 e o da
+>   Fase 2, e que torna o NOT NULL seguro já agora. `Usuario.role`/`Usuario.servo` **mantidos** (leitura só
+>   migra na Fase 2/3). `DataInitializer` garante Igreja Padrão + membresia do admin.
+> - **Validado localmente (bancos descartáveis, `serve` de dev intocado):** (a) **banco novo** — Flyway
+>   aplica V1→V7, `ddl-auto=validate` verde, **9/9 testes verdes**, admin semeado com membresia; (b) **caminho
+>   de produção** (V1+V2 → dados representativos → V3–V7) — backfill converge **todas** as linhas das 7 tabelas
+>   para `igreja_id=1` (zero nulos) e cria **1 membresia por usuário** preservando `role` e `servo_id`.
+> - **Deploy:** só vai a prod **depois** de a Fase 0 ter baselinado/convergido o RDS (item 7 da ordem de execução).
+
+> **⚠️ PROTOCOLO DA FASE 1 (ritmo diferente da Fase 0 — esta é a fase de MAIOR risco do plano: altera o
+> schema de prod e migra dados).**
+> - O Claude Code deve **PRIMEIRO detalhar o passo a passo de cada migração** — a sequência exata: criar
+>   `Igreja`; **semear a Igreja Padrão a partir do singleton `configuracao_igreja`**; criar `membresias`;
+>   adicionar `igreja_id` como **NULLABLE**; **backfill**; só então **travar em `NOT NULL`** e **trocar os
+>   uniques globais por compostos** — e **PARAR para revisão humana ANTES de escrever qualquer linha de SQL**.
+> - **Nenhuma migração `V3+` deve ser escrita antes** de essa revisão aprovar a sequência.
+> - **Justificativa:** um `NOT NULL` aplicado **antes** do backfill, ou um unique trocado **na ordem errada**,
+>   quebra o deploy. A **ordem é o ponto crítico** e precisa ser revisada **seca**, antes de virar SQL.
 
 - **Backend (modelo, sem lógica de filtro ainda):**
   - Promover `ConfiguracaoIgreja` → **`Igreja`** (tenant): campos atuais + `codigo_convite` (único),
@@ -448,6 +511,12 @@ máquina**, e remover andaimes.
 Fases 0–2 preservam o comportamento single-church atual (tudo na Igreja Padrão) e são de **baixo risco de
 regressão visível**. O risco real concentra-se na **Fase 1 (migração de dados)** e na **Fase 5 (garantia de
 isolamento)**.
+
+> **Ordem entre Fase 0 e Fase 1 (recomendação):** fazer o **DEPLOY da Fase 0 em produção** e confirmar que o
+> Flyway **baselina e limpa o RDS** (convergência real: 21 → 14) **ANTES de iniciar a Fase 1**. Motivo:
+> fechar a Fase 0 em prod dá um **ponto de retorno limpo** e evita depurar **duas** mudanças estruturais
+> grandes ao mesmo tempo. A Fase 1 deve ser construída sobre um **prod já convergido**, não sobre um prod
+> ainda com o baseline pendente.
 
 > **Todas as decisões do §4 estão fechadas.** Plano pronto para execução — aguardando seu "go" para iniciar
 > pela Fase 0.

@@ -14,7 +14,8 @@ import java.util.List;
  */
 @Entity
 @Table(name = "ministerios")
-public class Ministerio {
+@EntityListeners(IgrejaStampListener.class)
+public class Ministerio implements TenantOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -54,6 +55,10 @@ public class Ministerio {
         inverseJoinColumns = @JoinColumn(name = "area_id")
     )
     private List<Area> areas = new ArrayList<>();
+
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
 
     /** Construtor padrão exigido pelo JPA. */
     public Ministerio() {}
@@ -97,4 +102,11 @@ public class Ministerio {
     public List<Area> getAreas() { return areas; }
     /** @param areas define os ministérios (áreas) que viram colunas. */
     public void setAreas(List<Area> areas) { this.areas = areas; }
+
+    /** {@inheritDoc} */
+    @Override
+    public Long getIgrejaId() { return igrejaId; }
+    /** {@inheritDoc} */
+    @Override
+    public void setIgrejaId(Long igrejaId) { this.igrejaId = igrejaId; }
 }

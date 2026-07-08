@@ -1,19 +1,22 @@
 package com.servants.model;
 
 import jakarta.persistence.*;
+import java.time.LocalDateTime;
 
 /**
- * Entidade JPA singleton que armazena os dados institucionais da igreja exibidos no
- * sistema (nome no cabeçalho central, contato, redes sociais e endereço).
+ * Entidade-tenant raiz da hierarquia multi-igreja (Fase 1). Promovida do antigo singleton
+ * {@code ConfiguracaoIgreja}: além dos dados institucionais (nome/contato/redes), passa a ser
+ * o tenant referenciado por {@code igreja_id} em toda a hierarquia.
  *
- * <p>Mapeada para a tabela {@code configuracao_igreja}. Espera-se um único registro
- * (id = 1), gerenciado por {@link com.servants.service.ConfiguracaoIgrejaService}.</p>
+ * <p>Mapeada para a tabela {@code igrejas}. A <strong>Igreja Padrão (id=1)</strong> recebe os
+ * dados de produção pré-tenancy. O endpoint {@code /api/igreja} continua editando os campos de
+ * configuração desta entidade via {@link com.servants.service.ConfiguracaoIgrejaService}.</p>
  */
 @Entity
-@Table(name = "configuracao_igreja")
-public class ConfiguracaoIgreja {
+@Table(name = "igrejas")
+public class Igreja {
 
-    /** Identificador único. Por convenção, há um único registro com id = 1. */
+    /** Identificador único (tenant id). A Igreja Padrão é id = 1. */
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
@@ -43,11 +46,22 @@ public class ConfiguracaoIgreja {
     /** Site institucional. */
     private String site;
 
+    /**
+     * Código para entrada de novos membros nesta igreja. Único. Na Fase 1 é derivado do id;
+     * a geração aleatória com expiração dos convites reais entra na Fase 3.
+     */
+    @Column(name = "codigo_convite", nullable = false, unique = true)
+    private String codigoConvite;
+
+    /** Data/hora de criação da igreja. */
+    @Column(name = "data_criacao", nullable = false)
+    private LocalDateTime dataCriacao;
+
     /** Construtor padrão exigido pelo JPA. */
-    public ConfiguracaoIgreja() {
+    public Igreja() {
     }
 
-    /** @return o identificador único. */
+    /** @return o identificador único (tenant id). */
     public Long getId() {
         return id;
     }
@@ -135,5 +149,25 @@ public class ConfiguracaoIgreja {
     /** @param site define o site institucional. */
     public void setSite(String site) {
         this.site = site;
+    }
+
+    /** @return o código de convite (único). */
+    public String getCodigoConvite() {
+        return codigoConvite;
+    }
+
+    /** @param codigoConvite define o código de convite. */
+    public void setCodigoConvite(String codigoConvite) {
+        this.codigoConvite = codigoConvite;
+    }
+
+    /** @return a data/hora de criação da igreja. */
+    public LocalDateTime getDataCriacao() {
+        return dataCriacao;
+    }
+
+    /** @param dataCriacao define a data/hora de criação da igreja. */
+    public void setDataCriacao(LocalDateTime dataCriacao) {
+        this.dataCriacao = dataCriacao;
     }
 }

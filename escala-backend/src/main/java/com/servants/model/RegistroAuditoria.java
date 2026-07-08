@@ -5,7 +5,8 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "auditoria")
-public class RegistroAuditoria {
+@EntityListeners(IgrejaStampListener.class)
+public class RegistroAuditoria implements TenantOwned {
 
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
@@ -41,6 +42,10 @@ public class RegistroAuditoria {
     @Column(length = 60)
     private String ip;
 
+    /** Igreja (tenant) dona deste registro. Carimbada no insert pelo {@link IgrejaStampListener}. */
+    @Column(name = "igreja_id", nullable = false)
+    private Long igrejaId;
+
     public RegistroAuditoria() {}
 
     public Long getId() { return id; }
@@ -66,4 +71,8 @@ public class RegistroAuditoria {
     public void setStatusHttp(int statusHttp) { this.statusHttp = statusHttp; }
     public String getIp() { return ip; }
     public void setIp(String ip) { this.ip = ip; }
+    @Override
+    public Long getIgrejaId() { return igrejaId; }
+    @Override
+    public void setIgrejaId(Long igrejaId) { this.igrejaId = igrejaId; }
 }

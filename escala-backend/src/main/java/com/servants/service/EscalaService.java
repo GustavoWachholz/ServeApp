@@ -117,24 +117,25 @@ public class EscalaService {
      * <ol>
      *   <li><b>Área existente:</b> toda função atribuída deve corresponder a uma área
      *       ({@link Area}) cadastrada — funções órfãs (área renomeada/excluída) são rejeitadas.</li>
-     *   <li><b>Ministério do servo:</b> o servo só pode ser escalado se o ministério
-     *       (classificação) da escala estiver no seu perfil ({@code servo.classificacoes}).</li>
-     *   <li><b>Exclusividade:</b> um servo não pode ocupar duas áreas {@code exclusivoNaEscala}
-     *       na mesma escala.</li>
-     *   <li><b>Vínculo ESPECIFICO:</b> para áreas {@code tipo = "ESPECIFICO"}, o servo deve ter
-     *       a área registrada no perfil ({@code servo.areas}).</li>
      *   <li><b>Conflito entre escalas:</b> o servo não pode estar escalado em outra escala
      *       sobreposta no tempo.</li>
      * </ol>
      *
-     * @param dto escala (com classificação, janela de tempo e atribuições) a validar.
+     * <p><b>Restrições de perfil removidas:</b> qualquer servo cadastrado pode ser escalado em
+     * qualquer área. Não se exige mais que o ministério da escala esteja em
+     * {@code servo.classificacoes}, nem vínculo com áreas {@code ESPECIFICO}, nem se impede o
+     * acúmulo de áreas {@code exclusivoNaEscala}. Os campos {@code Area.tipo},
+     * {@code Area.exclusivoNaEscala}, {@code Servo.areas} e {@code Servo.classificacoes}
+     * continuam sendo persistidos e exibidos — apenas deixaram de bloquear a escalação.</p>
+     *
+     * @param dto escala (com janela de tempo e atribuições) a validar.
+     * @return mapa {@code servoId → Servo} dos servos citados, reaproveitado por
+     *         {@link #updateEscalaFromDTO}.
      * @throws IllegalArgumentException se alguma regra for violada.
      */
     private Map<Long, Servo> validarRegraDeAtribuicoes(EscalaDTO dto) {
         List<AtribuicaoDTO> atribuicoes = dto.getAtribuicoes();
         if (atribuicoes == null || atribuicoes.isEmpty()) return Map.of();
-
-        String classificacao = dto.getClassificacao();
 
         // Carrega metadados das áreas citadas em uma única query
         Set<String> nomesAreas = atribuicoes.stream()
@@ -180,40 +181,7 @@ public class EscalaService {
                 }
             }
 
-            // Regra 2: o ministério (classificação) da escala precisa estar no perfil do servo
-            if (classificacao != null && !classificacao.isBlank()
-                    && !servo.getClassificacoes().contains(classificacao)) {
-                throw new IllegalArgumentException(
-                        "O voluntário " + nome + " não atua no ministério desta escala. "
-                        + "Adicione o ministério ao perfil do servo antes de escalá-lo.");
-            }
-
-            // Regra 3: não pode acumular duas áreas exclusivas
-            List<String> exclusivas = funcoes.stream()
-                    .filter(f -> areaMap.get(f.funcao()).isExclusivoNaEscala())
-                    .map(AtribuicaoDTO::funcao)
-                    .collect(Collectors.toList());
-            if (exclusivas.size() > 1) {
-                throw new IllegalArgumentException(
-                        "O voluntário " + nome + " está escalado em duas áreas exclusivas: "
-                        + String.join(" e ", exclusivas)
-                        + ". Áreas exclusivas não podem ser acumuladas na mesma escala.");
-            }
-
-            // Regra 4: área ESPECIFICO exige vínculo no perfil do servo
-            List<String> especificosSemVinculo = funcoes.stream()
-                    .filter(f -> "ESPECIFICO".equals(areaMap.get(f.funcao()).getTipo()))
-                    .map(AtribuicaoDTO::funcao)
-                    .filter(funcao -> !servo.getAreas().contains(funcao))
-                    .collect(Collectors.toList());
-            if (!especificosSemVinculo.isEmpty()) {
-                throw new IllegalArgumentException(
-                        "O voluntário " + nome + " não está vinculado à área \""
-                        + String.join("\", \"", especificosSemVinculo)
-                        + "\". Adicione o voluntário à área antes de escalá-lo.");
-            }
-
-            // Regra 5: conflito com outra escala sobreposta no tempo
+            // Regra 2: conflito com outra escala sobreposta no tempo
             if (conflitoEntreEscalas.containsKey(servoId)) {
                 throw new IllegalArgumentException(
                         "O voluntário " + nome + " já está escalado em outra escala no mesmo horário: \""

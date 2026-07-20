@@ -12,7 +12,7 @@ O **Serve.** é um sistema web de gestão de escalas para igrejas e ministérios
 - **Fluxo em Duas Etapas**: Criação do evento na Agenda e definição da equipe na tela de Escala.
 - **Indicador de Pendência**: Escalas sem equipe definida aparecem com ⏳; completas com ✓.
 - **Exportação de Imagem**: Geração de `.png` personalizado com logo, cores e layout da Igreja para compartilhamento no WhatsApp/redes sociais (`html2canvas`).
-- **Regras de Acúmulo**: Voluntários com ministério `ESPECIFICO` só podem ser escalados onde têm vínculo; ministérios `ACUMULO` permitem participação simultânea.
+- **Escalação sem restrição de perfil**: qualquer servo cadastrado pode ser escalado em qualquer área. A única trava é o **conflito de horário** — o mesmo servo não entra em duas escalas sobrepostas no tempo.
 
 ### Cadastros
 - **Servos**: CRUD completo de voluntários com ministérios vinculados, gênero, data de nascimento e contato.

@@ -19,7 +19,7 @@
 | Backend | — | **Não muda de contrato**, mas provavelmente precisa de atualização + `JWT_SECRET` |
 | Banco | — | Pode precisar do `migration_rename.sql` (ver Fase 0) |
 
-Tamanho do build atual (medido em 2026-07-19): `index` 759 KB (198 KB gzip), `AgendaPage` 487 KB (130 KB gzip, carregado sob demanda), CSS 25 KB (5,6 KB gzip). `dist/` completo com imagens: **2,9 MB**.
+Tamanho do build atual (medido em 2026-07-20): `index` 766 KB (201 KB gzip), `AgendaPage` 485 KB (130 KB gzip, carregado sob demanda), CSS 25 KB (5,6 KB gzip). `dist/` completo com imagens: **3,0 MB**.
 
 ---
 
@@ -63,11 +63,13 @@ git log --oneline -3
 git status
 ```
 
-Anote o hash. Compare com o repositório local:
+Anote o hash. Compare com o repositório local (tip atual: `5f60cbc`, de 2026-07-20 — inclui a
+migração React, a remoção das restrições de escalação e o fix de ícones Lucide). De qualquer
+forma o `git pull` da Fase 3.2 leva o servidor ao tip; a tabela abaixo só diz o quão atrás ele está:
 
 | Commit no servidor | Situação |
 |---|---|
-| `d8951ab` ou posterior | Backend já é o atual. Banco **já deve estar** migrado — confirme mesmo assim em 0.2 |
+| `d8951ab` ou posterior | Já tem a migração React. Banco **já deve estar** migrado — confirme em 0.2. (Se for exatamente `d8951ab`, ainda falta a mudança de escalação de 2026-07-20; o `git pull` resolve.) |
 | entre `7dce38c` e `a21fbfc` | Backend já renomeado; confira `JWT_SECRET` (0.3) |
 | anterior a `7dce38c` | **Banco ainda no esquema antigo** → a Fase 2 é obrigatória |
 
@@ -335,6 +337,8 @@ Esperado: **200 / 200 / 401**. Se o deep link vier 404, a Fase 5 não pegou.
 - [ ] Login real funciona e cai na Home
 - [ ] Home mostra, nesta ordem: **Quadro de Avisos · Minhas Escalas · Próximos Compromissos**
 - [ ] Agenda abre com o calendário e os 3 botões: Aniversariantes · Indisponibilidades · Novo Compromisso
+- [ ] **Wizard de escala: passo 1 → "Escalar Equipe" → passo 2 sem tela branca** (era o crash de
+      ícones Lucide, corrigido em 2026-07-20 — se voltar a cair, procure `<i data-lucide>` novo em modal/lista)
 - [ ] **F5 dentro de `/agenda` continua em `/agenda`** (não dá 404, não volta para a home)
 - [ ] Ícones aparecem (se estiverem invisíveis, o renderer Lucide não montou)
 - [ ] Tema escuro/claro alterna e **persiste sem flash** no reload
@@ -358,7 +362,8 @@ Este é o ponto fraco conhecido da migração — reserve uma janela:
 - [ ] Login como **voluntário** (não-admin) com permissões variadas: conferir a matriz
       acessar/criar/editar/excluir por tela contra o app antigo
 - [ ] Fluxos LGPD: consentimento no cadastro, exclusão/anonimização de conta, foto só na sessão
-- [ ] Regra de exclusividade no wizard da Agenda (servo inelegível não pode ser escalado duas vezes)
+- [ ] Escalação na Agenda: qualquer servo pode ser escalado em qualquer área (as restrições de
+      perfil foram **removidas** em 2026-07-20); ainda barra **conflito de horário** e área inexistente
 
 > O admin **não serve** para testar permissões: `isAdmin()` curto-circuita todas as checagens.
 
@@ -392,8 +397,7 @@ ele é pré-requisito.
 - [ ] **Versionar a config do nginx** no repositório (hoje ela só existe na EC2 — se a instância morrer,
       ela morre junto)
 - [ ] Fixar a versão do Node (`.nvmrc` ou `engines`) para o build ser reprodutível
-- [ ] Marcar as Partes 1–5 da Fase 8 como concluídas no `PLANO DE ACAO.md` (estão feitas no código,
-      mas o documento ainda diz "a executar")
+- [x] ~~Marcar as Partes 1–5 da Fase 8 como concluídas no `PLANO DE ACAO.md`~~ — feito em 2026-07-20
 - [ ] Registrar a sessão de cutover no `.claude/progress.md`
 
 ---

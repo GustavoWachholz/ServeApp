@@ -4,7 +4,7 @@
 > Stack: Java 25 / Spring Boot 4.0.6 / Hibernate 7 / MySQL 8 (`ddl-auto=update`) · Frontend Vanilla JS + TS (`agenda.ts`).
 > Padrões de referência: `.claude/CLAUDE.md`, `.claude/DESIGN.md`.
 
-> **Status:** ✅ F1 · ✅ F3 · ✅ F2 · ✅ **Fase 7-A LGPD Alta** · ✅ **Fase 7-B LGPD Média** · ✅ **Fase 7-C LGPD Baixa** — **Plano de Ação concluído.**
+> **Status:** ✅ F1 · ✅ F3 · ✅ F2 · ✅ **Fase 7-A LGPD Alta** · ✅ **Fase 7-B LGPD Média** · ✅ **Fase 7-C LGPD Baixa** · ✅ **Fase 8** (concluída 2026-07-20, no frontend React — ver status na seção da Fase 8) — **Plano de Ação concluído.**
 
 ---
 
@@ -333,7 +333,18 @@ de consentimento e exclusão; rotina de retenção (agendada).
 
 > Plano de implementação (2026-06-17). **Não executar** itens não aprovados.
 > Stack: Java 25 / Spring Boot 4.0.6 / Hibernate 7 / MySQL 8 · Frontend Vanilla JS + TS (`agenda.ts`).
-> Status: 🔲 **A executar.**
+> Status: ✅ **CONCLUÍDA (2026-07-20).** As 5 Partes foram entregues — porém **no frontend React**
+> (`escala-frontend-react/`), não nos arquivos vanilla que este plano descreve (`index.html`,
+> `agenda.ts`, `app.html`, `js/auth.js`…). O texto abaixo permanece como registro histórico do
+> planejamento; traduza mentalmente cada alvo vanilla para seu equivalente React.
+>
+> | Parte | Status | Onde foi implementado (React) |
+> |---|---|---|
+> | 1 — Reordenar Home + tirar Aniversariantes | ✅ | `pages/DashboardPage.tsx` (ordem: Avisos → Minhas Escalas → Próximos; sem aniversariantes) |
+> | 2 — Aniversariantes na Agenda (badge + banner) | ✅ | `controller/AniversariantesController.java`, `dto/AniversarianteAgendaDTO.java`; `pages/AgendaPage.tsx` (`dayCellDidMount`, `.aniv-day-banner`) |
+> | 3 — Botões da Agenda (3 botões) | ✅ | `pages/AgendaPage.tsx` (Aniversariantes · Indisponibilidades · Novo Compromisso) |
+> | 4 — Reestruturação do menu | ✅ | `components/layout/Sidebar.tsx` (Agenda no topo; "Cadastros" como `nav-section-label`) |
+> | 5 — Unificação Servo↔Usuário | ✅ | `controller/ServoController.java` (sem POST/DELETE; só GET+PUT), `dto/CadastroRequest.java` (telefone/dataNascimento/genero obrigatórios) |
 
 ## Contexto relevante (estado atual verificado)
 

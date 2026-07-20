@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getServos, getServo, updateServo } from '../api/servos';
 import { getAreas } from '../api/areas';
@@ -166,7 +167,7 @@ export function ServosPage() {
       <div className="section-card" style={{ marginBottom: '1rem', padding: '0.85rem 1rem' }}>
         <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '.75rem' }}>
           <div className="search-wrap" style={{ flex: 1, minWidth: 180 }}>
-            <i data-lucide="search" />
+            <Icon name="search" />
             <input
               type="search"
               placeholder="Buscar servo…"
@@ -179,7 +180,7 @@ export function ServosPage() {
             <button className={`btn-sort${sort === 'alpha' ? ' active' : ''}`} onClick={() => setSort('alpha')}>A–Z</button>
           </div>
           <button className="btn-sort" onClick={exportar} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}>
-            <i data-lucide="download" />CSV
+            <Icon name="download" />CSV
           </button>
         </div>
         <div className="filter-row">
@@ -207,7 +208,7 @@ export function ServosPage() {
           </div>
           {(filtroArea || filtroMin || filtroEscala) && (
             <button className="btn-sort" onClick={limparFiltros} style={{ display: 'flex', alignItems: 'center', gap: '.3rem' }}>
-              <i data-lucide="x" />Limpar
+              <Icon name="x" />Limpar
             </button>
           )}
         </div>
@@ -229,7 +230,7 @@ export function ServosPage() {
                 <tr>
                   <td colSpan={3} style={{ padding: 0, border: 'none' }}>
                     <div className="empty-state">
-                      <i data-lucide="users" />
+                      <Icon name="users" />
                       <h3>{temFiltro ? 'Nenhum resultado' : 'Sua equipe está vazia'}</h3>
                       <p>{temFiltro ? 'Nenhum servo encontrado para essa pesquisa.' : 'Os servos aparecem aqui assim que se cadastram no sistema.'}</p>
                     </div>
@@ -242,7 +243,7 @@ export function ServosPage() {
                   <td>{v.telefone || '—'}</td>
                   <td className="actions-cell">
                     <button className="btn-sort" onClick={() => openView(v.id)} title="Exibir">
-                      <i data-lucide="eye" /><span className="btn-label">Exibir</span>
+                      <Icon name="eye" /><span className="btn-label">Exibir</span>
                     </button>
                   </td>
                 </tr>
@@ -260,7 +261,7 @@ export function ServosPage() {
         footer={
           mode === 'view' ? (
             <>
-              {editar && <button className="btn-primary" onClick={switchToEdit} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}><i data-lucide="pencil" />Editar</button>}
+              {editar && <button className="btn-primary" onClick={switchToEdit} style={{ display: 'flex', alignItems: 'center', gap: '.4rem' }}><Icon name="pencil" />Editar</button>}
               <button className="btn-secondary" onClick={() => setModalOpen(false)}>Fechar</button>
             </>
           ) : (

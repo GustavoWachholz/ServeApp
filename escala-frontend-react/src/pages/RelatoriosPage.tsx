@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from '../components/ui/Icon';
 import { getFrequencia } from '../api/relatorios';
 import { useToast } from '../hooks/useToast';
 import { downloadCSV } from '../utils/csv';
@@ -99,12 +100,12 @@ export function RelatoriosPage() {
             />
           </div>
           <button className="btn-primary" onClick={gerar} disabled={loading} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-            <i data-lucide="chart-column" />
+            <Icon name="chart-column" />
             {loading ? 'Gerando…' : 'Gerar'}
           </button>
           {dados && dados.length > 0 && (
             <button className="btn-sort" onClick={exportar} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <i data-lucide="download" />
+              <Icon name="download" />
               Exportar CSV
             </button>
           )}
@@ -120,7 +121,7 @@ export function RelatoriosPage() {
       {!loading && dados !== null && dados.length === 0 && (
         <div className="section-card">
           <div className="empty-state">
-            <i data-lucide="chart-column" />
+            <Icon name="chart-column" />
             <h3>Sem dados no período</h3>
             <p>Nenhuma escalação encontrada no período selecionado.</p>
           </div>

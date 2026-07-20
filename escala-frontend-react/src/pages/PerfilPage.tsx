@@ -1,4 +1,5 @@
 import { useRef, useState } from 'react';
+import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { useNavigate } from 'react-router-dom';
 import { getMe, updatePerfil, updateSenha, deleteUsuario } from '../api/usuarios';
@@ -235,7 +236,7 @@ export function PerfilPage() {
 
       {menor && (
         <div className="lgpd-aviso">
-          <i data-lucide="alert-triangle" style={{ flexShrink: 0, marginTop: '1px' }} />
+          <Icon name="alert-triangle" style={{ flexShrink: 0, marginTop: '1px' }} />
           <span>
             Seus dados pessoais estão protegidos conforme a Lei nº 13.709/2018 (LGPD). Por ser menor de
             18 anos, o tratamento dos seus dados requer consentimento de um responsável legal.
@@ -258,7 +259,7 @@ export function PerfilPage() {
               </div>
               <div className="foto-actions">
                 <button className="btn-secondary" onClick={() => fileRef.current?.click()} style={{ fontSize: '.82rem', padding: '.35rem .75rem' }}>
-                  <i data-lucide="upload" style={{ width: '14px', height: '14px' }} /> Escolher foto
+                  <Icon name="upload" style={{ width: '14px', height: '14px' }} /> Escolher foto
                 </button>
                 {fotoBase64 && (
                   <button className="btn-primary" onClick={salvarFoto} disabled={savingFoto} style={{ fontSize: '.82rem', padding: '.35rem .75rem' }}>
@@ -267,7 +268,7 @@ export function PerfilPage() {
                 )}
                 {(perfil?.foto || fotoAtual) && !fotoBase64 && (
                   <button className="btn-secondary" onClick={removerFoto} disabled={savingFoto} style={{ fontSize: '.82rem', padding: '.35rem .75rem', color: '#dc2626' }}>
-                    <i data-lucide="x" style={{ width: '14px', height: '14px' }} /> Remover foto
+                    <Icon name="x" style={{ width: '14px', height: '14px' }} /> Remover foto
                   </button>
                 )}
                 <span className="foto-hint">Máx 5 MB · JPEG, PNG ou WebP</span>
@@ -362,7 +363,7 @@ export function PerfilPage() {
                 Esta ação não pode ser desfeita.
               </p>
               <button className="btn-danger" onClick={() => setConfirmDelete(true)} style={{ fontSize: '.85rem', padding: '.4rem .85rem' }}>
-                <i data-lucide="trash-2" style={{ marginRight: '.4rem', width: '14px', height: '14px' }} />
+                <Icon name="trash-2" style={{ marginRight: '.4rem', width: '14px', height: '14px' }} />
                 Excluir minha conta
               </button>
             </div>

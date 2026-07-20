@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getAreas, getArea, deleteArea } from '../api/areas';
 import { getServos } from '../api/servos';
@@ -198,7 +199,7 @@ export function AreasPage() {
         <div className="header-actions">
           {criar && (
             <button className="btn-primary" onClick={openNew} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <i data-lucide="plus" />
+              <Icon name="plus" />
               Nova Área
             </button>
           )}
@@ -208,7 +209,7 @@ export function AreasPage() {
       <div className="section-card" style={{ padding: 0 }}>
         <div className="list-table-toolbar">
           <div className="search-wrap">
-            <i data-lucide="search" />
+            <Icon name="search" />
             <input
               type="search"
               placeholder="Buscar área…"
@@ -217,7 +218,7 @@ export function AreasPage() {
             />
           </div>
           <button className="btn-sort" onClick={exportar} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <i data-lucide="download" />
+            <Icon name="download" />
             CSV
           </button>
         </div>
@@ -238,7 +239,7 @@ export function AreasPage() {
                 <tr>
                   <td colSpan={4} style={{ padding: 0, border: 'none' }}>
                     <div className="empty-state">
-                      <i data-lucide="layers" />
+                      <Icon name="layers" />
                       <h3>{search ? 'Nenhum resultado' : 'Nenhuma área ainda'}</h3>
                       <p>{search ? 'Nenhuma área encontrada para a pesquisa.' : 'Crie a primeira clicando em "Nova Área".'}</p>
                     </div>
@@ -256,11 +257,11 @@ export function AreasPage() {
                   <td>{area.liderNome ?? 'Sem Líder'}</td>
                   <td className="actions-cell">
                     <button className="btn-sort btn-view" onClick={() => openView(area.id)} title="Exibir">
-                      <i data-lucide="eye" /><span className="btn-label">Exibir</span>
+                      <Icon name="eye" /><span className="btn-label">Exibir</span>
                     </button>
                     {excluir && (
                       <button className="btn-sort btn-sort-danger" onClick={() => askDelete(area)} title="Excluir">
-                        <i data-lucide="trash-2" /><span className="btn-label">Excluir</span>
+                        <Icon name="trash-2" /><span className="btn-label">Excluir</span>
                       </button>
                     )}
                   </td>
@@ -281,12 +282,12 @@ export function AreasPage() {
             <>
               {editar && (
                 <button className="btn-primary" onClick={switchToEdit} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <i data-lucide="pencil" /> Editar
+                  <Icon name="pencil" /> Editar
                 </button>
               )}
               {excluir && current && (
                 <button className="btn-danger" onClick={() => { setModalOpen(false); setConfirmOpen(true); }} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <i data-lucide="trash-2" /> Excluir
+                  <Icon name="trash-2" /> Excluir
                 </button>
               )}
               <button className="btn-secondary" onClick={() => setModalOpen(false)}>Fechar</button>
@@ -299,7 +300,7 @@ export function AreasPage() {
               <button className="btn-secondary" onClick={() => setModalOpen(false)}>Cancelar</button>
               {current?.id && excluir && (
                 <button className="btn-danger" onClick={() => { setModalOpen(false); setConfirmOpen(true); }} style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-                  <i data-lucide="trash-2" /> Excluir
+                  <Icon name="trash-2" /> Excluir
                 </button>
               )}
             </>

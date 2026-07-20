@@ -1,4 +1,5 @@
 import { useState, useMemo } from 'react';
+import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import { getMinisterios, createMinisterio, updateMinisterio, deleteMinisterio } from '../api/ministerios';
 import { getAreas } from '../api/areas';
@@ -258,7 +259,7 @@ export function MinisteriosPage() {
         <div className="header-actions">
           {criar && (
             <button className="btn-primary" onClick={openCreate} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-              <i data-lucide="plus" />
+              <Icon name="plus" />
               Novo Ministério
             </button>
           )}
@@ -268,7 +269,7 @@ export function MinisteriosPage() {
       <div className="section-card" style={{ padding: 0 }}>
         <div className="list-table-toolbar">
           <div className="search-wrap">
-            <i data-lucide="search" />
+            <Icon name="search" />
             <input
               type="search"
               placeholder="Buscar ministério…"
@@ -277,7 +278,7 @@ export function MinisteriosPage() {
             />
           </div>
           <button className="btn-sort" onClick={exportar} style={{ display: 'flex', alignItems: 'center', gap: '0.4rem' }}>
-            <i data-lucide="download" />
+            <Icon name="download" />
             CSV
           </button>
         </div>
@@ -299,7 +300,7 @@ export function MinisteriosPage() {
                 <tr>
                   <td colSpan={5} style={{ padding: 0, border: 'none' }}>
                     <div className="empty-state">
-                      <i data-lucide="tags" />
+                      <Icon name="tags" />
                       <h3>{search ? 'Nenhum resultado' : 'Nenhum ministério ainda'}</h3>
                       <p>{search ? 'Nenhum ministério encontrado para a pesquisa.' : 'Crie o primeiro clicando em "Novo Ministério".'}</p>
                     </div>
@@ -316,11 +317,11 @@ export function MinisteriosPage() {
                   <td><span className="classif-key">{m.classificacao}</span></td>
                   <td className="actions-cell">
                     <button className="btn-sort" onClick={() => openEdit(m)} title="Exibir / Editar">
-                      <i data-lucide="eye" /><span className="btn-label">Exibir</span>
+                      <Icon name="eye" /><span className="btn-label">Exibir</span>
                     </button>
                     {excluir && (
                       <button className="btn-sort btn-sort-danger" onClick={() => { setCurrent(m); setConfirmOpen(true); }} title="Excluir">
-                        <i data-lucide="trash-2" /><span className="btn-label">Excluir</span>
+                        <Icon name="trash-2" /><span className="btn-label">Excluir</span>
                       </button>
                     )}
                   </td>
@@ -412,7 +413,7 @@ export function MinisteriosPage() {
                 onClick={() => { setEditOpen(false); setConfirmOpen(true); }}
                 style={{ marginLeft: 'auto', display: 'flex', alignItems: 'center', gap: '0.4rem' }}
               >
-                <i data-lucide="trash-2" /> Excluir
+                <Icon name="trash-2" /> Excluir
               </button>
             )}
           </>

@@ -1,0 +1,28 @@
+# Dependências
+node_modules/
+
+# Builds
+dist/
+target/
+*.jar
+*.class
+
+# Ambiente
+.env
+.env.local
+*.pem
+
+# IDE
+.idea/workspace.xml
+.idea/tasks.xml
+.idea/shelf/
+*.iml
+.vscode/
+
+# Sistema operacional
+Thumbs.db
+.DS_Store
+
+# Logs
+*.log
+npm-debug.log*

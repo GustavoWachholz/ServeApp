@@ -17,10 +17,6 @@ const STYLES = `
   .tipo-geral { background:#05966920;color:#059669;border-color:#05966950; }
   .tipo-especifico { background:#004b8720;color:#004b87;border-color:#004b8750; }
   .toggle-wrap { display:flex;align-items:center;gap:.6rem; }
-  .toggle-wrap input[type=checkbox] { width:2.2rem;height:1.1rem;appearance:none;-webkit-appearance:none;background:var(--border-color);border-radius:1rem;cursor:pointer;position:relative;transition:background .2s; }
-  .toggle-wrap input[type=checkbox]:checked { background:var(--primary-color); }
-  .toggle-wrap input[type=checkbox]::after { content:'';position:absolute;top:2px;left:2px;width:calc(1.1rem - 4px);height:calc(1.1rem - 4px);border-radius:50%;background:#fff;transition:transform .2s; }
-  .toggle-wrap input[type=checkbox]:checked::after { transform:translateX(1.1rem); }
   .field-value { font-size:0.95rem;color:var(--text-primary); }
   .view-row { display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem; }
   .view-item { min-width:120px; }
@@ -400,12 +396,15 @@ export function AreasPage() {
             <div>
               <span className="field-label">Exclusivo na escala</span>
               <div className="toggle-wrap" style={{ marginTop: '.3rem' }}>
-                <input
-                  type="checkbox"
-                  id="area-exclusivo"
-                  checked={form.exclusivoNaEscala}
-                  onChange={(e) => setForm(f => ({ ...f, exclusivoNaEscala: e.target.checked }))}
-                />
+                <label className="switch">
+                  <input
+                    type="checkbox"
+                    id="area-exclusivo"
+                    checked={form.exclusivoNaEscala}
+                    onChange={(e) => setForm(f => ({ ...f, exclusivoNaEscala: e.target.checked }))}
+                  />
+                  <span className="slider" />
+                </label>
                 <label htmlFor="area-exclusivo" style={{ cursor: 'pointer', fontSize: '.9rem' }}>
                   {form.exclusivoNaEscala ? 'Sim' : 'Não'}
                 </label>

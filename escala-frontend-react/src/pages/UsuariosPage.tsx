@@ -39,13 +39,6 @@ const STYLES = `
   .perm-row.header { font-size:.72rem;font-weight:700;text-transform:uppercase;letter-spacing:.05em;color:var(--text-muted);padding:.25rem .5rem; }
   .perm-cell { display:flex;justify-content:center; }
   .perm-tela { font-size:.88rem; }
-  .switch { position:relative;display:inline-block;width:32px;height:17px; }
-  .switch input { opacity:0;width:0;height:0; }
-  .slider { position:absolute;cursor:pointer;inset:0;background:var(--border-color);border-radius:17px;transition:.2s; }
-  .slider:before { position:absolute;content:"";height:13px;width:13px;left:2px;bottom:2px;background:#fff;border-radius:50%;transition:.2s; }
-  input:checked + .slider { background:var(--primary-color); }
-  input:checked + .slider:before { transform:translateX(15px); }
-  input:disabled + .slider { opacity:.4;cursor:default; }
   .modal-perfil-header { display:flex;align-items:center;gap:1rem;padding-bottom:1rem;border-bottom:1px solid var(--border-color);margin-bottom:1rem; }
   .modal-perfil-info { display:flex;flex-direction:column;gap:.2rem; }
   .modal-perfil-nome { font-size:1.05rem;font-weight:700; }
@@ -306,7 +299,7 @@ export function UsuariosPage() {
                         <span className="perm-tela">{label}</span>
                         {(['acessar', 'criar', 'editar', 'excluir'] as const).map((acao) => (
                           <span key={acao} className="perm-cell">
-                            <label className="switch">
+                            <label className="switch switch-sm">
                               <input
                                 type="checkbox"
                                 checked={p[acao]}

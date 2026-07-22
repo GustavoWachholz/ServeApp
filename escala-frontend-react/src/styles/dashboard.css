@@ -553,12 +553,14 @@ input[type="color"] {
 .cards-row::-webkit-scrollbar { height: 8px; }
 .cards-row::-webkit-scrollbar-thumb { background: var(--border-color); border-radius: 4px; }
 
-/* Toggle Semana/Mês */
+/* Toggle Semana/Mês (segmented control) — definição única */
 .periodo-toggle {
     display: inline-flex;
+    padding: 3px;
+    gap: 2px;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
-    overflow: hidden;
+    border-radius: var(--radius);
+    background: var(--bg-sidebar);
 }
 .periodo-btn {
     background: var(--bg-card);
@@ -567,10 +569,11 @@ input[type="color"] {
     font-size: 0.78rem;
     font-weight: 600;
     padding: 0.4rem 0.9rem;
+    border-radius: var(--radius-sm);
     cursor: pointer;
     transition: all 0.15s;
 }
-.periodo-btn.active { background: var(--primary-color); color: #fff; }
+.periodo-btn.active { background: var(--primary-color); color: #fff; box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.4); }
 
 /* Lista dentro do modal "Ver todos" */
 .lista-modal-item {
@@ -727,8 +730,6 @@ html.embedded .sidebar { display: none; }
 .fc .fc-toolbar-chunk { display: flex; align-items: center; gap: 0.5rem; }
 .fc .fc-button-group { gap: 4px; }
 .fc .fc-button-group > .fc-button { border-radius: 6px !important; }
-.fc .fc-button { padding: 0.4rem 0.75rem; font-size: 0.82rem; }
-.fc .fc-toolbar-title { font-size: 1.15rem; }
 
 :root {
     --fc-button-bg-color: var(--primary-color);
@@ -761,6 +762,7 @@ html.embedded .sidebar { display: none; }
 
 .fc .fc-button {
     font-weight: 600;
+    font-size: 0.82rem;
     text-transform: capitalize;
     border-radius: 10px !important;
     padding: 0.6rem 1.2rem;
@@ -1019,7 +1021,7 @@ html.embedded .sidebar { display: none; }
     background-color: var(--primary-color);
     color: #fff;
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border-radius: var(--radius);
     border: none;
     font-weight: 600;
     cursor: pointer;
@@ -1035,7 +1037,7 @@ html.embedded .sidebar { display: none; }
     background-color: transparent;
     color: var(--text-muted);
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
     cursor: pointer;
     transition: all 0.2s;
@@ -1056,7 +1058,7 @@ html.embedded .sidebar { display: none; }
     background-color: var(--danger);
     color: #fff;
     padding: 0.75rem 1.5rem;
-    border-radius: 6px;
+    border-radius: var(--radius);
     border: none;
     font-weight: 600;
     cursor: pointer;
@@ -1264,26 +1266,10 @@ svg.lucide {
 .section-header h2 { font-weight: 600; }
 .btn-primary, .btn-secondary, .btn-danger, .btn-sort { font-weight: 600; letter-spacing: 0.01em; }
 
-/* ── Botões: mais arredondados, com leve glow de acento ──────────────────── */
-.btn-primary, .btn-secondary, .btn-danger { border-radius: var(--radius); }
-.btn-sort { border-radius: var(--radius-sm); }
+/* ── Botões: glow de acento no hover/active (raio já vem das regras-base) ─── */
 .btn-primary:hover { box-shadow: 0 4px 18px rgba(var(--accent-rgb), 0.35); }
 .btn-primary:active { box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.4); }
 .btn-sort.active { box-shadow: 0 2px 12px rgba(var(--accent-rgb), 0.4); }
-
-/* ── Segmented controls (Semana/Mês, Próximas/Histórico) ─────────────────── */
-.periodo-toggle {
-    padding: 3px;
-    gap: 2px;
-    border-radius: var(--radius);
-    background: var(--bg-sidebar);
-    overflow: visible;
-}
-.periodo-btn { border-radius: var(--radius-sm); transition: all 0.15s; }
-.periodo-btn.active {
-    color: #fff;
-    box-shadow: 0 2px 10px rgba(var(--accent-rgb), 0.4);
-}
 
 /* FullCalendar: grupo Mês/Semana/Dia/Lista também com glow no ativo */
 .fc .fc-button-primary:not(:disabled).fc-button-active {

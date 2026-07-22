@@ -13,7 +13,7 @@ import type { MinisterioDTO, MinisterioRequest, AreaDTO } from '../types';
 
 const STYLES = `
   .color-dot { display:inline-block;width:14px;height:14px;border-radius:50%;border:1px solid rgba(0,0,0,.1);vertical-align:middle; }
-  .classif-key { background:var(--bg-main);border:1px solid var(--border-color);border-radius:4px;padding:1px 6px;font-size:0.75rem;font-family:'JetBrains Mono',monospace;color:var(--text-muted); }
+  .classif-key { background:var(--bg-main);border:1px solid var(--border-color);border-radius:4px;padding:1px 6px;font-size:0.75rem;font-family:var(--font);color:var(--text-muted); }
   .cor-row { display:flex;align-items:center;gap:.6rem; }
   .cor-preview { width:32px;height:32px;border-radius:50%;border:2px solid var(--border-color);flex-shrink:0; }
   .field-label { font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem; }

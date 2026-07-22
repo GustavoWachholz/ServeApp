@@ -629,7 +629,7 @@ export function AgendaPage() {
       {/* Container oculto para exportação como imagem */}
       {exportData && (
         <div style={{ position: 'fixed', left: -99999, top: 0 }}>
-          <div ref={exportRef} style={{ width: 900, background: '#fff', fontFamily: 'Arial, sans-serif' }}>
+          <div ref={exportRef} style={{ width: 900, background: '#fff', fontFamily: 'var(--font)' }}>
             <div style={{ background: exportData.cor, color: '#fff', padding: '20px 24px', textAlign: 'center' }}>
               {exportData.org && <div style={{ fontSize: 13, letterSpacing: 2, opacity: 0.85 }}>{exportData.org}</div>}
               <div style={{ fontSize: 22, fontWeight: 800, letterSpacing: 1 }}>{exportData.setor}</div>

@@ -22,7 +22,7 @@ function gerarSvgAvatar(nome: string, cor: string, size: number): string {
   const svg =
     `<svg xmlns="http://www.w3.org/2000/svg" width="${size}" height="${size}">` +
     `<rect width="${size}" height="${size}" rx="${size / 2}" fill="${cor}"/>` +
-    `<text x="${size / 2}" y="${size / 2}" font-family="Inter,Arial,sans-serif" font-size="${fontSize}" font-weight="600"` +
+    `<text x="${size / 2}" y="${size / 2}" font-family="ui-monospace,SFMono-Regular,Consolas,monospace" font-size="${fontSize}" font-weight="600"` +
     ` fill="white" text-anchor="middle" dominant-baseline="central">${safe}</text>` +
     `</svg>`;
   return 'data:image/svg+xml;charset=UTF-8,' + encodeURIComponent(svg);

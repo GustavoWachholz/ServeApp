@@ -4,7 +4,7 @@ export function PrivacidadePage() {
   return (
     <>
       <style>{`
-        .priv-body { font-family: 'Inter','Segoe UI',system-ui,sans-serif; background:#f8f9fa; color:#1f2937; line-height:1.7; min-height:100vh; }
+        .priv-body { font-family: var(--font); background:#f8f9fa; color:#1f2937; line-height:1.7; min-height:100vh; }
         .priv-header { background:#004b87; color:#fff; padding:1.25rem 2rem; display:flex; align-items:center; gap:1rem; }
         .priv-header h1 { font-size:1.2rem; font-weight:600; }
         .priv-header span { font-size:0.85rem; opacity:0.75; }

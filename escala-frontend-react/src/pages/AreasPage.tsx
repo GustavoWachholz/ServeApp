@@ -21,7 +21,6 @@ const STYLES = `
   .toggle-wrap input[type=checkbox]:checked { background:var(--primary-color); }
   .toggle-wrap input[type=checkbox]::after { content:'';position:absolute;top:2px;left:2px;width:calc(1.1rem - 4px);height:calc(1.1rem - 4px);border-radius:50%;background:#fff;transition:transform .2s; }
   .toggle-wrap input[type=checkbox]:checked::after { transform:translateX(1.1rem); }
-  .field-label { font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem; }
   .field-value { font-size:0.95rem;color:var(--text-primary); }
   .view-row { display:flex;gap:1.5rem;flex-wrap:wrap;margin-bottom:1rem; }
   .view-item { min-width:120px; }

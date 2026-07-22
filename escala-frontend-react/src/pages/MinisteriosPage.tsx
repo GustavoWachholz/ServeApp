@@ -16,7 +16,6 @@ const STYLES = `
   .classif-key { background:var(--bg-main);border:1px solid var(--border-color);border-radius:4px;padding:1px 6px;font-size:0.75rem;font-family:var(--font);color:var(--text-muted); }
   .cor-row { display:flex;align-items:center;gap:.6rem; }
   .cor-preview { width:32px;height:32px;border-radius:50%;border:2px solid var(--border-color);flex-shrink:0; }
-  .field-label { font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.3rem; }
   .min-grid { display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:.5rem;max-height:220px;overflow-y:auto;padding:.25rem;border:1px solid var(--border-color);border-radius:var(--radius-sm); }
   .min-check-item { display:flex;align-items:center;gap:.5rem;padding:.4rem .5rem;border-radius:var(--radius-sm);border:1px solid var(--border-color);cursor:pointer;transition:background .15s;font-size:.85rem;background:var(--bg-card); }
   .min-check-item.selected { background:rgba(var(--accent-rgb),.1);border-color:rgba(var(--accent-rgb),.4); }

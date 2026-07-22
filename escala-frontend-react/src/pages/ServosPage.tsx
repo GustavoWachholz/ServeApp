@@ -23,7 +23,6 @@ const STYLES = `
   .chip-grid { display:flex;flex-wrap:wrap;gap:.3rem;padding:.25rem; }
   .view-row { display:flex;gap:1.2rem;flex-wrap:wrap;margin-bottom:.85rem; }
   .view-item { min-width:110px; }
-  .field-label { font-size:0.8rem;font-weight:600;color:var(--text-muted);display:block;margin-bottom:.25rem; }
   .field-value { font-size:0.92rem;color:var(--text-primary); }
   .sort-btn-wrap { display:flex;gap:.4rem; }
   .filter-row { display:flex;flex-wrap:wrap;gap:.6rem;align-items:center; }

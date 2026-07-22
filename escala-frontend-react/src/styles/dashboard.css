@@ -122,6 +122,17 @@ select.field-invalid {
     display: block;
 }
 
+/* Label de campo usado nos formulários inline das páginas (Servos, Áreas,
+   Ministérios). Definição única — antes era repetida em cada página com
+   margens divergentes. */
+.field-label {
+    display: block;
+    font-size: 0.8rem;
+    font-weight: 600;
+    color: var(--text-muted);
+    margin-bottom: 0.3rem;
+}
+
 /* ── Toolbar compartilhada (search + sort + export) ─────────────── */
 .toolbar {
     display: flex;

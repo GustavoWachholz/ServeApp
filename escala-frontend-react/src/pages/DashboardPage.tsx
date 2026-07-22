@@ -24,7 +24,7 @@ const STYLES = `
   .home-empty { color:var(--text-color);opacity:.5;font-style:italic;padding:1rem 0; }
   .aviso-admin-btns { display:flex;gap:.4rem;margin-top:.6rem; }
   .aviso-admin-btns button { background:none;border:1px solid var(--border-color);border-radius:6px;padding:.25rem .6rem;cursor:pointer;font-size:.78rem;color:var(--text-muted);display:inline-flex;align-items:center;gap:.3rem; }
-  .aviso-admin-btns button.excluir { border-color:#ef444450;color:#ef4444; }
+  .aviso-admin-btns button.excluir { border-color:rgba(var(--danger-rgb),.31);color:var(--danger); }
   .card-escala h4 { margin-bottom:.4rem;font-size:.95rem; }
   .card-escala p { font-size:.82rem;color:var(--text-muted);display:flex;align-items:center;gap:.35rem;margin-top:.2rem; }
   .card-escala p i { width:14px;height:14px; }

@@ -366,7 +366,7 @@ export function AreasPage() {
         {mode === 'edit' && (
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div>
-              <label className="field-label" htmlFor="area-nome">Nome <span style={{ color: '#ef4444' }}>*</span></label>
+              <label className="field-label" htmlFor="area-nome">Nome <span style={{ color: 'var(--danger)' }}>*</span></label>
               <input
                 id="area-nome"
                 type="text"

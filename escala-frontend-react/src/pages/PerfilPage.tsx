@@ -18,8 +18,8 @@ const STYLES = `
   .foto-hint { font-size:.73rem;color:var(--text-muted); }
   .foto-preview { position:relative;width:72px;height:72px;border-radius:50%;overflow:hidden;flex-shrink:0;border:2px solid var(--border-color); }
   .foto-preview img { width:100%;height:100%;object-fit:cover; }
-  .danger-zone { background:rgba(220,38,38,.06);border:1px solid rgba(220,38,38,.2);border-radius:var(--radius-sm);padding:1.1rem 1.25rem; }
-  .danger-zone-title { font-size:.78rem;font-weight:700;color:#dc2626;text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem; }
+  .danger-zone { background:rgba(var(--danger-rgb),.06);border:1px solid rgba(var(--danger-rgb),.2);border-radius:var(--radius-sm);padding:1.1rem 1.25rem; }
+  .danger-zone-title { font-size:.78rem;font-weight:700;color:var(--danger);text-transform:uppercase;letter-spacing:.05em;margin-bottom:.5rem; }
   .danger-zone-desc { font-size:.83rem;color:var(--text-muted);margin-bottom:.9rem; }
   .lgpd-aviso { background:rgba(234,179,8,.1);border:1px solid rgba(234,179,8,.3);border-radius:var(--radius-sm);padding:.65rem .9rem;font-size:.8rem;color:#b45309;margin-bottom:1rem;display:flex;align-items:flex-start;gap:.5rem; }
   .form-row-2 { display:grid;grid-template-columns:1fr 1fr;gap:.75rem; }
@@ -45,10 +45,10 @@ function senhaForca(senha: string): { cor: string; pct: number; label: string } 
   if (/[A-Z]/.test(senha)) score++;
   if (/[0-9]/.test(senha)) score++;
   if (/[^A-Za-z0-9]/.test(senha)) score++;
-  if (score <= 1) return { cor: '#dc2626', pct: 25, label: 'Fraca' };
-  if (score === 2) return { cor: '#f59e0b', pct: 50, label: 'Razoável' };
-  if (score === 3) return { cor: '#3b82f6', pct: 75, label: 'Boa' };
-  return { cor: '#10b981', pct: 100, label: 'Forte' };
+  if (score <= 1) return { cor: 'var(--danger)', pct: 25, label: 'Fraca' };
+  if (score === 2) return { cor: 'var(--warn)', pct: 50, label: 'Razoável' };
+  if (score === 3) return { cor: 'var(--info)', pct: 75, label: 'Boa' };
+  return { cor: 'var(--success)', pct: 100, label: 'Forte' };
 }
 
 async function resizarFoto(file: File, maxPx = 256): Promise<string> {
@@ -267,7 +267,7 @@ export function PerfilPage() {
                   </button>
                 )}
                 {(perfil?.foto || fotoAtual) && !fotoBase64 && (
-                  <button className="btn-secondary" onClick={removerFoto} disabled={savingFoto} style={{ fontSize: '.82rem', padding: '.35rem .75rem', color: '#dc2626' }}>
+                  <button className="btn-secondary" onClick={removerFoto} disabled={savingFoto} style={{ fontSize: '.82rem', padding: '.35rem .75rem', color: 'var(--danger)' }}>
                     <Icon name="x" style={{ width: '14px', height: '14px' }} /> Remover foto
                   </button>
                 )}
@@ -355,7 +355,7 @@ export function PerfilPage() {
 
           {/* Zona de perigo */}
           <div className="perfil-card">
-            <p className="perfil-card-title" style={{ color: '#dc2626', borderBottomColor: 'rgba(220,38,38,.15)' }}>Zona de risco</p>
+            <p className="perfil-card-title" style={{ color: 'var(--danger)', borderBottomColor: 'rgba(var(--danger-rgb),.15)' }}>Zona de risco</p>
             <div className="danger-zone">
               <p className="danger-zone-title">Excluir minha conta</p>
               <p className="danger-zone-desc">

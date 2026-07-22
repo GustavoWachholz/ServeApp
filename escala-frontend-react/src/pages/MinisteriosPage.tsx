@@ -26,8 +26,8 @@ const STYLES = `
   .export-preview-header .setor { font-size:.7rem;opacity:.85;text-transform:uppercase; }
   .export-preview-header .data { font-size:.65rem;opacity:.7; }
   .save-status { font-size:.8rem;min-height:1.2rem; }
-  .save-status.error { color:#ef4444; }
-  .save-status.success { color:#059669; }
+  .save-status.error { color:var(--danger); }
+  .save-status.success { color:var(--success); }
 `;
 
 function hexDarken(hex: string, pct: number): string {
@@ -348,7 +348,7 @@ export function MinisteriosPage() {
       >
         <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
           <div>
-            <label className="field-label" htmlFor="criar-nome">Nome <span style={{ color: '#ef4444' }}>*</span></label>
+            <label className="field-label" htmlFor="criar-nome">Nome <span style={{ color: 'var(--danger)' }}>*</span></label>
             <input
               id="criar-nome"
               type="text"
@@ -422,7 +422,7 @@ export function MinisteriosPage() {
           <div style={{ display: 'flex', flexDirection: 'column', gap: '1rem' }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1rem' }}>
               <div>
-                <label className="field-label" htmlFor="editar-nome">Nome <span style={{ color: '#ef4444' }}>*</span></label>
+                <label className="field-label" htmlFor="editar-nome">Nome <span style={{ color: 'var(--danger)' }}>*</span></label>
                 <input
                   id="editar-nome"
                   type="text"

@@ -265,6 +265,11 @@ select.field-invalid {
     --warn:    #e0a83a;
     --danger:  #e0623a;
     --info:    #5b8cff;
+    /* Triplas RGB das semânticas — para fundos/bordas translúcidos via rgba() */
+    --success-rgb: 70,201,139;
+    --warn-rgb:    224,168,58;
+    --danger-rgb:  224,98,58;
+    --info-rgb:    91,140,255;
 
     /* ── Geometria e tipografia ── */
     --radius:    10px;

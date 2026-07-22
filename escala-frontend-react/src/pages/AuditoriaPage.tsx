@@ -25,16 +25,16 @@ const ACAO_LABEL: Record<string, string> = {
 const STYLES = `
   .aud-badge { display:inline-block;padding:2px 8px;border-radius:12px;font-size:0.72rem;font-weight:600;border:1px solid transparent; }
   .aud-badge-modulo { background:rgba(var(--accent-rgb),.12);color:var(--primary-color);border-color:rgba(var(--accent-rgb),.3); }
-  .aud-badge-criar { background:#05966912;color:#059669;border-color:#05966930; }
-  .aud-badge-editar { background:#d9770612;color:#d97706;border-color:#d9770630; }
-  .aud-badge-excluir { background:#ef444412;color:#ef4444;border-color:#ef444430; }
-  .aud-badge-login { background:#3b82f612;color:#3b82f6;border-color:#3b82f630; }
+  .aud-badge-criar { background:rgba(var(--success-rgb),.12);color:var(--success);border-color:rgba(var(--success-rgb),.3); }
+  .aud-badge-editar { background:rgba(var(--warn-rgb),.12);color:var(--warn);border-color:rgba(var(--warn-rgb),.3); }
+  .aud-badge-excluir { background:rgba(var(--danger-rgb),.12);color:var(--danger);border-color:rgba(var(--danger-rgb),.3); }
+  .aud-badge-login { background:rgba(var(--info-rgb),.12);color:var(--info);border-color:rgba(var(--info-rgb),.3); }
   .aud-badge-logout { background:#64748b12;color:#64748b;border-color:#64748b30; }
-  .aud-badge-login_falhou { background:#ef444412;color:#ef4444;border-color:#ef444430; }
+  .aud-badge-login_falhou { background:rgba(var(--danger-rgb),.12);color:var(--danger);border-color:rgba(var(--danger-rgb),.3); }
   .aud-badge-alterar_senha,.aud-badge-alterar_permissoes,.aud-badge-vincular_servo { background:#8b5cf612;color:#8b5cf6;border-color:#8b5cf630; }
-  .status-ok { color:#059669;font-weight:600; }
-  .status-warn { color:#d97706;font-weight:600; }
-  .status-err { color:#ef4444;font-weight:600; }
+  .status-ok { color:var(--success);font-weight:600; }
+  .status-warn { color:var(--warn);font-weight:600; }
+  .status-err { color:var(--danger);font-weight:600; }
   .datetime-cell { white-space:nowrap;font-size:0.82rem;color:var(--text-muted); }
   .descricao-cell { max-width:260px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:0.85rem; }
   .aud-filters { display:flex;flex-wrap:wrap;gap:.75rem;align-items:flex-end; }
@@ -218,7 +218,7 @@ export function AuditoriaPage() {
               ))}
               {isError && (
                 <tr>
-                  <td colSpan={6} style={{ textAlign: 'center', color: '#ef4444', padding: '2rem' }}>
+                  <td colSpan={6} style={{ textAlign: 'center', color: 'var(--danger)', padding: '2rem' }}>
                     <Icon name="circle-alert" style={{ marginRight: '.5rem' }} />
                     Erro ao carregar registros.
                   </td>

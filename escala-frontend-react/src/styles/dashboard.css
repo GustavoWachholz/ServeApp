@@ -204,7 +204,10 @@ select.field-invalid {
     background-color: var(--bg-card);
     border-radius: 12px;
     border: 1px solid var(--border-color);
-    overflow: hidden;
+    /* Rola na horizontal quando a tabela é mais larga que o container (ex.: Auditoria)
+       em vez de recortar colunas. overflow-y:hidden mantém o clip dos cantos. */
+    overflow-x: auto;
+    overflow-y: hidden;
     margin-top: 1rem;
     /* Estabelece contexto de container query para o colapso dos botões acima */
     container-type: inline-size;

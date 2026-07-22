@@ -255,7 +255,9 @@ select.field-invalid {
     /* ── Geometria e tipografia ── */
     --radius:    10px;
     --radius-sm: 7px;
-    --font-mono: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
+    /* Fonte única de verdade de toda a UI (carregada via @fontsource em main.tsx). */
+    --font:      'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
+    --font-mono: var(--font);   /* alias de retrocompatibilidade */
 
     /* ── Aliases de retrocompatibilidade ── */
     --bg-main:        var(--bg);
@@ -292,7 +294,13 @@ select.field-invalid {
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font);
+}
+
+/* Elementos de formulário não herdam a fonte por padrão — força a herança
+   para que a fonte única valha em 100% da UI. */
+input, button, select, textarea, optgroup {
+    font-family: inherit;
 }
 
 /* ── Scrollbar personalizada (Webkit: Chrome, Edge, Safari) ── */
@@ -721,7 +729,7 @@ html.embedded .sidebar { display: none; }
 }
 
 .fc {
-    font-family: 'Inter', sans-serif;
+    font-family: var(--font);
 }
 
 .fc .fc-toolbar-title {
@@ -1198,28 +1206,8 @@ svg.lucide {
 }
 .spin { animation: loading-spin 0.8s linear infinite; }
 
-/* ── Tipografia monoespaçada (títulos, labels, navegação, badges) ────────── */
-.logo-title,
-.main-header h1,
-.section-header h2,
-.see-all,
-.nav-section-label,
-.sidebar-nav li a,
-.sidebar-btn,
-.popover-header,
-.user-info h3,
-.user-role,
-.bottom-nav-item,
-.form-group label,
-.list-table-container th,
-.periodo-btn,
-.btn-sort,
-.btn-primary,
-.btn-secondary,
-.btn-danger,
-.badge {
-    font-family: var(--font-mono);
-}
+/* Tipografia: toda a UI usa var(--font) (JetBrains Mono) herdada do seletor
+   universal — não há mais bloco de exceção monoespaçada. */
 
 /* Labels de formulário no estilo do mockup (uppercase, espaçado, ~11px) */
 .form-group label {

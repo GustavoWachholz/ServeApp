@@ -945,7 +945,7 @@ html.embedded .sidebar { display: none; }
     font-weight: 500;
 }
 
-.form-group input, .form-group select {
+.form-group input, .form-group select, .form-group textarea {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--bg-main);
@@ -955,28 +955,31 @@ html.embedded .sidebar { display: none; }
     font-size: 0.9rem;
 }
 
-.form-group input:focus, .form-group select:focus {
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
     outline: none;
     border-color: var(--primary-color);
     background-color: var(--bg-card);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.15);
 }
 
-/* ── Dark mode: inputs e selects ── */
+/* ── Dark mode: inputs, selects e textareas ── */
 :root.dark-mode .form-group input,
-:root.dark-mode .form-group select {
+:root.dark-mode .form-group select,
+:root.dark-mode .form-group textarea {
     background-color: var(--bg-main);
     color: var(--text-color);
 }
 
 :root.dark-mode .form-group input:focus,
-:root.dark-mode .form-group select:focus {
+:root.dark-mode .form-group select:focus,
+:root.dark-mode .form-group textarea:focus {
     background-color: rgba(255, 255, 255, 0.04);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 
 :root.dark-mode .form-group input::placeholder,
-:root.dark-mode .form-group select::placeholder {
+:root.dark-mode .form-group select::placeholder,
+:root.dark-mode .form-group textarea::placeholder {
     color: var(--text-muted);
 }
 
@@ -1043,6 +1046,27 @@ html.embedded .sidebar { display: none; }
 .btn-danger:hover {
     filter: brightness(0.88);
     box-shadow: 0 4px 12px rgba(224, 98, 58, 0.3);
+}
+
+/* ── Estados de foco (teclado) e desabilitado, padronizados ──────────────── */
+.btn-primary:focus-visible,
+.btn-secondary:focus-visible,
+.btn-danger:focus-visible,
+.btn-sort:focus-visible,
+.periodo-btn:focus-visible {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.4);
+}
+
+.btn-primary:disabled,
+.btn-secondary:disabled,
+.btn-danger:disabled,
+.btn-sort:disabled,
+.periodo-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    filter: none;
+    box-shadow: none;
 }
 
 /* ════════════════════════════════════════════════════════════════════════

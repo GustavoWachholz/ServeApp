@@ -1,4 +1,8 @@
-/* ── Tokens do tema (login é sempre escuro) ── */
+/* ── Tokens do tema (login é sempre escuro) ──
+   Os tokens de cor/raio globais (--primary-color, --radius, etc.) vêm de
+   dashboard.css; aqui só ficam os específicos do login. O reset universal e
+   os estilos de <body> também são de dashboard.css / do useEffect da página,
+   então este arquivo pode ser importado globalmente sem vazar layout. */
 :root {
     --login-bg:       #0a0a0b;
     --login-surface:  #141417;
@@ -6,26 +10,6 @@
     --login-border:   #232327;
     --login-text:     #ededf0;
     --login-muted:    #9a9aa2;
-    --primary-color:  #c98aff;
-    --accent-rgb:     201,138,255;
-    --warn:           #e0a83a;
-    --danger:         #e0623a;
-    --radius:         10px;
-    --radius-sm:      7px;
-}
-
-/* Reset e Configurações Globais */
-* {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-    font-family: 'Inter', 'Segoe UI', system-ui, -apple-system, sans-serif;
-}
-
-body {
-    height: 100vh;
-    overflow: hidden;
-    background-color: var(--login-bg);
 }
 
 /* Transição suave entre view-login e view-registro */
@@ -107,21 +91,12 @@ body {
 
 .input-group label {
     display: block;
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
     font-size: 0.7rem;
     text-transform: uppercase;
     letter-spacing: 0.06em;
     font-weight: 600;
     margin-bottom: 0.5rem;
     color: var(--login-muted);
-}
-
-.form-content h2 {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
-}
-
-.btn-submit {
-    font-family: 'JetBrains Mono', ui-monospace, SFMono-Regular, monospace;
 }
 
 .input-group input,

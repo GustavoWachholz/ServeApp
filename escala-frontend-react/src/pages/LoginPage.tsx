@@ -2,6 +2,7 @@ import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { login as apiLogin, cadastro as apiCadastro } from '../api/auth';
 import { useAuth } from '../hooks/useAuth';
+import '../styles/login.css';
 
 type View = 'login' | 'cadastro';
 

@@ -17,7 +17,7 @@
     align-items: flex-start;
     gap: 0.6rem;
     padding: 0.7rem 1rem;
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     font-size: 0.85rem;
     max-width: 360px;
     box-shadow: 0 4px 16px rgba(0,0,0,0.15);
@@ -158,7 +158,7 @@ select.field-invalid {
     width: 100%;
     padding: 0.65rem 2.4rem;
     border: 1px solid var(--border-color);
-    border-radius: 8px;
+    border-radius: var(--radius-sm);
     background-color: var(--bg-card);
     color: var(--text-color);
     font-size: 0.875rem;
@@ -172,7 +172,7 @@ select.field-invalid {
 .btn-sort {
     padding: 0.55rem 0.95rem;
     border: 1px solid var(--border-color);
-    border-radius: 6px;
+    border-radius: var(--radius-sm);
     background: var(--bg-card);
     color: var(--text-muted);
     font-size: 0.8rem;
@@ -202,7 +202,7 @@ select.field-invalid {
 /* ── Tabela padrão de listagem ──────────────────────────────────── */
 .list-table-container {
     background-color: var(--bg-card);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     /* Rola na horizontal quando a tabela é mais larga que o container (ex.: Auditoria)
        em vez de recortar colunas. overflow-y:hidden mantém o clip dos cantos. */
@@ -274,6 +274,7 @@ select.field-invalid {
     /* ── Geometria e tipografia ── */
     --radius:    10px;
     --radius-sm: 7px;
+    --radius-lg: 12px;   /* superfícies grandes: modais, cards de tabela, calendário, popovers */
     /* Fonte única de verdade de toda a UI (carregada via @fontsource em main.tsx). */
     --font:      'JetBrains Mono', ui-monospace, SFMono-Regular, Consolas, monospace;
     --font-mono: var(--font);   /* alias de retrocompatibilidade */
@@ -452,7 +453,7 @@ body {
     right: 0.8rem;
     background-color: var(--bg-sidebar);
     border: 1px solid var(--border-color);
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 1.2rem;
     box-shadow: 0 10px 25px rgba(0, 0, 0, 0.1);
     z-index: 100;
@@ -528,7 +529,7 @@ input[type="color"] {
 .card {
     background-color: var(--bg-card);
     padding: 1.5rem;
-    border-radius: 10px;
+    border-radius: var(--radius);
     border: 1px solid var(--border-color);
     transition: all 0.2s;
 }
@@ -716,7 +717,7 @@ html.embedded .sidebar { display: none; }
     height: auto;               /* a altura é controlada dinamicamente pelo FullCalendar (agenda.ts) */
     background-color: var(--bg-card);
     padding: 1.25rem;
-    border-radius: 16px;
+    border-radius: var(--radius-lg);
     border: 1px solid var(--border-color);
     box-shadow: 0 4px 20px rgba(0,0,0,0.05);
 }
@@ -910,7 +911,7 @@ html.embedded .sidebar { display: none; }
     background-color: var(--bg-card);
     width: 100%;
     max-width: 500px;
-    border-radius: 12px;
+    border-radius: var(--radius-lg);
     padding: 2rem;
     box-shadow: 0 20px 40px rgba(0, 0, 0, 0.1);
     border: 1px solid var(--border-color);
@@ -926,7 +927,7 @@ html.embedded .sidebar { display: none; }
 
     .modal-content {
         padding: 1.25rem;
-        border-radius: 8px;
+        border-radius: var(--radius-sm);
     }
 }
 

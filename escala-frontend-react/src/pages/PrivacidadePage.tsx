@@ -17,7 +17,12 @@ export function PrivacidadePage() {
         .priv-main li { font-size:0.92rem; color:#374151; margin-bottom:0.3rem; }
         .priv-destaque { background:#eff6ff; border-left:4px solid #004b87; border-radius:0 6px 6px 0; padding:0.75rem 1rem; margin:1rem 0; }
         .priv-footer { text-align:center; font-size:0.8rem; color:#9ca3af; padding:2rem; }
-        @media(max-width:600px) { .priv-main { margin:1rem; padding:1.5rem; } }
+        @media(max-width:640px) {
+          .priv-header { padding:1rem 1.25rem; }
+          .priv-main { margin:1rem; padding:1.5rem; }
+          .priv-main h2 { font-size:1.3rem; }
+          .priv-footer { padding:1.5rem 1rem; }
+        }
       `}</style>
       <div className="priv-body">
         <header className="priv-header">

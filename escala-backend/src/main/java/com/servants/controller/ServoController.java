@@ -2,7 +2,6 @@ package com.servants.controller;
 
 import com.servants.dto.ServoDTO;
 import com.servants.service.ServoService;
-import jakarta.servlet.http.HttpServletRequest;
 import jakarta.validation.Valid;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -33,10 +32,9 @@ public class ServoController {
         return servoService.listarTodos();
     }
 
-    /** {@code GET /api/servos/{id}} — busca um voluntário pelo id. Somente ADMIN. */
+    /** {@code GET /api/servos/{id}} — busca um voluntário pelo id. */
     @GetMapping("/{id}")
-    public ResponseEntity<ServoDTO> buscarPorId(@PathVariable Long id, HttpServletRequest request) {
-        if (!"ADMIN".equals(request.getAttribute("role"))) return ResponseEntity.status(403).build();
+    public ResponseEntity<ServoDTO> buscarPorId(@PathVariable Long id) {
         return ResponseEntity.ok(servoService.buscarPorId(id));
     }
 

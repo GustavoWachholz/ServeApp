@@ -20,7 +20,14 @@ icacls "C:\caminho\serve-key.pem" /grant:r "$($env:USERNAME):R"
 
 ## REPOSITORIO
 
-Atualizar codigo da EC2 com o que esta no GitHub:
+> **Atencao:** o `git pull` na EC2 atualmente **falha** (`could not read Username for
+> 'https://github.com'`) porque o remote e HTTPS e nao ha credencial salva no servidor.
+> Isso **nao afeta o deploy do frontend**, que e buildado fora da EC2 (ver secao FRONTEND).
+> Para corrigir o pull no servidor: trocar o remote para SSH com deploy key
+> (`git remote set-url origin git@github.com:GustavoWachholz/ServeApp.git`) ou configurar
+> um Personal Access Token. So e necessario se voce for buildar o backend na EC2.
+
+Atualizar codigo da EC2 com o que esta no GitHub (apos corrigir a auth acima):
 ```
 cd ~/ServeApp
 git pull
@@ -68,26 +75,64 @@ sudo journalctl -u serve-backend -n 30 --no-pager
 
 ---
 
-## FRONTEND (nginx)
+## FRONTEND (React — nginx)
 
-Copiar arquivos do frontend para o nginx:
+> **Frontend ativo: `escala-frontend-react/` (React 19 + Vite).** O cutover ja foi feito:
+> o nginx serve o SPA React de `/var/www/html` (bloco HTTPS `serveapp.com.br`, com
+> `try_files $uri $uri/ /index.html` para o roteamento client-side).
+>
+> **A EC2 NAO tem Node/npm** — o build **nao** roda no servidor. O fluxo e:
+> buildar o `dist/` **fora da EC2** (maquina local ou CI) e enviar o conteudo para
+> `/var/www/html`. O frontend legado `escala-frontend/` (vanilla) esta descontinuado
+> e nao deve mais ser copiado para o webroot.
+
+### 1. Build local (na maquina de desenvolvimento, que tem Node)
 ```
-sudo cp -r ~/ServeApp/escala-frontend/* /var/www/html/
+cd escala-frontend-react
+npm ci                 # (na primeira vez / apos mudar dependencias)
+npm run build          # gera escala-frontend-react/dist/  (index.html + assets/)
 ```
 
-Limpar arquivos desnecessarios:
+### 2. Empacotar e enviar o dist para a EC2 (PowerShell/local)
 ```
-sudo rm -rf /var/www/html/node_modules /var/www/html/package*.json /var/www/html/tsconfig.json
+tar -czf /tmp/serve-dist.tgz -C escala-frontend-react/dist .
+scp -i C:\Users\Gustavo\Documents\Projects\Serve\serve-key.pem /tmp/serve-dist.tgz ubuntu@3.130.130.103:/home/ubuntu/serve-dist.tgz
 ```
 
-Testar configuracao do nginx:
+### 3. Publicar no webroot (na EC2, com backup reversivel)
+```
+# extrai o build para um diretorio temporario
+rm -rf ~/dist_new && mkdir -p ~/dist_new && tar -xzf ~/serve-dist.tgz -C ~/dist_new
+
+# backup do webroot atual (rollback: restaurar esta pasta sobre /var/www/html)
+sudo cp -a /var/www/html /var/www/html.bak-$(date +%Y%m%d-%H%M%S)
+
+# sincroniza (remove arquivos antigos com --delete) e ajusta o dono
+sudo rsync -a --delete ~/dist_new/ /var/www/html/
+sudo chown -R www-data:www-data /var/www/html
+
+# limpa temporarios
+rm -f ~/serve-dist.tgz && rm -rf ~/dist_new
+```
+
+### 4. Testar e recarregar o nginx
 ```
 sudo nginx -t
+sudo systemctl reload nginx      # (ou: sudo systemctl restart nginx)
 ```
 
-Reiniciar nginx:
+### 5. Verificar em producao
 ```
-sudo systemctl restart nginx
+curl -s -o /dev/null -w "%{http_code}\n" https://serveapp.com.br
+curl -s https://serveapp.com.br | grep -oE 'assets/index-[A-Za-z0-9_-]+\.(js|css)'
+# os hashes devem bater com os do build local (dist/assets/index-*.js|css)
+```
+
+### Rollback
+```
+# restaura o backup mais recente sobre o webroot
+sudo rsync -a --delete /var/www/html.bak-AAAAMMDD-HHMMSS/ /var/www/html/
+sudo systemctl reload nginx
 ```
 
 ---
@@ -166,35 +211,37 @@ sudo ss -tlnp | grep 8080
 
 ---
 
-## FLUXO COMPLETO DE DEPLOY (frontend + backend)
+## FLUXO COMPLETO DE DEPLOY
 
-1. Conectar na EC2:
+### Frontend (React) — buildado FORA da EC2
+1. **Local:** buildar e empacotar
    ```
-   ssh -i C:\Users\Gustavo\Documents\Projects\Serve\serve-key.pem ubuntu@3.130.130.103
+   cd escala-frontend-react && npm ci && npm run build
+   tar -czf /tmp/serve-dist.tgz -C dist .
+   scp -i C:\Users\Gustavo\Documents\Projects\Serve\serve-key.pem /tmp/serve-dist.tgz ubuntu@3.130.130.103:/home/ubuntu/serve-dist.tgz
    ```
+2. **EC2:** publicar com backup
+   ```
+   rm -rf ~/dist_new && mkdir -p ~/dist_new && tar -xzf ~/serve-dist.tgz -C ~/dist_new
+   sudo cp -a /var/www/html /var/www/html.bak-$(date +%Y%m%d-%H%M%S)
+   sudo rsync -a --delete ~/dist_new/ /var/www/html/ && sudo chown -R www-data:www-data /var/www/html
+   sudo nginx -t && sudo systemctl reload nginx
+   rm -f ~/serve-dist.tgz && rm -rf ~/dist_new
+   ```
+3. **Verificar** em https://serveapp.com.br (ver secao FRONTEND, passo 5).
 
-2. Atualizar repositorio:
-   ```
-   cd ~/ServeApp
-   git pull
-   ```
-
-3. Build do backend (se houve mudancas em Java):
+### Backend (Spring Boot) — buildado na EC2
+> So funciona se o `git pull` na EC2 estiver com auth corrigida (ver secao REPOSITORIO)
+> **e** houver JDK/Maven wrapper no servidor.
+1. Conectar: `ssh -i C:\Users\Gustavo\Documents\Projects\Serve\serve-key.pem ubuntu@3.130.130.103`
+2. Atualizar repo: `cd ~/ServeApp && git pull`
+3. Build + restart:
    ```
    cd escala-backend
    ./mvnw clean package -DskipTests
    sudo systemctl restart serve-backend
    sudo journalctl -u serve-backend -n 30 --no-pager
    ```
-
-4. Atualizar frontend:
-   ```
-   cd ~/ServeApp
-   sudo cp -r escala-frontend/* /var/www/html/
-   sudo rm -rf /var/www/html/node_modules /var/www/html/package*.json /var/www/html/tsconfig.json
-   ```
-
-5. Testar em https://serveapp.com.br
 
 ---
 
@@ -212,4 +259,5 @@ sudo ss -tlnp | grep 8080
 | Backend | porta 8080 (interno) \| proxy via nginx porta 443/80 |
 | Servico | serve-backend.service (systemd) |
 | Env file | /etc/serve-backend.env |
-| Frontend | /var/www/html/ |
+| Frontend | React (`escala-frontend-react`) buildado fora da EC2; `dist/` servido de /var/www/html/ (SPA) |
+| Node na EC2 | ausente (build do frontend nao roda no servidor) |

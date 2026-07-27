@@ -9,6 +9,7 @@ import com.servants.model.Servo;
 import com.servants.model.Usuario;
 import com.servants.repository.EscalaRepository;
 import com.servants.repository.IndisponibilidadeRepository;
+import com.servants.repository.ServoRepository;
 import com.servants.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -32,15 +33,18 @@ public class IndisponibilidadeService {
 
     private final IndisponibilidadeRepository indisponibilidadeRepository;
     private final UsuarioRepository usuarioRepository;
+    private final ServoRepository servoRepository;
     private final EscalaRepository escalaRepository;
     private final NotificacaoService notificacaoService;
 
     public IndisponibilidadeService(IndisponibilidadeRepository indisponibilidadeRepository,
                                     UsuarioRepository usuarioRepository,
+                                    ServoRepository servoRepository,
                                     EscalaRepository escalaRepository,
                                     NotificacaoService notificacaoService) {
         this.indisponibilidadeRepository = indisponibilidadeRepository;
         this.usuarioRepository = usuarioRepository;
+        this.servoRepository = servoRepository;
         this.escalaRepository = escalaRepository;
         this.notificacaoService = notificacaoService;
     }
@@ -181,10 +185,18 @@ public class IndisponibilidadeService {
         return ind;
     }
 
+    /**
+     * Resolve o servo do usuário priorizando o vínculo explícito ({@code Usuario.servo}) e,
+     * na sua ausência, caindo para o servo de mesmo e-mail. Mesma regra do
+     * {@code UsuarioService.resolverServo}, para que contas legadas sem a FK preenchida
+     * (que já aparecem vinculadas no perfil via fallback) também consigam registrar
+     * indisponibilidades — evita divergência entre o que a UI mostra e o que a escrita aceita.
+     */
     private Servo servoDoUsuario(Long userId) {
         Usuario usuario = usuarioRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("Usuário não encontrado: " + userId));
-        return usuario.getServo();
+        if (usuario.getServo() != null) return usuario.getServo();
+        return servoRepository.findByEmail(usuario.getEmail()).orElse(null);
     }
 
     private Servo servoObrigatorio(Long userId) {

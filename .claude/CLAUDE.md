@@ -117,10 +117,13 @@ cd escala-backend && mvnw.cmd spring-boot:run -Dspring-boot.run.jvmArguments="-D
 | `Usuario` | `usuarios` | login/JWT, papel ADMIN ou VOLUNTARIO; `foto` (LONGTEXT); consentimento LGPD (`dataConsentimento`, `versaoPolitica`, `ipConsentimento`); `invalidacaoTokensAntes`, `ultimoLogin`; FK `voluntario_id` (único) liga a conta ao `Voluntario` |
 | `PermissaoTela` | `permissoes_tela` | permissão por tela/ação (acessar/criar/editar/excluir) por usuário |
 | `RegistroAuditoria` | `auditoria` | log de operações: dataHora, usuarioId/Nome (snapshot), modulo, acao, descricao, entidadeId, metodoHttp, caminho, statusHttp, ip |
+| `Indisponibilidade` | `indisponibilidades` | período em que um `Servo` não pode ser escalado: `dataInicio` + `dataFim` opcional (nulo = 1 dia) + `motivo`; escopada ao servo do usuário logado |
+| `Notificacao` | `notificacoes` | notificação por usuário (`usuarioId`, `tipo` ESCALA_ADICIONADA/INDISPONIBILIDADE_REGISTRADA, `lida`, payload p/ o modal) |
 
-**Regras de Escalação** (`EscalaService.validarRegraDeAtribuicoes`) — sobraram **duas**:
+**Regras de Escalação** (`EscalaService.validarRegraDeAtribuicoes`):
 1. **Área existente** — toda função atribuída precisa apontar para uma `Area` cadastrada (integridade).
 2. **Conflito de horário** — o servo não pode estar em outra escala sobreposta no tempo (`EscalaRepository.findSobrepostas`).
+3. **Indisponibilidade** — servo indisponível na data da escala não pode ser atribuído (`IndisponibilidadeRepository.findServoIdsIndisponiveis`); como remover = não enviar a atribuição, uma escala que "ficou" com servo indisponível só volta a salvar sem ele. A leitura marca cada atribuição com `indisponivel: true|false`. Ver `PLANO_INDISPONIBILIDADES_NOTIFICACOES.md`.
 
 As restrições de perfil foram **removidas** (decisão de 2026-07-20): não se exige mais que o ministério da escala esteja em `servo.classificacoes`, nem vínculo com áreas `ESPECIFICO`, nem se impede acúmulo de áreas `exclusivoNaEscala`. **Qualquer servo cadastrado pode ser escalado em qualquer área.** Os campos continuam persistidos e editáveis nas telas de Áreas e Servos — servem de informação e permitem religar as regras sem migração de dados. O autocomplete da Agenda espelha isso: só filtra por nome e não reoferece quem já está na mesma área.
 
@@ -204,8 +207,12 @@ Sempre por caminho relativo `/api/...` (proxy do Vite em dev, mesmo origin via n
 | `PUT /api/usuarios/{id}/vincular-servo` | Vincula/desvincula servo (admin); body `{servoId}` (null desvincula) |
 | `DELETE /api/usuarios/{id}` | Exclui/anonimiza a conta (admin ou o próprio) — LGPD Art. 18 |
 | `GET /api/auditoria` | Lista registros de auditoria paginados (admin); params: `modulo, acao, usuarioId, de, ate, page, size` |
+| `GET/POST/PUT/DELETE /api/indisponibilidades` | Indisponibilidades do próprio usuário (qualquer logado, sem permissão de tela). Aux.: `GET /servos?de=&ate=` (ids indisponíveis p/ Agenda) e `GET /conflitos?de=&ate=` (escalas do próprio servo no período) |
+| `GET /api/notificacoes` `GET /nao-lidas/contagem` `PUT /{id}/lida` `DELETE /{id}` | Notificações do próprio usuário (badge por polling). Nascem de eventos de domínio (escalação, indisponibilidade); não há criação por API |
 
 > Consentimento LGPD não tem endpoint próprio: é capturado no `POST /api/auth/cadastro` (campo `consentimento` no `CadastroRequest`) e gravado em `Usuario`.
+
+> **`AuthInterceptor`** libera escritas de qualquer usuário logado em `/api/indisponibilidades` e `/api/notificacoes` (além de `/api/usuarios`); o escopo por dono é validado no service. As 4 telas controladas (AGENDA/SERVOS/AREAS/MINISTERIOS) seguem exigindo permissão granular.
 
 ---
 
@@ -230,6 +237,7 @@ Sempre por caminho relativo `/api/...` (proxy do Vite em dev, mesmo origin via n
 - `DEPLOY.md` — comandos e infraestrutura de deploy (EC2, RDS, nginx, certbot). **Ainda descreve o deploy do frontend vanilla** — precisa ser atualizado no cutover (build `dist/` + `try_files $uri $uri/ /index.html`)
 - `.claude/DESIGN.md` — padrão visual completo do frontend (tokens, layout, tabelas, modais, botões, forms, responsividade). As classes CSS seguem valendo; os exemplos estão em HTML/JS vanilla, traduzir mentalmente para JSX
 - `.claude/progress.md` — registro de todo o progresso implementado (ler apenas quando solicitado)
+- `PLANO_INDISPONIBILIDADES_NOTIFICACOES.md` — plano rastreável da feature Indisponibilidades & Notificações (decisões, fases, checkboxes de progresso). Backend (Fases 1–3) + API do front (Fase 4) prontos; UI (Fases 5–8) pendente
 - `PLANO DE ACAO.md` / `../PLANO-DE-ACAO.md` — planos de ação (incluindo conformidade LGPD — Fase 7 concluída)
 - `start.bat` — script de inicialização do backend
 - `application.properties` — configuração do banco, JWT (`serve.jwt.*`), CORS e rate limiting

@@ -43,4 +43,14 @@ public interface PermissaoTelaRepository extends JpaRepository<PermissaoTela, Lo
      */
     @Query("SELECT p FROM PermissaoTela p WHERE p.usuario.id IN :usuarioIds")
     List<PermissaoTela> findByUsuarioIdIn(@Param("usuarioIds") Collection<Long> usuarioIds);
+
+    /**
+     * Ids dos usuários com permissão de <b>criar</b> na tela informada — usado para
+     * notificar quem cria escalas quando um servo registra indisponibilidade.
+     *
+     * @param tela chave da tela (ex.: {@code "AGENDA"}).
+     * @return ids dos usuários com {@code criar = true} nessa tela.
+     */
+    @Query("SELECT p.usuario.id FROM PermissaoTela p WHERE p.tela = :tela AND p.criar = true")
+    List<Long> findUsuarioIdsComCriar(@Param("tela") String tela);
 }

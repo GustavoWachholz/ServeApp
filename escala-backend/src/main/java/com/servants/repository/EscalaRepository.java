@@ -60,4 +60,21 @@ public interface EscalaRepository extends JpaRepository<Escala, Long> {
     List<Escala> findSobrepostas(@Param("id") Long id,
                                  @Param("inicio") LocalDateTime inicio,
                                  @Param("fim") LocalDateTime fim);
+
+    /**
+     * Busca as escalas em que um servo está atribuído e cujo horário cai na janela
+     * {@code [inicio, fim)} — usado para alertar o voluntário, ao lançar uma
+     * indisponibilidade, sobre datas em que ele já está escalado.
+     *
+     * @param servoId id do servo.
+     * @param inicio  início da janela (inclusive).
+     * @param fim     fim da janela (exclusivo).
+     * @return escalas do servo no intervalo, ordenadas por data.
+     */
+    @Query("SELECT DISTINCT e FROM Escala e JOIN e.atribuicoes a "
+         + "WHERE a.servo.id = :servoId AND e.dataEscala >= :inicio AND e.dataEscala < :fim "
+         + "ORDER BY e.dataEscala")
+    List<Escala> findByServoNoIntervalo(@Param("servoId") Long servoId,
+                                        @Param("inicio") LocalDateTime inicio,
+                                        @Param("fim") LocalDateTime fim);
 }

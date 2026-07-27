@@ -1,0 +1,151 @@
+# Plano — Indisponibilidades & Notificações
+
+> Plano de implementação rastreável. Marque os checkboxes `[x]` conforme concluir.
+> Se a feature não for finalizada em uma sessão, este arquivo é a fonte de verdade do progresso.
+> Complementa `.claude/CLAUDE.md` (diretrizes) e `PROJECT_STATUS.md` (panorama).
+>
+> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + camada de API/tipos do front (Fase 4) prontos e compilando; smoke test runtime pendente. Próximo: Fase 5 (tela de Indisponibilidades)
+
+---
+
+## 0. Decisões de produto (fechadas com o dono — não reabrir sem avisar)
+
+| # | Tema | Decisão |
+|---|---|---|
+| D1 | **Tela de Indisponibilidades** | Disponível a **todos** no menu lateral, sem exigir permissão de tela (`ProtectedRoute` sem `requireTela`). |
+| D2 | **Modelo** | Cada indisponibilidade é **um registro** com `dataInicio` + `dataFim` opcional (sem fim ⇒ 1 dia). "Dias específicos" = vários registros de 1 dia lançados juntos. Várias podem ser lançadas de uma vez; todas editáveis/excluíveis. |
+| D3 | **Escopo** | Indisponibilidade pertence ao **servo vinculado ao usuário logado**. Cada um gerencia só as suas. |
+| D4 | **Filtro na escala** | Servo indisponível **some do autocomplete** da Agenda (UX) **E** o backend **rejeita (400)** se um servo indisponível for enviado numa atribuição (defesa em profundidade). |
+| D5 | **Servo já escalado quando marca indisponibilidade** | Ao confirmar no modal, ele **permanece na escala**. Passa a exibir **selo "indisponível"** ao lado do nome (visão de equipe) **e** no evento da Agenda. A escala fica **travada**: nenhuma edição é permitida até o servo indisponível ser **removido**. Só depois volta a ser editável/salvável. |
+| D6 | **Modal de conflito** | Ao salvar uma indisponibilidade que cai sobre datas em que o servo já está escalado, exibir modal listando **as datas/escalas** e pedir confirmação antes de gravar. |
+| D7 | **Notificação — escalação** | Para **cada usuário recém-inserido** em uma escala, notificar (só a data no texto; detalhes no modal). Em edição, notificar **apenas os recém-adicionados**. |
+| D8 | **Notificação — indisponibilidade** | Ao registrar indisponibilidade, notificar **todos com permissão de criar escala** (`AGENDA.criar`) **+ admins** (texto genérico; detalhes no modal). |
+| D9 | **Badge** | Contagem de não-lidas por **polling ~60s** (TanStack Query `refetchInterval`). |
+| D10 | **Ações na notificação** | ✅ marcar como lida + 🗑️ excluir. Clique abre `<Modal>` de detalhes. |
+
+**Regra de escalação nova (consequência de D4/D5):** além das duas atuais (área existe / conflito de horário),
+o `EscalaService` passa a rejeitar atribuição de servo indisponível na data da escala, e a leitura de escalas
+marca cada atribuição com `indisponivel: true|false` (servo indisponível na data daquela escala).
+
+---
+
+## 1. Contexto técnico (verificado no código em 2026-07-27)
+
+- **Usuário atual (backend):** `request.getAttribute("userId")` / `"role"` (setados em `security/AuthInterceptor.java`).
+- **Vínculo conta↔servo:** `Usuario.servo` (FK única `servo_id`); `UsuarioRepository.findByServoId(id)`. **Admin não tem servo.**
+- **Escala:** `Escala.dataEscala`/`dataFim` são `LocalDateTime`; `EscalaAtribuicao` = servo + `funcao` (nome da área).
+- **Ponto do filtro (autocomplete):** `escala-frontend-react/src/pages/AgendaPage.tsx` → `resultadosPara(area)` (~L223).
+- **Regra de escala (backend):** `service/EscalaService.java` → `validarRegraDeAtribuicoes(...)`; DTO montado em `convertToEscalaDTO(...)`.
+- **Padrão de popover lateral:** `components/layout/Sidebar.tsx` — `.settings-popover` + classe `show-menu`; bloco do usuário é `.user-profile` (~L97). A janela de notificações reusa esse padrão, ancorada logo abaixo do `.user-profile`.
+- **Permissão "criar escala"** = tela `AGENDA`, flag `criar`. `PermissaoTelaRepository.findByUsuarioIdAndTela(id, "AGENDA")`.
+- **UI:** feedback sempre por `useToast`; destrutivo por `<ConfirmDialog>`; diálogos por `<Modal>`; classes globais de `styles/dashboard.css`; ícones via `<Icon>` (lucide-react) — **nunca** `<i data-lucide>` dentro de modal/lista/condicional.
+- **TanStack Query:** listas `useQuery`, escritas `useMutation` + `invalidateQueries`; padrão `retry:1`, `staleTime:60s`.
+
+---
+
+## 2. Sequência de desenvolvimento
+
+> Ordem pensada para validar de baixo pra cima: cada fase compila/roda antes da próxima.
+> Fases 1–2 (backend) são pré-requisito de tudo no front.
+
+### FASE 1 — Backend: Indisponibilidades (CRUD)  🟢 (código pronto; smoke test runtime pendente)
+Ordem por camada: model → dto → repository → service → controller.
+
+- [x] `model/Indisponibilidade.java` — `id`, `@ManyToOne Servo servo`, `LocalDate dataInicio` (`nullable=false`), `LocalDate dataFim` (nullable), `String motivo` (nullable, TEXT), `LocalDateTime criadoEm`. Tabela `indisponibilidades`.
+- [x] `dto/IndisponibilidadeDTO.java` — record: `id`, `dataInicio`, `dataFim`, `motivo`, (saída) `servoId`, `servoNome`. Bean Validation: `@NotNull dataInicio`.
+- [x] `repository/IndisponibilidadeRepository.java`:
+  - `findByServoIdOrderByDataInicioDesc(Long servoId)`
+  - `findServoIdsIndisponiveis(de, ate)` → `Set<Long>` (`dataInicio <= :ate AND COALESCE(dataFim, dataInicio) >= :de`).
+- [x] `service/IndisponibilidadeService.java`: resolve o `Servo` do usuário logado (via `Usuario.servo`); usuário sem servo → `listarMinhas`/`conflitos` retornam vazio, `criar` lança erro amigável (`IllegalArgumentException` → 400). `listarMinhas`/`criar`/`atualizar`/`excluir` (com checagem de posse), `servosIndisponiveisNoIntervalo`, `conflitos`. Valida `dataFim >= dataInicio`.
+- [x] `controller/IndisponibilidadeController.java` (`/api/indisponibilidades`): `GET`, `POST`, `PUT/{id}`, `DELETE/{id}`, `GET /servos?de=&ate=`, `GET /conflitos?de=&ate=`.
+- [x] **Extra (necessário, não previsto):** `AuthInterceptor` liberava escritas de não-admin só nas 4 telas + `/api/usuarios`; adicionada exceção `path.startsWith("/api/indisponibilidades")` para não dar 403 em voluntário (D1). Escopo real é validado no service.
+- [x] **Extra:** `EscalaRepository.findByServoNoIntervalo(servoId, inicio, fim)` + `dto/EscalaConflitoDTO` para o endpoint de conflitos.
+- [x] **Verificar:** `mvnw.cmd clean compile -q` — **limpo** (JDK real é `C:\Program Files\Java\jdk-25`, não jdk-26 como diz o PROJECT_STATUS).
+- [ ] **Pendente:** smoke test em runtime (subir `start.bat` com MySQL e testar CRUD via cliente HTTP com token de voluntário com servo vinculado).
+
+### FASE 2 — Backend: regra de escala + flag de indisponível  🟢 (código pronto; smoke test runtime pendente)
+Depende da Fase 1.
+
+- [x] `EscalaService.validarRegraDeAtribuicoes`: **regra 3** adicionada — atribuição de servo indisponível na janela da escala → `IllegalArgumentException` ("Remova-o para poder salvar"). Helper `servosIndisponiveisNaEscala(dto)`. `IndisponibilidadeRepository` injetado no construtor.
+  - ✔️ D5 respeitado: a regra só barra atribuições **enviadas**; remover o servo = não enviá-lo, então o `PUT` sem ele passa e o que o mantém dá 400.
+- [x] `EscalaService.convertToEscalaDTO(escala, mapaIndisp)`: computa `indisponivel` por atribuição via `mapaIndisponibilidades(...)` (1 query `findByServoIdIn` para todas as escalas listadas) + `servoIndisponivelNaJanela(...)` — **sem N+1**. `listarTodas`/`buscarPorId`/`criar`/`atualizar` atualizados.
+- [x] `dto/AtribuicaoDTO`: campo `boolean indisponivel` (4º componente). Única construção era em `EscalaService:349`. Jackson ignora ausência na requisição (default false); valor só é significativo na resposta.
+- [x] `IndisponibilidadeRepository.findByServoIdIn(Collection<Long>)` adicionado.
+- [x] **Verificar:** `mvnw clean compile -q` — **limpo**. Teste backend existente é só `contextLoads` (não afetado).
+- [ ] **Pendente:** smoke test runtime: (a) POST com servo indisponível → 400; (b) escala que ficou conflitante retorna atribuição com `indisponivel:true`; (c) remover o servo e salvar → 200.
+
+### FASE 3 — Backend: Notificações  🟢 (código pronto; smoke test runtime pendente)
+Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidade services (fases 1–2 já existirão).
+
+- [x] `model/Notificacao.java` — campos conforme plano + constantes `TIPO_ESCALA_ADICIONADA` / `TIPO_INDISPONIBILIDADE_REGISTRADA`.
+- [x] `dto/NotificacaoDTO.java` — record espelhando os campos (o frontend monta o texto a partir do `tipo`; sem coluna de texto).
+- [x] `repository/NotificacaoRepository.java`: `findByUsuarioIdOrderByCriadoEmDesc`, `countByUsuarioIdAndLidaFalse` (posse validada no service, não por query).
+- [x] `service/NotificacaoService.java`: `listarMinhas`, `contarNaoLidas`, `marcarLida`, `excluir` (todos com posse), + `criarEscalaAdicionada(...)` e `notificarNovaIndisponibilidade(...)` (destinatários = `AGENDA.criar` + ADMIN, **menos o autor**).
+- [x] `controller/NotificacaoController.java` (`/api/notificacoes`): `GET`, `GET /nao-lidas/contagem` (retorna `{total}`), `PUT/{id}/lida`, `DELETE/{id}`.
+- [x] **Gatilho escalação** em `EscalaService`: captura servoIds antes/depois; para cada **recém-adicionado** com conta vinculada (`findByServoId`), cria `ESCALA_ADICIONADA` (título/ministério/horário/área agregada/data). `UsuarioRepository` + `NotificacaoService` injetados.
+- [x] **Gatilho indisponibilidade** em `IndisponibilidadeService.criar`: notifica destinatários com período formatado (`dd/MM/yyyy [a dd/MM/yyyy]`) + motivo.
+- [x] **Extra:** `AuthInterceptor` libera `/api/notificacoes` (evita 403 de voluntário ao marcar lida/excluir); `PermissaoTelaRepository.findUsuarioIdsComCriar(tela)` e `UsuarioRepository.findIdsByRole(role)` adicionados.
+- [x] **Verificar:** `mvnw clean compile -q` — **limpo**. Sem ciclo de dependências (Notificacao depende só de repositórios).
+- [ ] **Pendente:** smoke test runtime: criar escala com servo vinculado → notificação p/ o usuário do servo; marcar indisponibilidade → notifica admins/criadores (menos o autor).
+
+### FASE 4 — Frontend: API + tipos  🟢
+- [x] `types/index.ts`: `IndisponibilidadeDTO`, `IndisponibilidadeRequest`, `EscalaConflitoDTO`, `NotificacaoDTO` (+ `NotificacaoTipo`); `indisponivel?: boolean` em `AtribuicaoDTO`.
+- [x] `api/indisponibilidades.ts`: `getMinhasIndisponibilidades`, `createIndisponibilidade`, `updateIndisponibilidade`, `deleteIndisponibilidade`, `getServosIndisponiveis(de,ate)`, `getConflitos(de,ate)`.
+- [x] `api/notificacoes.ts`: `getNotificacoes`, `getContagemNaoLidas`, `marcarNotificacaoLida`, `deleteNotificacao`.
+- [x] **Verificar:** `npx tsc -b` — **limpo**.
+
+### FASE 5 — Frontend: tela de Indisponibilidades  🔴
+- [ ] `pages/IndisponibilidadesPage.tsx`: form controlado (início / fim opcional / motivo); permitir enfileirar várias antes de salvar; lista com editar/excluir (`<ConfirmDialog>`); `<Modal>` de conflito (usa `getConflitos`) antes de gravar quando houver escala no período. Empty state (`.empty-state`).
+- [ ] Rota em `App.tsx` com `<ProtectedRoute>` **sem** `requireTela` (D1).
+- [ ] Item novo em `Sidebar.tsx` (e `BottomNav.tsx` se couber) — visível para todos. Ícone lucide (ex.: `calendar-off`/`ban`).
+- [ ] **Verificar:** `npx tsc -b`; navegar, criar/editar/excluir, disparar modal de conflito.
+
+### FASE 6 — Frontend: integração na Agenda  🔴
+- [ ] `AgendaPage.resultadosPara`: excluir servos indisponíveis no intervalo da escala em edição (`useQuery` de `getServosIndisponiveis` com `[dataEscala, dataFim]`).
+- [ ] **Selo de indisponível**: na visão de equipe (tag do servo) e no evento do calendário quando alguma atribuição tiver `indisponivel:true`.
+- [ ] **Trava de edição (D5):** se a escala tem servo indisponível, desabilitar salvar/editar campos; única ação liberada = remover o servo indisponível; depois libera. Toast explicando o motivo.
+- [ ] **Verificar:** `npx tsc -b`; cenário completo (marcar indisponibilidade de servo já escalado → selo + trava → remover → salva).
+
+### FASE 7 — Frontend: janela de Notificações  🔴
+- [ ] Componente do painel na `Sidebar`, logo abaixo do `.user-profile`: gatilho (sino) com **badge vermelho** de contagem (polling 60s via `refetchInterval`); popover no padrão `.settings-popover`.
+- [ ] Lista: cada item com texto + ✅ (marcar lida, `marcarLida`) + 🗑️ (excluir). Clique no item abre `<Modal>` de detalhes:
+  - `ESCALA_ADICIONADA`: data + título + ministério + horário + área.
+  - `INDISPONIBILIDADE_REGISTRADA`: período + motivo (se houver).
+- [ ] `invalidateQueries` da contagem/lista após marcar/excluir.
+- [ ] **Verificar:** `npx tsc -b`; badge atualiza; ações funcionam; modal mostra detalhes certos por tipo.
+
+### FASE 8 — Verificação ponta a ponta & fechamento  🔴
+- [ ] Backend: `mvnw.cmd clean compile -q` limpo.
+- [ ] Front: `npx tsc -b` limpo + `npm test` (rodar sempre que tocar `client.ts`/permissões/Agenda).
+- [ ] E2E no browser com backend + banco reais, com **usuário voluntário real** (admin curto-circuita permissões):
+  - criar indisponibilidade → servo some do autocomplete → forçar via API → 400.
+  - servo já escalado marca indisponibilidade → selo na equipe + no calendário → escala travada → remover → destrava.
+  - notificação de escalação chega ao servo; notificação de indisponibilidade chega a admins/criadores; badge; marcar lida; excluir; modais de detalhe.
+- [ ] Atualizar este arquivo (status) e, se relevante, `PROJECT_STATUS.md`.
+
+---
+
+## 3. Arquivos a criar / tocar (mapa rápido)
+
+**Backend (novos):** `model/Indisponibilidade.java`, `model/Notificacao.java`, `dto/IndisponibilidadeDTO.java`, `dto/NotificacaoDTO.java`, `repository/IndisponibilidadeRepository.java`, `repository/NotificacaoRepository.java`, `service/IndisponibilidadeService.java`, `service/NotificacaoService.java`, `controller/IndisponibilidadeController.java`, `controller/NotificacaoController.java`.
+**Backend (editar):** `service/EscalaService.java`, `dto/AtribuicaoDTO.java`.
+**Frontend (novos):** `api/indisponibilidades.ts`, `api/notificacoes.ts`, `pages/IndisponibilidadesPage.tsx`, componente do painel de notificações (ex.: `components/layout/NotificacoesPopover.tsx`).
+**Frontend (editar):** `types/index.ts`, `App.tsx`, `components/layout/Sidebar.tsx`, `components/layout/BottomNav.tsx`, `pages/AgendaPage.tsx`.
+
+---
+
+## 4. Perguntas em aberto (resolver quando chegar o momento)
+
+- **Q1 — Usuário sem servo (admin/conta não vinculada) na tela de Indisponibilidades:** a tela aparece para todos (D1), mas indisponibilidade só faz sentido para quem tem servo. Comportamento provável: mostrar aviso "sua conta não está vinculada a um servo" e desabilitar o cadastro. **Confirmar com o dono.**
+- **Q2 — Reaproveitar 1 notificação para vários dias?** Se o usuário lançar 5 dias específicos de uma vez, os criadores recebem 5 notificações ou 1 agrupada? Sugestão: 1 por submissão. **Confirmar.**
+- **Q3 — Migração de produção:** duas tabelas novas (`indisponibilidades`, `notificacoes`) + coluna nada — `ddl-auto=update` cria automático em dev; para o RDS, alinhar com o deploy (o cutover do React ainda está pendente — ver `CUTOVER.md`).
+
+---
+
+## 5. Log de progresso (append por sessão)
+
+- **2026-07-27** — Plano criado. Decisões D1–D10 fechadas com o dono. Nenhuma linha de código escrita ainda.
+- **2026-07-27** — **Fase 1 implementada.** Criados model/dto/repository/service/controller de Indisponibilidade + `EscalaConflitoDTO` e `EscalaRepository.findByServoNoIntervalo`. Liberada a rota em `AuthInterceptor` (evita 403 de voluntário). `mvnw clean compile -q` limpo (JDK 25). Falta smoke test em runtime. Próximo: Fase 2 (regra de escala + flag `indisponivel` em `AtribuicaoDTO`).
+- **2026-07-27** — **Fase 2 implementada.** `AtribuicaoDTO` ganhou `indisponivel`; `EscalaService` agora injeta `IndisponibilidadeRepository`, bloqueia servo indisponível na validação (regra 3) e marca a flag por atribuição em batch (`findByServoIdIn`, sem N+1); `IndisponibilidadeRepository.findByServoIdIn` adicionado. `mvnw clean compile -q` limpo. Falta smoke test runtime. Próximo: Fase 3 (Notificações).
+- **2026-07-27** — **Fase 3 implementada (backend completo).** Model/dto/repository/service/controller de Notificacao; gatilhos em `EscalaService` (recém-adicionados) e `IndisponibilidadeService.criar` (criadores de escala + admins, menos autor); `AuthInterceptor` libera `/api/notificacoes`; queries `findUsuarioIdsComCriar`/`findIdsByRole`. `mvnw clean compile -q` limpo. Falta smoke test runtime de todo o backend. Próximo: Fase 4 (frontend: `api/*` + tipos).
+- **2026-07-27** — **Fase 4 implementada.** Tipos novos + flag `indisponivel` em `AtribuicaoDTO`; `api/indisponibilidades.ts` e `api/notificacoes.ts`. `npx tsc -b` limpo. Próximo: Fase 5 (tela de Indisponibilidades + rota + sidebar).

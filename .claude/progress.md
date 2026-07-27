@@ -1,7 +1,7 @@
 # progress.md — Registro de Progresso do Projeto Serve
 
 Leia este arquivo apenas quando solicitado pelo usuário.
-Última atualização: 2026-06-16
+Última atualização: 2026-07-27
 
 ---
 
@@ -381,6 +381,45 @@ Plano registrado em `PLANO DE ACAO.md` (ordem: F1 → F3 → F2; F2 Auditoria ai
 
 ### Documentação
 - `.claude/CLAUDE.md`, `DOCUMENTACAO.md`, `.claude/DESIGN.md`, `README.md` e este `progress.md` atualizados: JWT real (`JwtService`, substituiu `TokenStore`), `localStorage`, bottom-nav/listas mobile, LGPD concluída, novas páginas (Usuários/Perfil/Auditoria/Privacidade) e `DEPLOY.md`.
+
+---
+
+## Sessão 10 — Indisponibilidades & Notificações: backend + API do front (2026-07-27)
+
+Feature nova (em andamento). Plano rastreável e decisões de produto em
+`PLANO_INDISPONIBILIDADES_NOTIFICACOES.md` (raiz do ServeApp). Fases 1–4 de 8 concluídas;
+UI (Fases 5–8) pendente. Tudo compila (`mvnw clean compile -q` e `npx tsc -b` limpos);
+smoke test em runtime ainda **não** executado.
+
+### Fase 1 — Backend: CRUD de Indisponibilidades
+- `model/Indisponibilidade.java` (`servos` → período `dataInicio`/`dataFim` opcional + `motivo`),
+  `dto/IndisponibilidadeDTO.java`, `repository/IndisponibilidadeRepository.java`,
+  `service/IndisponibilidadeService.java` (escopado ao servo do usuário logado, checagem de posse),
+  `controller/IndisponibilidadeController.java` (`/api/indisponibilidades` + `/servos` + `/conflitos`).
+- `dto/EscalaConflitoDTO.java` + `EscalaRepository.findByServoNoIntervalo` (modal de conflito).
+- `security/AuthInterceptor.java` — libera `/api/indisponibilidades` p/ qualquer logado (evita 403 de voluntário).
+
+### Fase 2 — Backend: regra de escala + flag `indisponivel`
+- `EscalaService` — regra 3 bloqueia servo indisponível na data; marca `AtribuicaoDTO.indisponivel`
+  por atribuição em batch (`findByServoIdIn`, sem N+1). Campo novo em `dto/AtribuicaoDTO`.
+
+### Fase 3 — Backend: Notificações
+- `model/Notificacao.java`, `dto/NotificacaoDTO.java`, `repository/NotificacaoRepository.java`,
+  `service/NotificacaoService.java`, `controller/NotificacaoController.java` (`/api/notificacoes`).
+- Gatilhos: `EscalaService` notifica servos recém-adicionados (com conta vinculada);
+  `IndisponibilidadeService.criar` notifica quem tem `AGENDA.criar` + admins (menos o autor).
+- `AuthInterceptor` libera `/api/notificacoes`; queries `findUsuarioIdsComCriar`/`findIdsByRole`.
+
+### Fase 4 — Frontend: API + tipos
+- `types/index.ts` — `IndisponibilidadeDTO`/`Request`, `EscalaConflitoDTO`, `NotificacaoDTO`;
+  `indisponivel?` em `AtribuicaoDTO`.
+- `api/indisponibilidades.ts`, `api/notificacoes.ts`.
+
+### Pendente (próximas sessões)
+- Fase 5: `IndisponibilidadesPage` + rota + item na Sidebar/BottomNav + modal de conflito.
+- Fase 6: filtro/selo/trava na Agenda.
+- Fase 7: janela de notificações na Sidebar (badge, popover, modais de detalhe).
+- Fase 8: smoke test ponta a ponta com backend + banco reais.
 
 ---
 

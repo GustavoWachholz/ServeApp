@@ -47,4 +47,14 @@ public interface UsuarioRepository extends JpaRepository<Usuario, Long> {
      */
     @Query("SELECT u FROM Usuario u LEFT JOIN FETCH u.servo")
     List<Usuario> findAllFetchingServos();
+
+    /**
+     * Ids dos usuários com o papel informado — usado para incluir os ADMIN entre os
+     * destinatários das notificações de indisponibilidade.
+     *
+     * @param role papel (ex.: {@code "ADMIN"}).
+     * @return ids dos usuários com esse papel.
+     */
+    @Query("SELECT u.id FROM Usuario u WHERE u.role = :role")
+    List<Long> findIdsByRole(String role);
 }

@@ -5,8 +5,10 @@ package com.servants.dto;
  * criação/edição de escalas. Equivalente a {@link com.servants.model.EscalaAtribuicao}
  * no transporte entre frontend e backend.
  *
- * @param servoId   identificador do voluntário atribuído.
- * @param servoNome nome do voluntário (preenchido na resposta; opcional na requisição).
- * @param funcao    nome da função/área em que o voluntário foi escalado.
+ * @param servoId      identificador do voluntário atribuído.
+ * @param servoNome    nome do voluntário (preenchido na resposta; opcional na requisição).
+ * @param funcao       nome da função/área em que o voluntário foi escalado.
+ * @param indisponivel {@code true} se o voluntário está indisponível na data desta escala
+ *                     (calculado apenas na resposta; ignorado na requisição).
  */
-public record AtribuicaoDTO(Long servoId, String servoNome, String funcao) {}
+public record AtribuicaoDTO(Long servoId, String servoNome, String funcao, boolean indisponivel) {}

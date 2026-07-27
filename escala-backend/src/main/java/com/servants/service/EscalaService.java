@@ -5,14 +5,19 @@ import com.servants.exception.ResourceNotFoundException;
 import com.servants.model.*;
 import com.servants.repository.EscalaRepository;
 import com.servants.repository.AreaRepository;
+import com.servants.repository.IndisponibilidadeRepository;
 import com.servants.repository.ServoRepository;
+import com.servants.repository.UsuarioRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -30,20 +35,32 @@ public class EscalaService {
     private final EscalaRepository escalaRepository;
     private final ServoRepository servoRepository;
     private final AreaRepository areaRepository;
+    private final IndisponibilidadeRepository indisponibilidadeRepository;
+    private final UsuarioRepository usuarioRepository;
+    private final NotificacaoService notificacaoService;
 
     /**
-     * Injeta os repositórios necessários.
+     * Injeta os repositórios e serviços necessários.
      *
-     * @param escalaRepository repositório de escalas.
-     * @param servoRepository  repositório de voluntários.
-     * @param areaRepository   repositório de ministérios.
+     * @param escalaRepository            repositório de escalas.
+     * @param servoRepository             repositório de voluntários.
+     * @param areaRepository              repositório de ministérios.
+     * @param indisponibilidadeRepository repositório de indisponibilidades.
+     * @param usuarioRepository           repositório de usuários (resolve servo → conta).
+     * @param notificacaoService          serviço de notificações (gatilho de escalação).
      */
     public EscalaService(EscalaRepository escalaRepository,
                          ServoRepository servoRepository,
-                         AreaRepository areaRepository) {
+                         AreaRepository areaRepository,
+                         IndisponibilidadeRepository indisponibilidadeRepository,
+                         UsuarioRepository usuarioRepository,
+                         NotificacaoService notificacaoService) {
         this.escalaRepository = escalaRepository;
         this.servoRepository = servoRepository;
         this.areaRepository = areaRepository;
+        this.indisponibilidadeRepository = indisponibilidadeRepository;
+        this.usuarioRepository = usuarioRepository;
+        this.notificacaoService = notificacaoService;
     }
 
     /**
@@ -53,8 +70,10 @@ public class EscalaService {
      */
     @Transactional(readOnly = true)
     public List<EscalaDTO> listarTodas() {
-        return escalaRepository.findAllWithAtribuicoes().stream()
-                .map(this::convertToEscalaDTO)
+        List<Escala> escalas = escalaRepository.findAllWithAtribuicoes();
+        Map<Long, List<Indisponibilidade>> indispPorServo = mapaIndisponibilidades(escalas);
+        return escalas.stream()
+                .map(e -> convertToEscalaDTO(e, indispPorServo))
                 .collect(Collectors.toList());
     }
 
@@ -69,7 +88,7 @@ public class EscalaService {
     public EscalaDTO buscarPorId(Long id) {
         Escala escala = escalaRepository.findByIdWithAtribuicoes(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
-        return convertToEscalaDTO(escala);
+        return convertToEscalaDTO(escala, mapaIndisponibilidades(List.of(escala)));
     }
 
     /**
@@ -86,7 +105,8 @@ public class EscalaService {
         Escala escala = new Escala();
         updateEscalaFromDTO(escala, dto, servoMap);
         Escala salva = escalaRepository.save(escala);
-        return convertToEscalaDTO(salva);
+        notificarServosAdicionados(salva, servoIdsDe(salva)); // escala nova: todos são novos
+        return convertToEscalaDTO(salva, mapaIndisponibilidades(List.of(salva)));
     }
 
     /**
@@ -106,10 +126,56 @@ public class EscalaService {
         Escala escala = escalaRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Escala não encontrada com ID: " + id));
 
+        Set<Long> antes = servoIdsDe(escala); // captura antes de reconstruir as atribuições
         updateEscalaFromDTO(escala, dto, servoMap);
 
         Escala atualizada = escalaRepository.save(escala);
-        return convertToEscalaDTO(atualizada);
+
+        // Notifica apenas os servos recém-adicionados nesta edição
+        Set<Long> novos = servoIdsDe(atualizada);
+        novos.removeAll(antes);
+        notificarServosAdicionados(atualizada, novos);
+
+        return convertToEscalaDTO(atualizada, mapaIndisponibilidades(List.of(atualizada)));
+    }
+
+    /** Ids distintos dos servos atribuídos em uma escala. */
+    private Set<Long> servoIdsDe(Escala escala) {
+        Set<Long> ids = new HashSet<>();
+        if (escala.getAtribuicoes() != null) {
+            for (EscalaAtribuicao a : escala.getAtribuicoes()) {
+                if (a.getServo() != null) ids.add(a.getServo().getId());
+            }
+        }
+        return ids;
+    }
+
+    /**
+     * Cria uma notificação de "inserido em escala" para o usuário vinculado a cada servo
+     * recém-adicionado (servos sem conta vinculada são ignorados). A área informada é a
+     * concatenação das funções daquele servo nesta escala.
+     *
+     * @param escala       escala salva.
+     * @param novosServoIds servos a notificar.
+     */
+    private void notificarServosAdicionados(Escala escala, Set<Long> novosServoIds) {
+        if (novosServoIds.isEmpty()) return;
+
+        // Agrupa as áreas (funções) por servo nesta escala
+        Map<Long, List<String>> areasPorServo = new HashMap<>();
+        for (EscalaAtribuicao a : escala.getAtribuicoes()) {
+            if (a.getServo() == null || !novosServoIds.contains(a.getServo().getId())) continue;
+            areasPorServo.computeIfAbsent(a.getServo().getId(), k -> new ArrayList<>()).add(a.getFuncao());
+        }
+
+        for (Long servoId : novosServoIds) {
+            usuarioRepository.findByServoId(servoId).ifPresent(usuario -> {
+                String area = String.join(", ", areasPorServo.getOrDefault(servoId, List.of()));
+                notificacaoService.criarEscalaAdicionada(
+                        usuario.getId(), escala.getId(), escala.getTitulo(),
+                        escala.getClassificacao(), escala.getDataEscala(), area);
+            });
+        }
     }
 
     /**
@@ -158,6 +224,9 @@ public class EscalaService {
         // Mapa servoId → título da escala conflitante (sobreposta no tempo)
         Map<Long, String> conflitoEntreEscalas = mapearConflitosEntreEscalas(dto, servoIds);
 
+        // Servos indisponíveis na data desta escala (regra 3)
+        Set<Long> indisponiveis = servosIndisponiveisNaEscala(dto);
+
         Map<Long, List<AtribuicaoDTO>> porServo = atribuicoes.stream()
                 .filter(a -> a.servoId() != null)
                 .collect(Collectors.groupingBy(AtribuicaoDTO::servoId));
@@ -187,8 +256,30 @@ public class EscalaService {
                         "O voluntário " + nome + " já está escalado em outra escala no mesmo horário: \""
                         + conflitoEntreEscalas.get(servoId) + "\".");
             }
+
+            // Regra 3: o servo não pode estar indisponível na data da escala. Como remover o
+            // servo equivale a não enviá-lo na atribuição, uma escala que "ficou" com servo
+            // indisponível (indisponibilidade lançada depois) só volta a ser salva sem ele.
+            if (indisponiveis.contains(servoId)) {
+                throw new IllegalArgumentException(
+                        "O voluntário " + nome + " está indisponível na data desta escala. "
+                        + "Remova-o para poder salvar.");
+            }
         }
         return servoMap;
+    }
+
+    /**
+     * Conjunto de ids de servos indisponíveis em algum dia da janela da escala em edição.
+     *
+     * @param dto escala (fornece a janela de datas).
+     * @return ids de servos indisponíveis (vazio se a escala não tiver data).
+     */
+    private Set<Long> servosIndisponiveisNaEscala(EscalaDTO dto) {
+        if (dto.getDataEscala() == null) return Set.of();
+        LocalDate de = dto.getDataEscala().toLocalDate();
+        LocalDate ate = (dto.getDataFim() != null ? dto.getDataFim() : dto.getDataEscala()).toLocalDate();
+        return indisponibilidadeRepository.findServoIdsIndisponiveis(de, ate);
     }
 
     /**
@@ -334,7 +425,7 @@ public class EscalaService {
      * @param escala entidade a converter.
      * @return o {@link EscalaDTO} correspondente.
      */
-    private EscalaDTO convertToEscalaDTO(Escala escala) {
+    private EscalaDTO convertToEscalaDTO(Escala escala, Map<Long, List<Indisponibilidade>> indispPorServo) {
         EscalaDTO dto = new EscalaDTO();
         dto.setId(escala.getId());
         dto.setTitulo(escala.getTitulo());
@@ -345,8 +436,14 @@ public class EscalaService {
         dto.setClassificacao(escala.getClassificacao());
 
         if (escala.getAtribuicoes() != null && !escala.getAtribuicoes().isEmpty()) {
+            LocalDate de = escala.getDataEscala().toLocalDate();
+            LocalDate ate = (escala.getDataFim() != null ? escala.getDataFim() : escala.getDataEscala()).toLocalDate();
             List<AtribuicaoDTO> atribsDTO = escala.getAtribuicoes().stream()
-                    .map(a -> new AtribuicaoDTO(a.getServo().getId(), a.getServo().getNome(), a.getFuncao()))
+                    .map(a -> new AtribuicaoDTO(
+                            a.getServo().getId(),
+                            a.getServo().getNome(),
+                            a.getFuncao(),
+                            servoIndisponivelNaJanela(a.getServo().getId(), de, ate, indispPorServo)))
                     .collect(Collectors.toList());
             dto.setAtribuicoes(atribsDTO);
         } else {
@@ -354,6 +451,47 @@ public class EscalaService {
         }
 
         return dto;
+    }
+
+    /**
+     * Carrega em uma única query as indisponibilidades de todos os servos citados nas
+     * escalas informadas, agrupadas por servoId — base para a flag {@code indisponivel}
+     * sem N+1.
+     *
+     * @param escalas escalas cujas atribuições fornecem os servos.
+     * @return mapa servoId → indisponibilidades (vazio se não houver servos).
+     */
+    private Map<Long, List<Indisponibilidade>> mapaIndisponibilidades(Collection<Escala> escalas) {
+        Set<Long> servoIds = new HashSet<>();
+        for (Escala e : escalas) {
+            if (e.getAtribuicoes() == null) continue;
+            for (EscalaAtribuicao a : e.getAtribuicoes()) {
+                if (a.getServo() != null) servoIds.add(a.getServo().getId());
+            }
+        }
+        if (servoIds.isEmpty()) return Map.of();
+        return indisponibilidadeRepository.findByServoIdIn(servoIds).stream()
+                .collect(Collectors.groupingBy(i -> i.getServo().getId()));
+    }
+
+    /**
+     * Indica se o servo tem alguma indisponibilidade sobrepondo a janela {@code [de, ate]}.
+     *
+     * @param servoId        id do servo.
+     * @param de             primeiro dia da janela.
+     * @param ate            último dia da janela.
+     * @param indispPorServo indisponibilidades pré-carregadas por servoId.
+     * @return {@code true} se houver sobreposição.
+     */
+    private boolean servoIndisponivelNaJanela(Long servoId, LocalDate de, LocalDate ate,
+                                              Map<Long, List<Indisponibilidade>> indispPorServo) {
+        List<Indisponibilidade> lista = indispPorServo.get(servoId);
+        if (lista == null) return false;
+        for (Indisponibilidade i : lista) {
+            LocalDate fimEfetivo = i.getDataFim() != null ? i.getDataFim() : i.getDataInicio();
+            if (!i.getDataInicio().isAfter(ate) && !fimEfetivo.isBefore(de)) return true;
+        }
+        return false;
     }
 
 }

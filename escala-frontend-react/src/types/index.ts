@@ -104,6 +104,8 @@ export interface AtribuicaoDTO {
   servoId: number;
   servoNome: string;
   funcao: string;
+  /** Calculado no backend: servo indisponível na data desta escala (só na resposta). */
+  indisponivel?: boolean;
 }
 
 export interface EscalaDTO {
@@ -203,4 +205,46 @@ export interface Page<T> {
   totalPages: number;
   number: number;
   size: number;
+}
+
+export interface IndisponibilidadeDTO {
+  id: number;
+  dataInicio: string;
+  dataFim: string | null;
+  motivo: string | null;
+  servoId?: number;
+  servoNome?: string;
+}
+
+/** Payload de criação/edição — só os campos editáveis pelo usuário. */
+export interface IndisponibilidadeRequest {
+  dataInicio: string;
+  dataFim: string | null;
+  motivo: string | null;
+}
+
+/** Escala em conflito com uma indisponibilidade (modal de confirmação). */
+export interface EscalaConflitoDTO {
+  escalaId: number;
+  titulo: string;
+  dataEscala: string;
+}
+
+export type NotificacaoTipo = 'ESCALA_ADICIONADA' | 'INDISPONIBILIDADE_REGISTRADA';
+
+export interface NotificacaoDTO {
+  id: number;
+  tipo: NotificacaoTipo;
+  lida: boolean;
+  criadoEm: string;
+  referenciaId: number | null;
+  // ESCALA_ADICIONADA
+  titulo: string | null;
+  ministerio: string | null;
+  dataHora: string | null;
+  area: string | null;
+  // INDISPONIBILIDADE_REGISTRADA
+  servoNome: string | null;
+  periodo: string | null;
+  motivo: string | null;
 }

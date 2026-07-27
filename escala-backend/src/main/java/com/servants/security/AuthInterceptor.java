@@ -97,6 +97,14 @@ public class AuthInterceptor implements HandlerInterceptor {
         // Rotas de usuário: a checagem self/admin é feita no UsuarioController
         if (path.startsWith("/api/usuarios")) return true;
 
+        // Indisponibilidades: qualquer logado gerencia as suas; o escopo por servo é
+        // validado no IndisponibilidadeService (D1 — disponível a todos, sem permissão de tela)
+        if (path.startsWith("/api/indisponibilidades")) return true;
+
+        // Notificações: qualquer logado gerencia as suas (marcar lida/excluir);
+        // a posse é validada no NotificacaoService
+        if (path.startsWith("/api/notificacoes")) return true;
+
         // Telas de cadastro controladas: exige a permissão granular
         String tela = resolverTela(path);
         if (tela != null) {

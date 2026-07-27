@@ -139,7 +139,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           ))}
 
           {NAV_BOTTOM.filter(isVisible).map((item) => (
-            <li key={item.to} className={item.adminOnly ? 'nav-admin-only' : ''}>
+            <li key={item.to}>
               <NavLink to={item.to} className={navLinkClass}>
                 {item.icon} <span>{item.label}</span>
               </NavLink>

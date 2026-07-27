@@ -174,9 +174,9 @@ export function UsuariosPage() {
       </div>
 
       <div className="section-card" style={{ padding: 0 }}>
-        <div className="list-table-toolbar">
-          <div className="search-wrap">
-            <Icon name="search" />
+        <div className="toolbar" style={{ padding: '0.85rem 1rem' }}>
+          <div className="search-wrapper">
+            <Icon name="search" className="search-icon" />
             <input
               type="search"
               placeholder="Buscar usuário…"

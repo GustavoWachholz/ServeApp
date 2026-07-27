@@ -199,6 +199,38 @@ select.field-invalid {
     .list-table-container .btn-sort i { margin-right: 0; }
 }
 
+/* ── Cartão de seção (filtros, painéis, wrappers de tabela) ─────────
+   Usado pelas páginas React para agrupar toolbar+tabela ou blocos de filtro. */
+.section-card {
+    background-color: var(--bg-card);
+    border: 1px solid var(--border-color);
+    border-radius: var(--radius-lg);
+    padding: 1.5rem;
+    margin-bottom: 1.5rem;
+    overflow: hidden;
+}
+/* Quando a section-card já embrulha a tabela (que também é um cartão), evita o
+   "cartão dentro de cartão": a tabela interna fica sem borda/fundo próprios. */
+.section-card > .list-table-container {
+    border: none;
+    border-radius: 0;
+    margin-top: 0;
+    background: transparent;
+}
+/* Toolbar no topo de uma section-card (padding:0) ganha divisória da tabela. */
+.section-card > .toolbar {
+    border-bottom: 1px solid var(--border-color);
+}
+
+/* Ações do cabeçalho (botão "Novo…") alinhadas à direita, abaixo do título centrado. */
+.header-actions {
+    display: flex;
+    justify-content: flex-end;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 1rem;
+}
+
 /* ── Tabela padrão de listagem ──────────────────────────────────── */
 .list-table-container {
     background-color: var(--bg-card);
@@ -676,17 +708,6 @@ html.dark-mode img.logo-mini { content: url('../assets/img/logo_mini_dark.png');
     :root.sidebar-collapsed .sidebar-nav li.active a { margin-left: 0; padding-left: 1rem; border-left: none; }
 }
 
-/* ── Visibilidade de itens admin (síncrona via .is-admin no <html>) ──────────
-   Ocultos por padrão e revelados antes do primeiro paint quando o usuário é
-   admin — evita o "salto" de itens que apareciam via JS após o load. */
-.nav-admin-only { display: none; }
-html.is-admin .nav-admin-only { display: block; }
-
-/* Itens das telas de cadastro: ocultos por padrão, revelados para admin (sem flash)
-   ou para não-admins com permissão (via JS em auth.js / aplicarVisibilidadeMenu). */
-li[data-tela] { display: none; }
-html.is-admin li[data-tela] { display: block; }
-
 /* ── Shell (app.html) + páginas embarcadas no iframe ─────────────────────────
    Dentro do iframe de conteúdo, a página oculta a própria sidebar: quem manda é
    a sidebar fixa do shell, que nunca recarrega. */
@@ -964,7 +985,7 @@ html.embedded .sidebar { display: none; }
     margin-bottom: 1.5rem;
 }
 
-.form-group label {
+.form-group label, .form-label {
     display: block;
     font-size: 0.875rem;
     margin-bottom: 0.5rem;
@@ -972,7 +993,8 @@ html.embedded .sidebar { display: none; }
     font-weight: 500;
 }
 
-.form-group input, .form-group select, .form-group textarea {
+.form-group input, .form-group select, .form-group textarea,
+.form-control {
     width: 100%;
     padding: 0.75rem;
     background-color: var(--bg-main);
@@ -980,9 +1002,11 @@ html.embedded .sidebar { display: none; }
     border-radius: var(--radius-sm);
     color: var(--text-color);
     font-size: 0.9rem;
+    font-family: inherit;
 }
 
-.form-group input:focus, .form-group select:focus, .form-group textarea:focus {
+.form-group input:focus, .form-group select:focus, .form-group textarea:focus,
+.form-control:focus {
     outline: none;
     border-color: var(--primary-color);
     background-color: var(--bg-card);
@@ -992,21 +1016,24 @@ html.embedded .sidebar { display: none; }
 /* ── Dark mode: inputs, selects e textareas ── */
 :root.dark-mode .form-group input,
 :root.dark-mode .form-group select,
-:root.dark-mode .form-group textarea {
+:root.dark-mode .form-group textarea,
+:root.dark-mode .form-control {
     background-color: var(--bg-main);
     color: var(--text-color);
 }
 
 :root.dark-mode .form-group input:focus,
 :root.dark-mode .form-group select:focus,
-:root.dark-mode .form-group textarea:focus {
+:root.dark-mode .form-group textarea:focus,
+:root.dark-mode .form-control:focus {
     background-color: rgba(255, 255, 255, 0.04);
     box-shadow: 0 0 0 3px rgba(var(--accent-rgb), 0.2);
 }
 
 :root.dark-mode .form-group input::placeholder,
 :root.dark-mode .form-group select::placeholder,
-:root.dark-mode .form-group textarea::placeholder {
+:root.dark-mode .form-group textarea::placeholder,
+:root.dark-mode .form-control::placeholder {
     color: var(--text-muted);
 }
 

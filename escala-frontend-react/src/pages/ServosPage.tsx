@@ -165,8 +165,8 @@ export function ServosPage() {
 
       <div className="section-card" style={{ marginBottom: '1rem', padding: '0.85rem 1rem' }}>
         <div style={{ display: 'flex', gap: '.6rem', flexWrap: 'wrap', alignItems: 'center', marginBottom: '.75rem' }}>
-          <div className="search-wrap" style={{ flex: 1, minWidth: 180 }}>
-            <Icon name="search" />
+          <div className="search-wrapper" style={{ flex: 1, minWidth: 180 }}>
+            <Icon name="search" className="search-icon" />
             <input
               type="search"
               placeholder="Buscar servo…"

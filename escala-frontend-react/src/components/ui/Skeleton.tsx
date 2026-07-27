@@ -5,7 +5,7 @@ interface SkeletonProps {
 
 export function Skeleton({ rows = 5, cols = 3 }: SkeletonProps) {
   return (
-    <tbody>
+    <>
       {Array.from({ length: rows }).map((_, r) => (
         <tr key={r} className="skeleton-row">
           {Array.from({ length: cols }).map((_, c) => (
@@ -15,6 +15,6 @@ export function Skeleton({ rows = 5, cols = 3 }: SkeletonProps) {
           ))}
         </tr>
       ))}
-    </tbody>
+    </>
   );
 }

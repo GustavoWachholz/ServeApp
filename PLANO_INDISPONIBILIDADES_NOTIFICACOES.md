@@ -4,7 +4,7 @@
 > Se a feature não for finalizada em uma sessão, este arquivo é a fonte de verdade do progresso.
 > Complementa `.claude/CLAUDE.md` (diretrizes) e `PROJECT_STATUS.md` (panorama).
 >
-> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + front completo (Fases 4–7: API/tipos, tela de Indisponibilidades, integração na Agenda, janela de Notificações) prontos; `tsc`/`npm test` (9 ok)/`build` limpos. **Falta só a Fase 8** (smoke test de backend + E2E autenticado com conta voluntário-com-servo). Próximo: subir `start.bat`, logar como voluntário e rodar o E2E.
+> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟢 **Código completo (Fases 1–7)** e verificado: backend compila + **sobe em runtime** (tabelas novas criadas, endpoints 401 sem token), front `tsc`/`npm test` (9 ok)/`build` limpos e SPA carregando. **Fase 8:** estático + boot de backend/front ✅; resta só o **E2E autenticado no navegador** (login com senha + conta voluntário-com-servo — ação do dono). Assistente pode dirigir o navegador após o login.
 
 ---
 
@@ -121,14 +121,17 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - [x] **Verificar:** `npx tsc -b`, `npm test` e `npm run build` — **limpos**.
 - [ ] **Pendente (Fase 8):** badge atualizando com dado real, ações e modais de detalhe em runtime autenticado.
 
-### FASE 8 — Verificação ponta a ponta & fechamento  🔴
-- [ ] Backend: `mvnw.cmd clean compile -q` limpo.
-- [ ] Front: `npx tsc -b` limpo + `npm test` (rodar sempre que tocar `client.ts`/permissões/Agenda).
-- [ ] E2E no browser com backend + banco reais, com **usuário voluntário real** (admin curto-circuita permissões):
+### FASE 8 — Verificação ponta a ponta & fechamento  🟡 (estático + boot verificados; E2E autenticado → dono)
+- [x] Backend: `mvnw.cmd clean compile -q` — **limpo**.
+- [x] Front: `npx tsc -b` limpo + `npm test` (**9 ok**) + `npm run build` limpo.
+- [x] **Smoke test de runtime do backend** (fecha os "pendentes" das Fases 1–3): sobe em `:8080` sem ciclo de beans; Hibernate `ddl-auto=update` criou as tabelas `indisponibilidades` e `notificacoes` (confirmado via `SHOW TABLES` no MySQL); `GET /api/indisponibilidades`, `/api/notificacoes` e `/api/notificacoes/nao-lidas/contagem` retornam **401 sem token** (controllers + `AuthInterceptor` fiados). ⚠️ Requer `JWT_SECRET` no ambiente (`application.properties:27`), obrigatório por design.
+- [x] **Smoke test de runtime do front**: dev server (`:5173`, proxy `/api`→`:8080`) sobe; SPA carrega a tela de login **sem erros de console**.
+- [ ] **E2E autenticado (ação do dono — envolve login com senha + conta voluntário-com-servo, ambos vedados ao assistente):**
   - criar indisponibilidade → servo some do autocomplete → forçar via API → 400.
   - servo já escalado marca indisponibilidade → selo na equipe + no calendário → escala travada → remover → destrava.
   - notificação de escalação chega ao servo; notificação de indisponibilidade chega a admins/criadores; badge; marcar lida; excluir; modais de detalhe.
-- [ ] Atualizar este arquivo (status) e, se relevante, `PROJECT_STATUS.md`.
+  - **Como rodar:** `start.bat` (com `JWT_SECRET` setado) + `npm run dev`, logar como voluntário-com-servo. O assistente pode dirigir o navegador a partir do login já feito.
+- [ ] Atualizar `PROJECT_STATUS.md` no fechamento do E2E (se relevante).
 
 ---
 
@@ -158,4 +161,5 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - **2026-07-27** — **Fase 4 implementada.** Tipos novos + flag `indisponivel` em `AtribuicaoDTO`; `api/indisponibilidades.ts` e `api/notificacoes.ts`. `npx tsc -b` limpo. Próximo: Fase 5 (tela de Indisponibilidades + rota + sidebar).
 - **2026-07-27** — **Fase 5 implementada.** `IndisponibilidadesPage` (form + lista + modal de conflito + aviso sem-servo) + rota sem `requireTela` + item `CalendarOff` na Sidebar. Corrigidos nomes de ícone (`alert-triangle`, `calendar-x`) e `.indisp-title` local. `npx tsc -b` e `npm run build` limpos. Render autenticado adiado p/ Fase 8 (sem conta voluntário-com-servo no ambiente). Próximo: Fase 6 (Agenda: filtro + selo + trava).
 - **2026-07-27** — **Docs + commit.** `CLAUDE.md` (modelos, regra 3, endpoints, liberação no `AuthInterceptor`) e `.claude/progress.md` (Sessão 10) atualizados. Commit `8663305` em `master` (23 arquivos) e push para `origin/master`. **Deploy: ADIADO por decisão do dono** — só subir produção (backend + frontend juntos) quando as Fases 5–8 estiverem prontas; confirmar antes o `JWT_SECRET`/esquema do RDS. Código já disponível no GitHub.
+- **2026-07-27** — **Fase 8 (parcial): estático + boot verificados.** Commit `d8ebe39` (Fases 6-7) enviado ao `origin/master`. Backend: `clean compile` limpo e **runtime OK** — sobe em `:8080` sem ciclo de beans; Hibernate criou `indisponibilidades` e `notificacoes` (confirmado no MySQL); endpoints das duas features respondem 401 sem token. Front: `tsc`/`npm test` (9)/`build` limpos; dev server sobe e a SPA carrega o login sem erro de console. **Bloqueio do E2E autenticado:** exige login com senha e conta voluntário-com-servo — ambos vedados ao assistente pelas regras de credenciais/criação de conta; fica como ação do dono. Nota de config: backend exige `JWT_SECRET` no ambiente para iniciar (documentado em `application.properties`).
 - **2026-07-27** — **Fases 6 e 7 implementadas (front completo).** Agenda: query `['indisponiveis', de, ate]`, filtro em `resultadosPara`, selo `.voluntario-tag.indisp`, prefixo `⚠️` no evento, trava `travada` (banner + botões/`salvar` bloqueados até remover o servo) e botão da toolbar navegando p/ `/indisponibilidades`. Notificações: novo `components/layout/NotificacoesPopover.tsx` (sino + badge polling 60s, lista com marcar-lida/excluir, `<Modal>` de detalhe por tipo) montado na `Sidebar`. `tsc -b`, `npm test` (9 ok) e `npm run build` limpos. **Só falta a Fase 8** (runtime autenticado — precisa `start.bat` + conta voluntário-com-servo; login/E2E devem ser conduzidos pelo dono, pois envolvem credenciais). Nenhum arquivo de backend tocado nesta sessão.

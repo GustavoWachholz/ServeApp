@@ -1,7 +1,7 @@
 import { useCallback, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
-  House, CalendarCheck, Users, Church, Tags, ChartPie,
+  House, CalendarCheck, CalendarOff, Users, Church, Tags, ChartPie,
   ShieldUser, ClipboardList, Settings, LogOut, ChevronsLeft, Menu,
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
@@ -26,6 +26,7 @@ interface NavItem {
 const NAV_ITEMS: NavItem[] = [
   { to: '/', icon: <House size={18} />, label: 'Home' },
   { to: '/agenda', icon: <CalendarCheck size={18} />, label: 'Agenda', tela: 'AGENDA' },
+  { to: '/indisponibilidades', icon: <CalendarOff size={18} />, label: 'Indisponibilidades' },
 ];
 
 const CADASTROS: NavItem[] = [

@@ -4,7 +4,7 @@
 > Se a feature não for finalizada em uma sessão, este arquivo é a fonte de verdade do progresso.
 > Complementa `.claude/CLAUDE.md` (diretrizes) e `PROJECT_STATUS.md` (panorama).
 >
-> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + camada de API/tipos do front (Fase 4) prontos e compilando; smoke test runtime pendente. Próximo: Fase 5 (tela de Indisponibilidades)
+> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + front API/tipos (Fase 4) + tela de Indisponibilidades (Fase 5) prontos; build/tsc limpos; render autenticado + smoke test runtime pendentes (Fase 8). Próximo: Fase 6 (integração na Agenda)
 
 ---
 
@@ -94,11 +94,14 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - [x] `api/notificacoes.ts`: `getNotificacoes`, `getContagemNaoLidas`, `marcarNotificacaoLida`, `deleteNotificacao`.
 - [x] **Verificar:** `npx tsc -b` — **limpo**.
 
-### FASE 5 — Frontend: tela de Indisponibilidades  🔴
-- [ ] `pages/IndisponibilidadesPage.tsx`: form controlado (início / fim opcional / motivo); permitir enfileirar várias antes de salvar; lista com editar/excluir (`<ConfirmDialog>`); `<Modal>` de conflito (usa `getConflitos`) antes de gravar quando houver escala no período. Empty state (`.empty-state`).
-- [ ] Rota em `App.tsx` com `<ProtectedRoute>` **sem** `requireTela` (D1).
-- [ ] Item novo em `Sidebar.tsx` (e `BottomNav.tsx` se couber) — visível para todos. Ícone lucide (ex.: `calendar-off`/`ban`).
-- [ ] **Verificar:** `npx tsc -b`; navegar, criar/editar/excluir, disparar modal de conflito.
+### FASE 5 — Frontend: tela de Indisponibilidades  🟢 (build/tsc limpos; render autenticado → Fase 8)
+- [x] `pages/IndisponibilidadesPage.tsx`: form controlado (início / fim opcional / motivo) que cria **um registro por submit** (várias = vários submits; "dias específicos" = um por dia — D2); lista com editar/excluir (`<ConfirmDialog>`); `<Modal>` de conflito (via `getConflitos`) antes de gravar quando há escala no período ("Marcar mesmo assim"); empty state; aviso quando a conta **não tem servo** (via `getMe().servoId`) que desabilita o form.
+- [x] Rota `indisponibilidades` em `App.tsx` com `<ProtectedRoute>` **sem** `requireTela` (D1).
+- [x] Item em `Sidebar.tsx` (ícone `CalendarOff`, visível para todos — sem `tela`/`adminOnly`). **BottomNav NÃO alterado** (barra fixa de 5 itens; acessível no mobile via Menu→sidebar overlay).
+- [x] Datas: inputs `type="date"` já produzem `YYYY-MM-DD` (contrato `LocalDate`); exibição via `formatDate`.
+- [x] **Verificar:** `npx tsc -b` e `npm run build` — **limpos**; classes CSS conferidas (`.indisp-title` definida localmente pois `.section-title` não existe no tema).
+- [ ] **Pendente (Fase 8):** render autenticado e teste do fluxo criar/editar/excluir + modal de conflito (exige backend + banco + conta voluntário com servo vinculado; ambiente atual só tem admin sem servo).
+- [ ] *(Opção futura, não requisitada agora)* enfileirar várias indisponibilidades e salvar em lote.
 
 ### FASE 6 — Frontend: integração na Agenda  🔴
 - [ ] `AgendaPage.resultadosPara`: excluir servos indisponíveis no intervalo da escala em edição (`useQuery` de `getServosIndisponiveis` com `[dataEscala, dataFim]`).
@@ -149,3 +152,5 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - **2026-07-27** — **Fase 2 implementada.** `AtribuicaoDTO` ganhou `indisponivel`; `EscalaService` agora injeta `IndisponibilidadeRepository`, bloqueia servo indisponível na validação (regra 3) e marca a flag por atribuição em batch (`findByServoIdIn`, sem N+1); `IndisponibilidadeRepository.findByServoIdIn` adicionado. `mvnw clean compile -q` limpo. Falta smoke test runtime. Próximo: Fase 3 (Notificações).
 - **2026-07-27** — **Fase 3 implementada (backend completo).** Model/dto/repository/service/controller de Notificacao; gatilhos em `EscalaService` (recém-adicionados) e `IndisponibilidadeService.criar` (criadores de escala + admins, menos autor); `AuthInterceptor` libera `/api/notificacoes`; queries `findUsuarioIdsComCriar`/`findIdsByRole`. `mvnw clean compile -q` limpo. Falta smoke test runtime de todo o backend. Próximo: Fase 4 (frontend: `api/*` + tipos).
 - **2026-07-27** — **Fase 4 implementada.** Tipos novos + flag `indisponivel` em `AtribuicaoDTO`; `api/indisponibilidades.ts` e `api/notificacoes.ts`. `npx tsc -b` limpo. Próximo: Fase 5 (tela de Indisponibilidades + rota + sidebar).
+- **2026-07-27** — **Fase 5 implementada.** `IndisponibilidadesPage` (form + lista + modal de conflito + aviso sem-servo) + rota sem `requireTela` + item `CalendarOff` na Sidebar. Corrigidos nomes de ícone (`alert-triangle`, `calendar-x`) e `.indisp-title` local. `npx tsc -b` e `npm run build` limpos. Render autenticado adiado p/ Fase 8 (sem conta voluntário-com-servo no ambiente). Próximo: Fase 6 (Agenda: filtro + selo + trava).
+- **2026-07-27** — **Docs + commit.** `CLAUDE.md` (modelos, regra 3, endpoints, liberação no `AuthInterceptor`) e `.claude/progress.md` (Sessão 10) atualizados. Commit `8663305` em `master` (23 arquivos) e push para `origin/master`. **Deploy: ADIADO por decisão do dono** — só subir produção (backend + frontend juntos) quando as Fases 5–8 estiverem prontas; confirmar antes o `JWT_SECRET`/esquema do RDS. Código já disponível no GitHub.

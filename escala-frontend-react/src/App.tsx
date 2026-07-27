@@ -12,6 +12,7 @@ import { ServosPage } from './pages/ServosPage';
 import { UsuariosPage } from './pages/UsuariosPage';
 import { PerfilPage } from './pages/PerfilPage';
 import { DashboardPage } from './pages/DashboardPage';
+import { IndisponibilidadesPage } from './pages/IndisponibilidadesPage';
 import { LucideIcons } from './lib/lucide';
 
 // Agenda carrega FullCalendar + html2canvas (pesados) — code-split por rota.
@@ -77,6 +78,8 @@ export default function App() {
         />
 
         <Route path="relatorios" element={<RelatoriosPage />} />
+
+        <Route path="indisponibilidades" element={<IndisponibilidadesPage />} />
 
         <Route path="perfil" element={<PerfilPage />} />
 

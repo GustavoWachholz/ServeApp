@@ -4,7 +4,7 @@
 > Se a feature não for finalizada em uma sessão, este arquivo é a fonte de verdade do progresso.
 > Complementa `.claude/CLAUDE.md` (diretrizes) e `PROJECT_STATUS.md` (panorama).
 >
-> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + front API/tipos (Fase 4) + tela de Indisponibilidades (Fase 5) prontos; build/tsc limpos; render autenticado + smoke test runtime pendentes (Fase 8). Próximo: Fase 6 (integração na Agenda)
+> **Criado em:** 2026-07-27 · **Última atualização:** 2026-07-27 · **Status geral:** 🟡 Backend (Fases 1–3) + front completo (Fases 4–7: API/tipos, tela de Indisponibilidades, integração na Agenda, janela de Notificações) prontos; `tsc`/`npm test` (9 ok)/`build` limpos. **Falta só a Fase 8** (smoke test de backend + E2E autenticado com conta voluntário-com-servo). Próximo: subir `start.bat`, logar como voluntário e rodar o E2E.
 
 ---
 
@@ -103,19 +103,23 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - [ ] **Pendente (Fase 8):** render autenticado e teste do fluxo criar/editar/excluir + modal de conflito (exige backend + banco + conta voluntário com servo vinculado; ambiente atual só tem admin sem servo).
 - [ ] *(Opção futura, não requisitada agora)* enfileirar várias indisponibilidades e salvar em lote.
 
-### FASE 6 — Frontend: integração na Agenda  🔴
-- [ ] `AgendaPage.resultadosPara`: excluir servos indisponíveis no intervalo da escala em edição (`useQuery` de `getServosIndisponiveis` com `[dataEscala, dataFim]`).
-- [ ] **Selo de indisponível**: na visão de equipe (tag do servo) e no evento do calendário quando alguma atribuição tiver `indisponivel:true`.
-- [ ] **Trava de edição (D5):** se a escala tem servo indisponível, desabilitar salvar/editar campos; única ação liberada = remover o servo indisponível; depois libera. Toast explicando o motivo.
-- [ ] **Verificar:** `npx tsc -b`; cenário completo (marcar indisponibilidade de servo já escalado → selo + trava → remover → salva).
+### FASE 6 — Frontend: integração na Agenda  🟢 (build/tsc/test limpos; render autenticado → Fase 8)
+- [x] `AgendaPage.resultadosPara`: exclui servos indisponíveis no intervalo (`useQuery ['indisponiveis', de, ate]` sobre `getServosIndisponiveis`, `enabled` quando modal aberto; janela derivada de `dataEscala`/`dataFim`, `slice(0,10)` → `YYYY-MM-DD`).
+- [x] **Selo de indisponível**: tag do servo ganha classe `.voluntario-tag.indisp` (vermelho + ícone `calendar-x`) na visão de equipe; evento do calendário recebe prefixo `⚠️` quando alguma atribuição tem `indisponivel:true` (`carregarEventos`).
+- [x] **Trava de edição (D5):** `travada` = alguma tag da equipe está no `indispSet`. Botões "Salvar dados"/"Salvar Equipe" desabilitados + `salvar()` bloqueia com toast; banner `.escala-travada-banner` no step 2; única ação liberada = remover o servo (× continua ativo) → ao remover o último indisponível, destrava.
+- [x] **Extra:** botão "Indisponibilidades" da toolbar agora navega para `/indisponibilidades` (antes era toast "em desenvolvimento").
+- [x] **Verificar:** `npx tsc -b`, `npm test` (9 ok) e `npm run build` — **limpos**.
+- [ ] **Pendente (Fase 8):** cenário autenticado completo (marcar indisponibilidade de servo já escalado → selo + trava → remover → salva).
 
-### FASE 7 — Frontend: janela de Notificações  🔴
-- [ ] Componente do painel na `Sidebar`, logo abaixo do `.user-profile`: gatilho (sino) com **badge vermelho** de contagem (polling 60s via `refetchInterval`); popover no padrão `.settings-popover`.
-- [ ] Lista: cada item com texto + ✅ (marcar lida, `marcarLida`) + 🗑️ (excluir). Clique no item abre `<Modal>` de detalhes:
-  - `ESCALA_ADICIONADA`: data + título + ministério + horário + área.
-  - `INDISPONIBILIDADE_REGISTRADA`: período + motivo (se houver).
-- [ ] `invalidateQueries` da contagem/lista após marcar/excluir.
-- [ ] **Verificar:** `npx tsc -b`; badge atualiza; ações funcionam; modal mostra detalhes certos por tipo.
+### FASE 7 — Frontend: janela de Notificações  🟢 (build/tsc/test limpos; render autenticado → Fase 8)
+- [x] `components/layout/NotificacoesPopover.tsx` montado na `Sidebar` logo abaixo do `.user-profile` (só com `session`): gatilho (sino `Bell`) com **badge vermelho** de contagem — `useQuery ['notificacoes-contagem']` com `refetchInterval: 60_000` (D9); popover próprio (`<style>` local no padrão do tema), fecha ao clicar fora.
+- [x] Lista (`useQuery ['notificacoes']`, `enabled: open`): cada item com título/subtítulo por tipo + ✅ (marcar lida) + 🗑️ (excluir) via `useMutation`. Clique no item abre `<Modal>` de detalhes e marca como lida:
+  - `ESCALA_ADICIONADA`: data/hora + título + ministério + área.
+  - `INDISPONIBILIDADE_REGISTRADA`: servo + período + motivo.
+- [x] `invalidateQueries(['notificacoes'])` + `(['notificacoes-contagem'])` após marcar/excluir.
+- [x] Ícones via `lucide-react` direto (`Bell`/`Check`/`Trash2`) — evita o observer de `<i data-lucide>` em lista/modal.
+- [x] **Verificar:** `npx tsc -b`, `npm test` e `npm run build` — **limpos**.
+- [ ] **Pendente (Fase 8):** badge atualizando com dado real, ações e modais de detalhe em runtime autenticado.
 
 ### FASE 8 — Verificação ponta a ponta & fechamento  🔴
 - [ ] Backend: `mvnw.cmd clean compile -q` limpo.
@@ -154,3 +158,4 @@ Independente da Fase 2 no código, mas os gatilhos tocam Escala/Indisponibilidad
 - **2026-07-27** — **Fase 4 implementada.** Tipos novos + flag `indisponivel` em `AtribuicaoDTO`; `api/indisponibilidades.ts` e `api/notificacoes.ts`. `npx tsc -b` limpo. Próximo: Fase 5 (tela de Indisponibilidades + rota + sidebar).
 - **2026-07-27** — **Fase 5 implementada.** `IndisponibilidadesPage` (form + lista + modal de conflito + aviso sem-servo) + rota sem `requireTela` + item `CalendarOff` na Sidebar. Corrigidos nomes de ícone (`alert-triangle`, `calendar-x`) e `.indisp-title` local. `npx tsc -b` e `npm run build` limpos. Render autenticado adiado p/ Fase 8 (sem conta voluntário-com-servo no ambiente). Próximo: Fase 6 (Agenda: filtro + selo + trava).
 - **2026-07-27** — **Docs + commit.** `CLAUDE.md` (modelos, regra 3, endpoints, liberação no `AuthInterceptor`) e `.claude/progress.md` (Sessão 10) atualizados. Commit `8663305` em `master` (23 arquivos) e push para `origin/master`. **Deploy: ADIADO por decisão do dono** — só subir produção (backend + frontend juntos) quando as Fases 5–8 estiverem prontas; confirmar antes o `JWT_SECRET`/esquema do RDS. Código já disponível no GitHub.
+- **2026-07-27** — **Fases 6 e 7 implementadas (front completo).** Agenda: query `['indisponiveis', de, ate]`, filtro em `resultadosPara`, selo `.voluntario-tag.indisp`, prefixo `⚠️` no evento, trava `travada` (banner + botões/`salvar` bloqueados até remover o servo) e botão da toolbar navegando p/ `/indisponibilidades`. Notificações: novo `components/layout/NotificacoesPopover.tsx` (sino + badge polling 60s, lista com marcar-lida/excluir, `<Modal>` de detalhe por tipo) montado na `Sidebar`. `tsc -b`, `npm test` (9 ok) e `npm run build` limpos. **Só falta a Fase 8** (runtime autenticado — precisa `start.bat` + conta voluntário-com-servo; login/E2E devem ser conduzidos pelo dono, pois envolvem credenciais). Nenhum arquivo de backend tocado nesta sessão.

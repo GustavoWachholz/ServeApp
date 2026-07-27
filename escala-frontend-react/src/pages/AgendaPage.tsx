@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FullCalendar from '@fullcalendar/react';
@@ -13,6 +14,7 @@ import { getEscalas, createEscala, updateEscala, deleteEscala } from '../api/esc
 import { getServos } from '../api/servos';
 import { getMinisterios } from '../api/ministerios';
 import { getAniversariantes } from '../api/aniversariantes';
+import { getServosIndisponiveis } from '../api/indisponibilidades';
 import { usePermissao } from '../hooks/usePermissao';
 import { useToast } from '../hooks/useToast';
 import { Modal } from '../components/ui/Modal';
@@ -38,6 +40,11 @@ const STYLES = `
   .voluntarios-list { display:flex;flex-wrap:wrap;gap:.35rem;margin-bottom:.5rem;min-height:4px; }
   .voluntario-tag { display:inline-flex;align-items:center;gap:.35rem;background:var(--primary-color);color:#fff;font-size:.76rem;padding:.2rem .5rem;border-radius:10px; }
   .voluntario-tag button { background:none;border:none;color:#fff;cursor:pointer;font-size:.85rem;line-height:1;padding:0; }
+  .voluntario-tag.indisp { background:#dc2626; }
+  .voluntario-tag .indisp-mark { display:inline-flex;align-items:center; }
+  .voluntario-tag .indisp-mark svg { width:12px;height:12px; }
+  .escala-travada-banner { display:flex;align-items:flex-start;gap:.5rem;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.4);border-radius:var(--radius-sm);padding:.6rem .75rem;margin-bottom:1rem;font-size:.82rem;color:var(--text-primary);line-height:1.4; }
+  .escala-travada-banner svg { color:#dc2626;flex-shrink:0;margin-top:1px; }
   .busca-container { position:relative; }
   .busca-container input { width:100%;padding:.35rem .5rem;border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-card);color:var(--text-primary);font-size:.82rem; }
   .resultados-busca { position:absolute;z-index:10;width:100%;max-height:160px;overflow-y:auto;list-style:none;padding:0;margin:.15rem 0 0;border:1px solid var(--border-color);border-radius:var(--radius-sm);background:var(--bg-card);box-shadow:0 4px 14px rgba(0,0,0,.15); }
@@ -75,6 +82,7 @@ export function AgendaPage() {
   const perm = usePermissao('AGENDA');
   const { toast } = useToast();
   const qc = useQueryClient();
+  const navigate = useNavigate();
   const calendarRef = useRef<FullCalendar | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
@@ -111,6 +119,28 @@ export function AgendaPage() {
   );
   const areas: AreaDTO[] = config?.areas ?? [];
 
+  // Janela da escala em aberto (datas YYYY-MM-DD) para consultar servos indisponíveis.
+  const janela = useMemo(() => {
+    const de = dataEscala ? dataEscala.slice(0, 10) : '';
+    const ate = (dataFim || dataEscala) ? (dataFim || dataEscala).slice(0, 10) : '';
+    return { de, ate };
+  }, [dataEscala, dataFim]);
+
+  const { data: idsIndisponiveis = [] } = useQuery({
+    queryKey: ['indisponiveis', janela.de, janela.ate],
+    queryFn: () => getServosIndisponiveis(janela.de, janela.ate),
+    enabled: modalOpen && !!janela.de,
+    staleTime: 60 * 1000,
+  });
+  const indispSet = useMemo(() => new Set(idsIndisponiveis), [idsIndisponiveis]);
+
+  // Trava (D5): escala com servo indisponível ainda na equipe não pode ser salva/editada;
+  // só é liberada depois que o servo indisponível for removido.
+  const travada = useMemo(
+    () => Object.values(equipe).some((tags) => tags.some((t) => indispSet.has(t.id))),
+    [equipe, indispSet]
+  );
+
   // Altura responsiva
   useEffect(() => {
     const onResize = () => calendarRef.current?.getApi().setOption('height', alturaCalendario());
@@ -126,15 +156,19 @@ export function AgendaPage() {
     getEscalas()
       .then((data: EscalaDTO[]) => {
         success(
-          data.map((e) => ({
+          data.map((e) => {
+            const temIndisponivel = (e.atribuicoes || []).some((a) => a.indisponivel);
+            const prefixo = `${temIndisponivel ? '⚠️ ' : ''}${e.status !== 'COMPLETO' ? '⏳ ' : ''}`;
+            return {
             id: String(e.id),
-            title: e.status !== 'COMPLETO' ? `⏳ ${e.titulo}` : e.titulo,
+            title: `${prefixo}${e.titulo}`,
             start: e.dataEscala,
             end: e.dataFim || undefined,
             backgroundColor: e.cor || '#004b87',
             borderColor: e.cor || '#004b87',
             extendedProps: { classificacao: e.classificacao, status: e.status, atribuicoes: e.atribuicoes },
-          }))
+            };
+          })
         );
       })
       .catch((err) => failure(err instanceof Error ? err : new Error('Erro')));
@@ -226,6 +260,7 @@ export function AgendaPage() {
     const escalados = jaEscalados();
     return servos.filter((v) => {
       if (!v.nome.toLowerCase().includes(termo)) return false;
+      if (indispSet.has(v.id)) return false; // servo indisponível na janela some do autocomplete (D4)
       return !(escalados[v.id] || []).includes(area.nome);
     });
   }
@@ -257,6 +292,10 @@ export function AgendaPage() {
 
   async function salvar(incluirEquipe: boolean) {
     if (!validarStep1()) return;
+    if (travada) {
+      toast('Há servo(s) indisponível(is) nesta escala. Remova-os para poder salvar.', 'error');
+      return;
+    }
     const atribuicoes: AtribuicaoDTO[] = [];
     let todasPreenchidas = true;
     if (incluirEquipe) {
@@ -401,7 +440,7 @@ export function AgendaPage() {
           <button className="btn-secondary" onClick={() => setAnivOpen(true)}>
             <Icon name="cake" /> Aniversariantes
           </button>
-          <button className="btn-secondary" onClick={() => toast('Funcionalidade em desenvolvimento.', 'info')}>
+          <button className="btn-secondary" onClick={() => navigate('/indisponibilidades')}>
             <Icon name="calendar-x" /> Indisponibilidades
           </button>
           {perm.criar && (
@@ -458,7 +497,12 @@ export function AgendaPage() {
                   <Icon name="trash-2" /> Excluir
                 </button>
               )}
-              <button className="btn-secondary" onClick={() => salvar(false)} disabled={salvando}>
+              <button
+                className="btn-secondary"
+                onClick={() => salvar(false)}
+                disabled={salvando || travada}
+                title={travada ? 'Remova os servos indisponíveis para salvar' : undefined}
+              >
                 {salvando ? 'Salvando…' : 'Salvar dados'}
               </button>
               <button className="btn-primary" onClick={irParaEquipe}>
@@ -473,7 +517,12 @@ export function AgendaPage() {
               <button className="btn-secondary" onClick={onFinalizarClick} disabled={gerandoImg}>
                 <Icon name="image" /> {gerandoImg ? 'Gerando…' : 'Imprimir'}
               </button>
-              <button className="btn-primary" onClick={() => salvar(true)} disabled={salvando}>
+              <button
+                className="btn-primary"
+                onClick={() => salvar(true)}
+                disabled={salvando || travada}
+                title={travada ? 'Remova os servos indisponíveis para salvar' : undefined}
+              >
                 {salvando ? 'Salvando…' : 'Salvar Equipe'}
               </button>
             </div>
@@ -524,6 +573,15 @@ export function AgendaPage() {
           </>
         ) : (
           <>
+            {travada && (
+              <div className="escala-travada-banner">
+                <Icon name="alert-triangle" />
+                <span>
+                  Há servo(s) marcado(s) como indisponível(is) nesta data. A escala fica
+                  <strong> travada</strong> até que eles sejam removidos — só então será possível salvar.
+                </span>
+              </div>
+            )}
             {areas.length === 0 ? (
               <p style={{ textAlign: 'center', color: 'var(--text-muted)', padding: '2rem', fontStyle: 'italic' }}>
                 Nenhuma área configurada para este ministério.
@@ -538,12 +596,20 @@ export function AgendaPage() {
                     <div className="ministerio-box" key={area.id}>
                       <h4>{area.nome}</h4>
                       <div className="voluntarios-list">
-                        {tags.map((t) => (
-                          <span key={t.id} className="voluntario-tag">
-                            {t.nome}
-                            <button type="button" onClick={() => removeVoluntario(area.nome, t.id)} aria-label="Remover">×</button>
-                          </span>
-                        ))}
+                        {tags.map((t) => {
+                          const indisp = indispSet.has(t.id);
+                          return (
+                            <span
+                              key={t.id}
+                              className={`voluntario-tag${indisp ? ' indisp' : ''}`}
+                              title={indisp ? 'Indisponível nesta data — remova para poder salvar' : undefined}
+                            >
+                              {indisp && <span className="indisp-mark"><Icon name="calendar-x" /></span>}
+                              {t.nome}
+                              <button type="button" onClick={() => removeVoluntario(area.nome, t.id)} aria-label="Remover">×</button>
+                            </span>
+                          );
+                        })}
                       </div>
                       <div className="busca-container">
                         <input

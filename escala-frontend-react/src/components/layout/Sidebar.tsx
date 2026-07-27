@@ -5,6 +5,7 @@ import {
   ShieldUser, ClipboardList, Settings, LogOut, ChevronsLeft, Menu,
 } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
+import { NotificacoesPopover } from './NotificacoesPopover';
 import { useAuth } from '../../hooks/useAuth';
 import { useContext } from 'react';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -117,6 +118,8 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           </div>
         </div>
       )}
+
+      {session && <NotificacoesPopover />}
 
       <nav className="sidebar-nav">
         <ul>

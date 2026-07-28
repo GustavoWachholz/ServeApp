@@ -282,7 +282,7 @@ export function MinisteriosPage() {
           </button>
         </div>
 
-        <div className="list-table-container">
+        <div className="list-table-container mobile-compact-min">
           <table className="list-table">
             <thead>
               <tr>

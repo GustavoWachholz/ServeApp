@@ -1,4 +1,5 @@
 import { useCallback, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   House, CalendarCheck, CalendarOff, Users, Church, Tags, ChartPie,
@@ -20,6 +21,7 @@ const THEME_OPTIONS: ReadonlyArray<{ value: Tema; label: string }> = [
 interface SidebarProps {
   collapsed: boolean;
   onToggle: () => void;
+  onNavigate?: () => void;
 }
 
 interface NavItem {
@@ -52,7 +54,7 @@ function navLinkClass({ isActive }: { isActive: boolean }) {
   return isActive ? 'active' : '';
 }
 
-export function Sidebar({ collapsed, onToggle }: SidebarProps) {
+export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
   const { session, foto, isAdmin, podeAcessar, logout } = useAuth();
   const themeCtx = useContext(ThemeContext);
   const { igreja } = useIgreja();
@@ -67,9 +69,15 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const logoMini = tema === 'light' ? '/assets/img/logo_mini_t.png' : '/assets/img/logo_mini_dark.png';
 
   const handleLogout = useCallback(async () => {
+    onNavigate?.();
     await logout();
     navigate('/login');
-  }, [logout, navigate]);
+  }, [logout, navigate, onNavigate]);
+
+  const handleNav = useCallback(() => {
+    setSettingsOpen(false);
+    onNavigate?.();
+  }, [onNavigate]);
 
   const toggleSettings = useCallback((e: React.MouseEvent) => {
     e.stopPropagation();
@@ -106,7 +114,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div
           className="user-profile"
           style={{ cursor: 'pointer' }}
-          onClick={() => navigate('/perfil')}
+          onClick={() => { handleNav(); navigate('/perfil'); }}
           title="Meu Perfil"
         >
           <div className="avatar-wrapper">
@@ -131,7 +139,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <ul>
           {NAV_ITEMS.filter(isVisible).map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} className={navLinkClass} end={item.to === '/'}>
+              <NavLink to={item.to} className={navLinkClass} end={item.to === '/'} onClick={handleNav}>
                 {item.icon} <span>{item.label}</span>
               </NavLink>
             </li>
@@ -142,7 +150,7 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
           )}
           {CADASTROS.filter(isVisible).map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} className={navLinkClass}>
+              <NavLink to={item.to} className={navLinkClass} onClick={handleNav}>
                 {item.icon} <span>{item.label}</span>
               </NavLink>
             </li>
@@ -150,13 +158,22 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
 
           {NAV_BOTTOM.filter(isVisible).map((item) => (
             <li key={item.to}>
-              <NavLink to={item.to} className={navLinkClass}>
+              <NavLink to={item.to} className={navLinkClass} onClick={handleNav}>
                 {item.icon} <span>{item.label}</span>
               </NavLink>
             </li>
           ))}
         </ul>
       </nav>
+
+      {settingsOpen && createPortal(
+        <div
+          className="settings-overlay"
+          onClick={() => setSettingsOpen(false)}
+          aria-hidden="true"
+        />,
+        document.body
+      )}
 
       <div className="sidebar-footer">
         <div ref={settingsRef} id="settings-menu" className={`settings-popover${settingsOpen ? ' show-menu' : ''}`}>

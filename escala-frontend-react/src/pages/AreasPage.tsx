@@ -218,7 +218,7 @@ export function AreasPage() {
           </button>
         </div>
 
-        <div className="list-table-container">
+        <div className="list-table-container mobile-compact">
           <table className="list-table">
             <thead>
               <tr>

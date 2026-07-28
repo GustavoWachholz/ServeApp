@@ -196,7 +196,7 @@ export function AuditoriaPage() {
       </div>
 
       <div className="section-card" style={{ padding: 0 }}>
-        <div className="list-table-container">
+        <div className="list-table-container mobile-compact-aud">
           <table className="list-table">
             <thead>
               <tr>

@@ -36,6 +36,11 @@ const STYLES = `
   .notif-detail-row { display:flex;gap:.5rem;padding:.35rem 0;font-size:.9rem;border-bottom:1px dashed var(--border-color); }
   .notif-detail-row:last-child { border-bottom:none; }
   .notif-detail-label { font-weight:700;color:var(--text-muted);min-width:96px; }
+  .notif-wrapper--bn { flex:1;display:flex; }
+  .notif-wrapper--bn .bottom-nav-item { flex:1; }
+  .notif-bn-icon { position:relative;display:flex;align-items:center;justify-content:center; }
+  .notif-badge--bn { top:-5px;right:-9px; }
+  .notif-popover--bottomnav { position:fixed;left:.5rem;right:.5rem;top:auto;bottom:calc(var(--bottomnav-h) + env(safe-area-inset-bottom) + .4rem);max-height:min(60vh,420px); }
 `;
 
 function formatQuando(iso: string | null): string {
@@ -60,7 +65,8 @@ function subtituloLista(n: NotificacaoDTO): string {
   return n.periodo || '';
 }
 
-export function NotificacoesPopover() {
+export function NotificacoesPopover({ variant = 'sidebar' }: { variant?: 'sidebar' | 'bottomnav' } = {}) {
+  const bottom = variant === 'bottomnav';
   const qc = useQueryClient();
   const { toast } = useToast();
   const [open, setOpen] = useState(false);
@@ -117,20 +123,35 @@ export function NotificacoesPopover() {
     <>
       <style>{STYLES}</style>
 
-      <div className="notif-wrapper" ref={wrapperRef}>
-        <button
-          type="button"
-          className="notif-trigger"
-          onClick={() => setOpen((v) => !v)}
-          title="Notificações"
-        >
-          <Bell size={18} />
-          <span>Notificações</span>
-          {naoLidas > 0 && <span className="notif-badge">{naoLidas > 99 ? '99+' : naoLidas}</span>}
-        </button>
+      <div className={`notif-wrapper${bottom ? ' notif-wrapper--bn' : ''}`} ref={wrapperRef}>
+        {bottom ? (
+          <button
+            type="button"
+            className={`bottom-nav-item${open ? ' active' : ''}`}
+            onClick={() => setOpen((v) => !v)}
+            aria-label="Notificações"
+          >
+            <span className="notif-bn-icon">
+              <Bell size={26} strokeWidth={2.25} />
+              {naoLidas > 0 && <span className="notif-badge notif-badge--bn">{naoLidas > 99 ? '99+' : naoLidas}</span>}
+            </span>
+            <span>Notificações</span>
+          </button>
+        ) : (
+          <button
+            type="button"
+            className="notif-trigger"
+            onClick={() => setOpen((v) => !v)}
+            title="Notificações"
+          >
+            <Bell size={18} />
+            <span>Notificações</span>
+            {naoLidas > 0 && <span className="notif-badge">{naoLidas > 99 ? '99+' : naoLidas}</span>}
+          </button>
+        )}
 
         {open && (
-          <div className="notif-popover">
+          <div className={`notif-popover${bottom ? ' notif-popover--bottomnav' : ''}`}>
             <div className="notif-popover-header">
               <span>Notificações</span>
               {naoLidas > 0 && <span style={{ fontSize: '.74rem', color: 'var(--text-muted)' }}>{naoLidas} não lida(s)</span>}

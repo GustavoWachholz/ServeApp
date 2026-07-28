@@ -210,7 +210,7 @@ export function IndisponibilidadesPage() {
       )}
 
       <div className="section-card" style={{ padding: 0 }}>
-        <div className="list-table-container">
+        <div className="list-table-container mobile-compact">
           <table className="list-table">
             <thead>
               <tr>

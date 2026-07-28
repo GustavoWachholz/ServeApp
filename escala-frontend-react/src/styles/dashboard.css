@@ -528,6 +528,16 @@ body {
     transform: translateY(0);
 }
 
+/* Overlay que fecha o popover de Configurações ao clicar fora, absorvendo o
+   clique (não aciona nada embaixo). Fica sob o popover (z-index 100) e, no
+   mobile, sob o backdrop da sidebar (z-index 999). */
+.settings-overlay {
+    position: fixed;
+    inset: 0;
+    z-index: 99;
+    background: transparent;
+}
+
 .popover-header {
     font-size: 0.75rem;
     font-weight: 700;
@@ -1264,33 +1274,20 @@ html.embedded .sidebar { display: none; }
         flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 2px;
+        gap: 6px;
+        padding-top: 3px;
         background: none;
         border: none;
         color: var(--text-muted);
-        font-size: 0.65rem;
+        font-size: 0.58rem;
         text-decoration: none;
         cursor: pointer;
     }
-    .bottom-nav-item i { font-size: 1.15rem; }
+    .bottom-nav-item span { line-height: 1; }
+    .bottom-nav-item svg { width: 26px; height: 26px; }
     .bottom-nav-item.active { color: var(--primary-color); }
-    .bottom-nav-item[data-tela] { display: none; }
-    .bottom-nav-item[data-tela].nav-visivel { display: flex; }
-    .bottom-nav-center {
-        margin-top: -18px;
-    }
-    .bottom-nav-center i {
-        width: 46px; height: 46px;
-        display: flex; align-items: center; justify-content: center;
-        border-radius: 50%;
-        background: var(--primary-color);
-        color: #fff;
-        font-size: 1.2rem;
-        box-shadow: 0 4px 10px rgba(0,0,0,0.25);
-    }
-    .bottom-nav-center.active i { background: var(--secondary-color); }
     .bottom-nav-avatar {
-        width: 24px; height: 24px;
+        width: 28px; height: 28px;
         border-radius: 50%;
         object-fit: cover;
         background: var(--bg-main);
@@ -1313,16 +1310,38 @@ html.embedded .sidebar { display: none; }
     .list-table-container { overflow-x: auto; overflow-y: hidden; -webkit-overflow-scrolling: touch; }
     .list-table-container table { min-width: 480px; }
 
-    /* ── Listas compactas (Servos, Áreas, Ministérios, Usuários): exibem só
-       a 1ª coluna (nome) e a última (ações), sem rolagem horizontal. ────── */
-    .list-table-container.mobile-compact { overflow-x: visible; }
-    .list-table-container.mobile-compact table { min-width: 0; width: 100%; }
+    /* ── Listas compactas no mobile: exibem só a coluna principal + a última,
+       sem rolagem horizontal. Três padrões conforme a estrutura da tabela. ── */
+    .list-table-container.mobile-compact,
+    .list-table-container.mobile-compact-min,
+    .list-table-container.mobile-compact-aud { overflow-x: visible; }
+    .list-table-container.mobile-compact table,
+    .list-table-container.mobile-compact-min table,
+    .list-table-container.mobile-compact-aud table { min-width: 0; width: 100%; }
+
+    /* Genérico — 1ª (nome) + última (ações): Servos, Áreas, Usuários, Indisponibilidades. */
     .list-table-container.mobile-compact th:not(:first-child):not(:last-child),
     .list-table-container.mobile-compact td:not(:first-child):not(:last-child) { display: none; }
     .list-table-container.mobile-compact th:last-child,
     .list-table-container.mobile-compact td:last-child { text-align: right; white-space: nowrap; }
     .list-table-container.mobile-compact th:first-child,
     .list-table-container.mobile-compact td:first-child { width: 100%; }
+
+    /* Ministérios — coluna de chevron antes do Nome: mantém Nome (2ª) + Ações (última). */
+    .list-table-container.mobile-compact-min th:not(:nth-child(2)):not(:last-child),
+    .list-table-container.mobile-compact-min td:not(:nth-child(2)):not(:last-child) { display: none; }
+    .list-table-container.mobile-compact-min th:last-child,
+    .list-table-container.mobile-compact-min td:last-child { text-align: right; white-space: nowrap; }
+    .list-table-container.mobile-compact-min th:nth-child(2),
+    .list-table-container.mobile-compact-min td:nth-child(2) { width: 100%; }
+
+    /* Auditoria — log sem ações: mantém Data/Hora (1ª) + Ação (4ª). */
+    .list-table-container.mobile-compact-aud th:not(:nth-child(1)):not(:nth-child(4)),
+    .list-table-container.mobile-compact-aud td:not(:nth-child(1)):not(:nth-child(4)) { display: none; }
+    .list-table-container.mobile-compact-aud th:nth-child(1),
+    .list-table-container.mobile-compact-aud td:nth-child(1) { width: 60%; }
+    .list-table-container.mobile-compact-aud th:nth-child(4),
+    .list-table-container.mobile-compact-aud td:nth-child(4) { text-align: right; white-space: nowrap; }
 
     /* ── Toolbars e grupos de botões: permitem quebra de linha ─────────── */
     .toolbar { gap: 0.6rem; }

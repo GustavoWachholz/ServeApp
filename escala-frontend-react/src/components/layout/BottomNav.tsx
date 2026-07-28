@@ -1,6 +1,7 @@
 import { NavLink } from 'react-router-dom';
-import { Menu, CalendarCheck, House, Tags } from 'lucide-react';
+import { Menu, CalendarCheck, House } from 'lucide-react';
 import { Avatar } from '../ui/Avatar';
+import { NotificacoesPopover } from './NotificacoesPopover';
 import { useAuth } from '../../hooks/useAuth';
 import { useContext } from 'react';
 import { ThemeContext } from '../../context/ThemeContext';
@@ -15,7 +16,6 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
   const corPrimaria = themeCtx?.corPrimaria ?? '#1B5E8C';
 
   const showAgenda = isAdmin() || podeAcessar('AGENDA');
-  const showMinisterios = isAdmin() || podeAcessar('MINISTERIOS');
 
   return (
     <nav className="bottom-nav">
@@ -24,17 +24,18 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
         type="button"
         className="bottom-nav-item"
         onClick={onMenuClick}
+        aria-label="Menu"
       >
-        <Menu size={20} />
+        <Menu size={26} strokeWidth={2.25} />
         <span>Menu</span>
       </button>
 
       {showAgenda && (
         <NavLink
           to="/agenda"
-          className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''} nav-visivel`}
+          className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
         >
-          <CalendarCheck size={20} />
+          <CalendarCheck size={26} strokeWidth={2.25} />
           <span>Agenda</span>
         </NavLink>
       )}
@@ -42,21 +43,13 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
       <NavLink
         to="/"
         end
-        className={({ isActive }) => `bottom-nav-item bottom-nav-center${isActive ? ' active' : ''}`}
+        className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
       >
-        <House size={20} />
+        <House size={26} strokeWidth={2.25} />
         <span>Home</span>
       </NavLink>
 
-      {showMinisterios && (
-        <NavLink
-          to="/ministerios"
-          className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''} nav-visivel`}
-        >
-          <Tags size={20} />
-          <span>Ministérios</span>
-        </NavLink>
-      )}
+      {session && <NotificacoesPopover variant="bottomnav" />}
 
       <NavLink
         to="/perfil"
@@ -67,7 +60,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
             nome={session.nome}
             foto={foto}
             cor={corPrimaria}
-            size={26}
+            size={28}
             className="js-user-avatar bottom-nav-avatar"
           />
         )}

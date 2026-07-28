@@ -70,7 +70,7 @@ export function Shell() {
 
   return (
     <div className="app-container">
-      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} />
+      <Sidebar collapsed={collapsed} onToggle={toggleSidebar} onNavigate={closeMobile} />
       <main className="main-content" onClick={mobileOpen ? closeMobile : undefined}>
         <Outlet />
       </main>

@@ -166,10 +166,9 @@ export function IndisponibilidadesPage() {
               <input
                 id="indisp-inicio"
                 type="date"
-                className={erro && !form.dataInicio ? 'field-invalid' : ''}
+                className={`form-control${erro && !form.dataInicio ? ' field-invalid' : ''}`}
                 value={form.dataInicio}
                 onChange={(e) => { setForm((f) => ({ ...f, dataInicio: e.target.value })); if (erro) setErro(''); }}
-                style={{ width: '100%' }}
               />
             </div>
             <div>
@@ -177,21 +176,22 @@ export function IndisponibilidadesPage() {
               <input
                 id="indisp-fim"
                 type="date"
+                className="form-control"
                 min={form.dataInicio || undefined}
                 value={form.dataFim}
                 onChange={(e) => { setForm((f) => ({ ...f, dataFim: e.target.value })); if (erro) setErro(''); }}
-                style={{ width: '100%' }}
               />
             </div>
             <div className="full">
               <label className="field-label" htmlFor="indisp-motivo">Motivo (opcional)</label>
               <textarea
                 id="indisp-motivo"
+                className="form-control"
                 value={form.motivo}
                 onChange={(e) => setForm((f) => ({ ...f, motivo: e.target.value }))}
                 placeholder="Ex.: viagem, trabalho, saúde…"
                 rows={2}
-                style={{ width: '100%', resize: 'vertical' }}
+                style={{ resize: 'vertical' }}
               />
             </div>
             {erro && <span className="field-error-msg full">{erro}</span>}

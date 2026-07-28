@@ -1,5 +1,4 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Icon } from '../components/ui/Icon';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
 import FullCalendar from '@fullcalendar/react';
@@ -14,12 +13,13 @@ import { getEscalas, createEscala, updateEscala, deleteEscala } from '../api/esc
 import { getServos } from '../api/servos';
 import { getMinisterios } from '../api/ministerios';
 import { getAniversariantes } from '../api/aniversariantes';
-import { getServosIndisponiveis } from '../api/indisponibilidades';
+import { getServosIndisponiveis, getIndisponibilidadesIntervalo } from '../api/indisponibilidades';
+import { formatDate } from '../utils/format';
 import { usePermissao } from '../hooks/usePermissao';
 import { useToast } from '../hooks/useToast';
 import { Modal } from '../components/ui/Modal';
 import { ConfirmDialog } from '../components/ui/ConfirmDialog';
-import type { EscalaDTO, ServoDTO, MinisterioDTO, AreaDTO, AtribuicaoDTO, AniversarianteDTO } from '../types';
+import type { EscalaDTO, ServoDTO, MinisterioDTO, AreaDTO, AtribuicaoDTO, AniversarianteDTO, IndisponibilidadeDTO } from '../types';
 
 const STYLES = `
   .agenda-toolbar { display:flex;align-items:center;justify-content:space-between;gap:1rem;margin-bottom:1rem;flex-wrap:wrap; }
@@ -52,6 +52,17 @@ const STYLES = `
   .resultados-busca li:hover { background:var(--bg-main); }
   .resultados-busca .btn-add { background:var(--primary-color);color:#fff;border:none;border-radius:6px;width:22px;height:22px;cursor:pointer;font-size:.95rem;line-height:1; }
   .resultados-busca .sem-result { color:var(--text-muted);font-style:italic;justify-content:flex-start; }
+  .indisp-servo-row { display:flex;align-items:center;justify-content:space-between;gap:.75rem;padding:.5rem .25rem;border-bottom:1px solid var(--border-color); }
+  .indisp-servo-row:last-child { border-bottom:none; }
+  .indisp-datas-wrapper { position:relative; }
+  .indisp-datas-btn { display:inline-flex;align-items:center;gap:.3rem;background:rgba(220,38,38,.1);border:1px solid rgba(220,38,38,.35);color:#dc2626;border-radius:10px;padding:.25rem .55rem;font-size:.78rem;font-weight:700;cursor:pointer; }
+  .indisp-datas-btn i, .indisp-datas-btn svg { width:14px;height:14px; }
+  .indisp-datas-popover { position:absolute;top:calc(100% + .35rem);right:0;z-index:20;min-width:190px;background:var(--bg-card);border:1px solid var(--border-color);border-radius:var(--radius-sm);box-shadow:0 8px 22px rgba(0,0,0,.2);padding:.4rem 0;overflow:hidden; }
+  .indisp-datas-popover .popover-titulo { font-size:.7rem;text-transform:uppercase;letter-spacing:.04em;font-weight:700;color:var(--text-muted);padding:.25rem .75rem .35rem; }
+  .indisp-datas-popover ul { list-style:none;margin:0;padding:0; }
+  .indisp-datas-popover li { padding:.3rem .75rem;font-size:.82rem;color:var(--text-primary); }
+  .indisp-datas-popover li:hover { background:var(--bg-main); }
+  .indisp-datas-popover .motivo { display:block;font-size:.72rem;color:var(--text-muted); }
 `;
 
 const DURACAO_PRESETS = ['30', '60', '90', '120', '180'];
@@ -82,7 +93,6 @@ export function AgendaPage() {
   const perm = usePermissao('AGENDA');
   const { toast } = useToast();
   const qc = useQueryClient();
-  const navigate = useNavigate();
   const calendarRef = useRef<FullCalendar | null>(null);
   const exportRef = useRef<HTMLDivElement | null>(null);
 
@@ -112,6 +122,10 @@ export function AgendaPage() {
   const [anivOpen, setAnivOpen] = useState(false);
   // Banner aniversariantes (visão de dia)
   const [diaBanner, setDiaBanner] = useState<AniversarianteDTO[]>([]);
+
+  // Modal "servos indisponíveis no mês" + popover de datas por servo
+  const [indispMesOpen, setIndispMesOpen] = useState(false);
+  const [servoDatasAberto, setServoDatasAberto] = useState<number | null>(null);
 
   const config = useMemo<MinisterioDTO | null>(
     () => ministerios.find((m) => m.classificacao === classificacao) ?? null,
@@ -430,6 +444,49 @@ export function AgendaPage() {
     return aniversariantes.filter((a) => a.mes === mes).sort((a, b) => a.dia - b.dia);
   }, [aniversariantes]);
 
+  // ── Indisponíveis do mês (modal) ──
+  const mesRange = useMemo(() => {
+    const now = new Date();
+    const first = new Date(now.getFullYear(), now.getMonth(), 1);
+    const last = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const fmt = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, '0')}-${String(d.getDate()).padStart(2, '0')}`;
+    return { de: fmt(first), ate: fmt(last) };
+  }, []);
+
+  const { data: indispMes = [], isLoading: indispMesLoading } = useQuery({
+    queryKey: ['indisponibilidades-mes', mesRange.de, mesRange.ate],
+    queryFn: () => getIndisponibilidadesIntervalo(mesRange.de, mesRange.ate),
+    enabled: indispMesOpen,
+    staleTime: 60 * 1000,
+  });
+
+  // Agrupa por servo, preservando a ordem (backend já ordena por nome e data)
+  const servosIndispMes = useMemo(() => {
+    const mapa = new Map<number, { servoId: number; servoNome: string; periodos: IndisponibilidadeDTO[] }>();
+    indispMes.forEach((i) => {
+      const id = i.servoId ?? 0;
+      if (!mapa.has(id)) mapa.set(id, { servoId: id, servoNome: i.servoNome ?? 'Servo', periodos: [] });
+      mapa.get(id)!.periodos.push(i);
+    });
+    return Array.from(mapa.values());
+  }, [indispMes]);
+
+  const periodoTexto = (i: IndisponibilidadeDTO) =>
+    i.dataFim && i.dataFim !== i.dataInicio
+      ? `${formatDate(i.dataInicio)} a ${formatDate(i.dataFim)}`
+      : formatDate(i.dataInicio);
+
+  // Fecha o popover de datas ao clicar fora dele
+  useEffect(() => {
+    if (servoDatasAberto == null) return;
+    const onClick = (e: MouseEvent) => {
+      if (!(e.target as HTMLElement).closest('.indisp-datas-wrapper')) setServoDatasAberto(null);
+    };
+    document.addEventListener('mousedown', onClick);
+    return () => document.removeEventListener('mousedown', onClick);
+  }, [servoDatasAberto]);
+
   return (
     <>
       <style>{STYLES}</style>
@@ -440,7 +497,7 @@ export function AgendaPage() {
           <button className="btn-secondary" onClick={() => setAnivOpen(true)}>
             <Icon name="cake" /> Aniversariantes
           </button>
-          <button className="btn-secondary" onClick={() => navigate('/indisponibilidades')}>
+          <button className="btn-secondary" onClick={() => { setServoDatasAberto(null); setIndispMesOpen(true); }}>
             <Icon name="calendar-x" /> Indisponibilidades
           </button>
           {perm.criar && (
@@ -655,6 +712,53 @@ export function AgendaPage() {
               <div>
                 <div style={{ fontWeight: 600 }}>{a.nome}</div>
                 <div style={{ fontSize: '.8rem', color: 'var(--text-muted)' }}>Dia {a.dia}</div>
+              </div>
+            </div>
+          ))
+        )}
+      </Modal>
+
+      {/* Modal servos indisponíveis do mês */}
+      <Modal
+        open={indispMesOpen}
+        onClose={() => setIndispMesOpen(false)}
+        title={`Indisponíveis — ${MESES[new Date().getMonth()]}`}
+        maxWidth="440px"
+        footer={<button className="btn-secondary" onClick={() => setIndispMesOpen(false)}>Fechar</button>}
+      >
+        {indispMesLoading ? (
+          <p style={{ opacity: 0.6, padding: '1rem 0' }}>Carregando…</p>
+        ) : servosIndispMes.length === 0 ? (
+          <p style={{ opacity: 0.6, padding: '1rem 0' }}>Nenhum servo indisponível este mês.</p>
+        ) : (
+          servosIndispMes.map((s) => (
+            <div key={s.servoId} className="indisp-servo-row">
+              <span className="aniv-item">
+                <span className="aniv-avatar-initials">{s.servoNome.charAt(0).toUpperCase()}</span>
+                <span className="aniv-nome">{s.servoNome}</span>
+              </span>
+              <div className="indisp-datas-wrapper">
+                <button
+                  type="button"
+                  className="indisp-datas-btn"
+                  onClick={() => setServoDatasAberto((cur) => (cur === s.servoId ? null : s.servoId))}
+                  aria-expanded={servoDatasAberto === s.servoId}
+                >
+                  <Icon name="calendar-x" /> {s.periodos.length} {s.periodos.length === 1 ? 'data' : 'datas'}
+                </button>
+                {servoDatasAberto === s.servoId && (
+                  <div className="indisp-datas-popover">
+                    <div className="popover-titulo">Indisponível em</div>
+                    <ul>
+                      {s.periodos.map((p) => (
+                        <li key={p.id}>
+                          {periodoTexto(p)}
+                          {p.motivo && <span className="motivo">{p.motivo}</span>}
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
               </div>
             </div>
           ))

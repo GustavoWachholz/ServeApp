@@ -20,3 +20,7 @@ export const getServosIndisponiveis = (de: string, ate: string) =>
 /** Escalas do próprio servo no intervalo (modal de confirmação). Datas em `YYYY-MM-DD`. */
 export const getConflitos = (de: string, ate: string) =>
   api.get<EscalaConflitoDTO[]>(`/api/indisponibilidades/conflitos?de=${de}&ate=${ate}`);
+
+/** Indisponibilidades de todos os servos no intervalo (modal do mês na Agenda). Datas em `YYYY-MM-DD`. */
+export const getIndisponibilidadesIntervalo = (de: string, ate: string) =>
+  api.get<IndisponibilidadeDTO[]>(`/api/indisponibilidades/intervalo?de=${de}&ate=${ate}`);

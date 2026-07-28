@@ -71,6 +71,17 @@ public class IndisponibilidadeController {
     }
 
     /**
+     * {@code GET /api/indisponibilidades/intervalo?de=&ate=} — indisponibilidades de todos os
+     * servos no intervalo (nome + datas). Alimenta o modal de "servos indisponíveis no mês" da Agenda.
+     */
+    @GetMapping("/intervalo")
+    public List<IndisponibilidadeDTO> listarNoIntervalo(
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate de,
+            @RequestParam @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate ate) {
+        return indisponibilidadeService.listarNoIntervalo(de, ate);
+    }
+
+    /**
      * {@code GET /api/indisponibilidades/conflitos?de=&ate=} — escalas do próprio servo que
      * caem no intervalo, para o modal de confirmação ao lançar a indisponibilidade.
      */

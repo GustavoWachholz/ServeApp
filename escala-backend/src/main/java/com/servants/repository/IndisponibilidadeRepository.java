@@ -39,6 +39,21 @@ public interface IndisponibilidadeRepository extends JpaRepository<Indisponibili
     Set<Long> findServoIdsIndisponiveis(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
 
     /**
+     * Lista as indisponibilidades de <b>todos</b> os servos que caem no intervalo
+     * {@code [de, ate]} (mesma regra de sobreposição de {@link #findServoIdsIndisponiveis}),
+     * já com o servo carregado (JOIN FETCH) e ordenadas por nome do servo e data de início.
+     * Alimenta o modal de "servos indisponíveis no mês" da Agenda.
+     *
+     * @param de  primeiro dia do intervalo (inclusive).
+     * @param ate último dia do intervalo (inclusive).
+     * @return indisponibilidades no intervalo, ordenadas por nome do servo.
+     */
+    @Query("SELECT i FROM Indisponibilidade i JOIN FETCH i.servo s "
+         + "WHERE i.dataInicio <= :ate AND COALESCE(i.dataFim, i.dataInicio) >= :de "
+         + "ORDER BY s.nome ASC, i.dataInicio ASC")
+    List<Indisponibilidade> findNoIntervalo(@Param("de") LocalDate de, @Param("ate") LocalDate ate);
+
+    /**
      * Carrega as indisponibilidades de um conjunto de servos em uma única query — usado
      * para marcar a flag {@code indisponivel} das atribuições ao listar escalas sem N+1.
      *

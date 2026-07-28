@@ -134,6 +134,20 @@ public class IndisponibilidadeService {
     }
 
     /**
+     * Lista as indisponibilidades de todos os servos no intervalo — visão do mês na Agenda
+     * (nome do servo + datas). Ordenada por nome do servo e data de início.
+     *
+     * @param de  primeiro dia do intervalo (inclusive).
+     * @param ate último dia do intervalo (inclusive).
+     * @return DTOs das indisponibilidades no intervalo (pode ser vazia).
+     */
+    @Transactional(readOnly = true)
+    public List<IndisponibilidadeDTO> listarNoIntervalo(LocalDate de, LocalDate ate) {
+        return indisponibilidadeRepository.findNoIntervalo(de, ate)
+                .stream().map(this::toDTO).collect(Collectors.toList());
+    }
+
+    /**
      * Escalas do servo do usuário que caem no intervalo informado — alimenta o modal de
      * confirmação exibido quando ele lança uma indisponibilidade sobre datas já escaladas.
      *

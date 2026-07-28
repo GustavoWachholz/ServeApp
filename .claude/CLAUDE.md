@@ -14,9 +14,10 @@ Este arquivo deve ser lido no início de **toda** conversa sobre este projeto.
 - Pasta raiz: `C:\Users\gusta\Documents\Projetos\Servants\`
 
 > **Estado da migração React:** todas as 12 telas foram portadas (`MIGRACAO_REACT.md` §13).
-> O **cutover de produção ainda não foi feito** — o nginx continua servindo o frontend vanilla de
-> `escala-frontend/`. Ao ajustar o app, mexa em `escala-frontend-react/`; `escala-frontend/` é
-> **legado congelado**, mantido só até o cutover (nginx com `try_files … /index.html` + `dist/`).
+> O **cutover de produção já foi feito** — o nginx serve o SPA React (build `dist/`) de
+> `/var/www/html`, com `try_files $uri $uri/ /index.html` para o roteamento client-side
+> (ver `DEPLOY.md` / skill `deploy-serve`). Ao ajustar o app, mexa em `escala-frontend-react/`;
+> `escala-frontend/` é **legado congelado descontinuado** — não evoluir e não copiar mais para o webroot.
 
 ---
 
@@ -57,7 +58,7 @@ ServeApp/
 │       ├── types/index.ts   # DTOs espelhando o backend
 │       ├── styles/          # dashboard.css + login.css (copiados do vanilla, globais)
 │       └── test/setup.ts    # Setup do Vitest
-├── escala-frontend/         # LEGADO (vanilla JS) — ainda é o que o nginx serve; não evoluir
+├── escala-frontend/         # LEGADO (vanilla JS) — descontinuado; nginx já serve o React; não evoluir
 ├── MIGRACAO_REACT.md        # Plano + registro de execução da migração
 ├── DEPLOY.md                # Comandos de deploy (EC2/RDS/nginx/certbot)
 └── start.bat                # Inicia o backend com timezone correto
@@ -234,7 +235,7 @@ Sempre por caminho relativo `/api/...` (proxy do Vite em dev, mesmo origin via n
 
 - `MIGRACAO_REACT.md` — plano e registro de execução da migração para React; §13 tem o que foi entregue e as pendências de cutover
 - `DOCUMENTACAO.md` — referência de funções por camada. **Backend continua válido; a parte de frontend descreve o vanilla e está obsoleta.** Usa também os nomes antigos (`Voluntario`/`Ministerio`/`ConfiguracaoEscala`)
-- `DEPLOY.md` — comandos e infraestrutura de deploy (EC2, RDS, nginx, certbot). **Ainda descreve o deploy do frontend vanilla** — precisa ser atualizado no cutover (build `dist/` + `try_files $uri $uri/ /index.html`)
+- `DEPLOY.md` — comandos e infraestrutura de deploy (EC2, RDS, nginx, certbot). Descreve o deploy do **frontend React** (build `dist/` local → `scp` → `/var/www/html` com `try_files $uri $uri/ /index.html`) e do backend; a skill `deploy-serve` (`.claude/SKILL.md`) automatiza os dois fluxos
 - `.claude/DESIGN.md` — padrão visual completo do frontend (tokens, layout, tabelas, modais, botões, forms, responsividade). As classes CSS seguem valendo; os exemplos estão em HTML/JS vanilla, traduzir mentalmente para JSX
 - `.claude/progress.md` — registro de todo o progresso implementado (ler apenas quando solicitado)
 - `PLANO_INDISPONIBILIDADES_NOTIFICACOES.md` — plano rastreável da feature Indisponibilidades & Notificações (decisões, fases, checkboxes de progresso). Backend (Fases 1–3) + API do front (Fase 4) prontos; UI (Fases 5–8) pendente

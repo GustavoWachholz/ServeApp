@@ -1,7 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Sun, Moon, CalendarCheck, Bell, CalendarOff } from 'lucide-react';
 import { login as apiLogin, cadastro as apiCadastro } from '../api/auth';
 import { useAuth } from '../hooks/useAuth';
+import { useTheme } from '../hooks/useTheme';
 import '../styles/login.css';
 
 type View = 'login' | 'cadastro';
@@ -243,8 +245,11 @@ function CadastroView({ onSwitch }: { onSwitch: () => void }) {
 
 export function LoginPage() {
   const { session } = useAuth();
+  const { tema, setTema } = useTheme();
   const navigate = useNavigate();
   const [view, setView] = useState<View>('login');
+  const isDark = tema !== 'light';
+  const logoSrc = isDark ? '/assets/img/logo_dark.png' : '/assets/img/logo_t.png';
 
   useEffect(() => {
     if (session) navigate('/', { replace: true });
@@ -267,22 +272,38 @@ export function LoginPage() {
         }
       `}</style>
       <main className="login-container">
+        <button
+          type="button"
+          className="login-theme-toggle"
+          onClick={() => setTema(isDark ? 'light' : 'dark')}
+          aria-label={isDark ? 'Ativar tema claro' : 'Ativar tema escuro'}
+          title={isDark ? 'Tema claro' : 'Tema escuro'}
+        >
+          {isDark ? <Sun size={20} /> : <Moon size={20} />}
+        </button>
         <section className="branding-side">
           <div className="branding-content">
             <img
-              src="/assets/img/logo.png"
+              src={logoSrc}
               alt="Logo Serve"
-              style={{ maxWidth: 250, borderRadius: 16, boxShadow: '0 4px 20px rgba(0,0,0,0.4)', marginBottom: 20 }}
+              style={{ maxWidth: 250, marginBottom: 20 }}
             />
             <p style={{ color: 'var(--login-muted)', fontSize: '1.2rem', fontWeight: 500, marginTop: 15, textAlign: 'center', maxWidth: '80%' }}>
               Uma geração que adora, ama e{' '}
               <strong style={{ color: 'var(--primary-color)' }}>Serve</strong>
               <strong style={{ color: 'var(--warn)' }}>.</strong>
             </p>
+            <ul className="branding-features">
+              <li><CalendarCheck size={20} /> Escalas organizadas em um só lugar</li>
+              <li><Bell size={20} /> Avisos e notificações em tempo real</li>
+              <li><CalendarOff size={20} /> Controle das suas indisponibilidades</li>
+            </ul>
           </div>
+          <p className="branding-footer">© {new Date().getFullYear()} Serve · Gestão de escalas para voluntários</p>
         </section>
         <section className="form-side">
           <div className="form-content">
+            <img className="login-mobile-logo" src={logoSrc} alt="Logo Serve" />
             {view === 'login'
               ? <LoginView onSwitch={() => setView('cadastro')} />
               : <CadastroView onSwitch={() => setView('login')} />

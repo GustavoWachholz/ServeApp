@@ -9,9 +9,13 @@
       (function () {
         try {
           var s = JSON.parse(localStorage.getItem('serve_session') || '{}');
-          if (s.tema === 'dark') {
+          if (s.tema === 'dark' || s.tema === 'ardosia') {
             document.documentElement.classList.add('dark-mode');
             document.body && document.body.classList.add('dark-mode');
+          }
+          if (s.tema === 'ardosia') {
+            document.documentElement.classList.add('ardosia-mode');
+            document.body && document.body.classList.add('ardosia-mode');
           }
         } catch (_) {}
       })();

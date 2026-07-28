@@ -184,7 +184,7 @@ Dois caminhos convivem: componentes `lucide-react` (usados no `Sidebar`) e `<i d
 - JSX escapa por padrão — não introduzir `dangerouslySetInnerHTML`.
 
 ### Tema
-`ThemeContext` gerencia tema claro/escuro e cor primária, persistidos na sessão e sincronizados com o backend. O flash inicial é evitado por um script bloqueante no `index.html` que lê `serve_session.tema` antes do paint — se mexer na chave de sessão, atualizar esse script também.
+`ThemeContext` gerencia **três temas** (`'light' | 'dark' | 'ardosia'`) e a cor de acento, persistidos em `serve_session` (localStorage). O tema **Ardósia** é um azul-acinzentado: carrega junto da classe `.dark-mode` (herda os tweaks de inputs/logo/hover) e a classe extra `.ardosia-mode` sobrescreve só a paleta (bloco em `dashboard.css` **depois** do `:root.dark-mode` para vencer no cascade). A cor de acento é escolhida entre 8 pré-definidas (`CORES_ACENTO`, exportada do `ThemeContext`: 2 da logo + 6 comuns de UI) via swatches no `Sidebar` — não há mais `<input type="color">` livre; default = azul da logo `#1B5E8C`. O flash inicial é evitado por um script bloqueante no `index.html` que lê `serve_session.tema` antes do paint e aplica as classes — se mexer na chave de sessão ou adicionar tema, atualizar esse script também.
 
 ### APIs consumidas
 Sempre por caminho relativo `/api/...` (proxy do Vite em dev, mesmo origin via nginx em produção).

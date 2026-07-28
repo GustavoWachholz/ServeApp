@@ -12,7 +12,7 @@ interface BottomNavProps {
 export function BottomNav({ onMenuClick }: BottomNavProps) {
   const { session, foto, isAdmin, podeAcessar } = useAuth();
   const themeCtx = useContext(ThemeContext);
-  const corPrimaria = themeCtx?.corPrimaria ?? '#c98aff';
+  const corPrimaria = themeCtx?.corPrimaria ?? '#1B5E8C';
 
   const showAgenda = isAdmin() || podeAcessar('AGENDA');
   const showMinisterios = isAdmin() || podeAcessar('MINISTERIOS');

@@ -8,8 +8,14 @@ import { Avatar } from '../ui/Avatar';
 import { NotificacoesPopover } from './NotificacoesPopover';
 import { useAuth } from '../../hooks/useAuth';
 import { useContext } from 'react';
-import { ThemeContext } from '../../context/ThemeContext';
+import { ThemeContext, CORES_ACENTO, type Tema } from '../../context/ThemeContext';
 import { useIgreja } from '../../hooks/useIgreja';
+
+const THEME_OPTIONS: ReadonlyArray<{ value: Tema; label: string }> = [
+  { value: 'light', label: 'Claro' },
+  { value: 'dark', label: 'Escuro' },
+  { value: 'ardosia', label: 'Ardósia' },
+];
 
 interface SidebarProps {
   collapsed: boolean;
@@ -55,10 +61,10 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
   const settingsRef = useRef<HTMLDivElement>(null);
 
   const tema = themeCtx?.tema ?? 'light';
-  const corPrimaria = themeCtx?.corPrimaria ?? '#c98aff';
+  const corPrimaria = themeCtx?.corPrimaria ?? '#1B5E8C';
 
-  const logoFull = tema === 'dark' ? '/assets/img/logo_dark.png' : '/assets/img/logo_t.png';
-  const logoMini = tema === 'dark' ? '/assets/img/logo_mini_dark.png' : '/assets/img/logo_mini_t.png';
+  const logoFull = tema === 'light' ? '/assets/img/logo_t.png' : '/assets/img/logo_dark.png';
+  const logoMini = tema === 'light' ? '/assets/img/logo_mini_t.png' : '/assets/img/logo_mini_dark.png';
 
   const handleLogout = useCallback(async () => {
     await logout();
@@ -156,26 +162,38 @@ export function Sidebar({ collapsed, onToggle }: SidebarProps) {
         <div ref={settingsRef} id="settings-menu" className={`settings-popover${settingsOpen ? ' show-menu' : ''}`}>
           <div className="popover-header"><span>Aparência</span></div>
           <div className="settings-group">
-            <div className="setting-item">
-              <label htmlFor="theme-toggle">Modo Escuro</label>
-              <label className="switch">
-                <input
-                  type="checkbox"
-                  id="theme-toggle"
-                  checked={tema === 'dark'}
-                  onChange={(e) => themeCtx?.setTema(e.target.checked ? 'dark' : 'light')}
-                />
-                <span className="slider" />
-              </label>
+            <div className="setting-item column">
+              <label>Tema</label>
+              <div className="theme-options" role="group" aria-label="Tema">
+                {THEME_OPTIONS.map((opt) => (
+                  <button
+                    key={opt.value}
+                    type="button"
+                    className={`theme-option${tema === opt.value ? ' active' : ''}`}
+                    aria-pressed={tema === opt.value}
+                    onClick={() => themeCtx?.setTema(opt.value)}
+                  >
+                    {opt.label}
+                  </button>
+                ))}
+              </div>
             </div>
-            <div className="setting-item">
-              <label htmlFor="color-picker">Cor Principal</label>
-              <input
-                type="color"
-                id="color-picker"
-                value={corPrimaria}
-                onChange={(e) => themeCtx?.setCorPrimaria(e.target.value)}
-              />
+            <div className="setting-item column">
+              <label>Cor principal</label>
+              <div className="color-swatches" role="group" aria-label="Cor principal">
+                {CORES_ACENTO.map((cor) => (
+                  <button
+                    key={cor.hex}
+                    type="button"
+                    className={`color-swatch${corPrimaria.toLowerCase() === cor.hex.toLowerCase() ? ' active' : ''}`}
+                    style={{ backgroundColor: cor.hex }}
+                    title={cor.nome}
+                    aria-label={cor.nome}
+                    aria-pressed={corPrimaria.toLowerCase() === cor.hex.toLowerCase()}
+                    onClick={() => themeCtx?.setCorPrimaria(cor.hex)}
+                  />
+                ))}
+              </div>
             </div>
           </div>
           {isAdmin() && igreja && (

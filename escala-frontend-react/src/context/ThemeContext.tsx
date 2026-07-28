@@ -7,24 +7,39 @@ import {
   type ReactNode,
 } from 'react';
 
+export type Tema = 'light' | 'dark' | 'ardosia';
+
 interface ThemeContextValue {
-  tema: 'light' | 'dark';
+  tema: Tema;
   corPrimaria: string;
-  setTema: (t: 'light' | 'dark') => void;
+  setTema: (t: Tema) => void;
   setCorPrimaria: (cor: string) => void;
 }
 
 export const ThemeContext = createContext<ThemeContextValue | null>(null);
 
-const SESSION_KEY = 'serve_session';
-const DEFAULT_COR = '#c98aff';
+/** Cores de acento pré-definidas oferecidas no seletor (2 da logo + 6 comuns em UI). */
+export const CORES_ACENTO: ReadonlyArray<{ nome: string; hex: string }> = [
+  { nome: 'Azul Serve', hex: '#1B5E8C' },
+  { nome: 'Laranja Serve', hex: '#E8A020' },
+  { nome: 'Azul royal', hex: '#2563EB' },
+  { nome: 'Índigo', hex: '#4F46E5' },
+  { nome: 'Violeta', hex: '#7C3AED' },
+  { nome: 'Esmeralda', hex: '#10B981' },
+  { nome: 'Turquesa', hex: '#14B8A6' },
+  { nome: 'Rose', hex: '#F43F5E' },
+];
 
-function lerTemaInicial(): 'light' | 'dark' {
+const SESSION_KEY = 'serve_session';
+const DEFAULT_COR = '#1B5E8C';
+
+function lerTemaInicial(): Tema {
   try {
     const raw = localStorage.getItem(SESSION_KEY);
     if (raw) {
       const s = JSON.parse(raw) as { tema?: string };
       if (s.tema === 'dark') return 'dark';
+      if (s.tema === 'ardosia') return 'ardosia';
     }
   } catch {}
   return 'light';
@@ -41,14 +56,12 @@ function lerCorInicial(): string {
   return DEFAULT_COR;
 }
 
-function aplicarClasse(tema: 'light' | 'dark') {
-  if (tema === 'dark') {
-    document.documentElement.classList.add('dark-mode');
-    document.body.classList.add('dark-mode');
-  } else {
-    document.documentElement.classList.remove('dark-mode');
-    document.body.classList.remove('dark-mode');
-  }
+function aplicarClasse(tema: Tema) {
+  const escuro = tema === 'dark' || tema === 'ardosia';
+  document.documentElement.classList.toggle('dark-mode', escuro);
+  document.body.classList.toggle('dark-mode', escuro);
+  document.documentElement.classList.toggle('ardosia-mode', tema === 'ardosia');
+  document.body.classList.toggle('ardosia-mode', tema === 'ardosia');
 }
 
 function aplicarCorCss(cor: string) {
@@ -61,35 +74,32 @@ function aplicarCorCss(cor: string) {
   }
 }
 
+function persistir(patch: Record<string, unknown>) {
+  try {
+    const raw = localStorage.getItem(SESSION_KEY);
+    if (raw) {
+      const s = JSON.parse(raw);
+      Object.assign(s, patch);
+      localStorage.setItem(SESSION_KEY, JSON.stringify(s));
+    }
+  } catch {}
+}
+
 export function ThemeProvider({ children }: { children: ReactNode }) {
-  const [tema, setTemaState] = useState<'light' | 'dark'>(lerTemaInicial);
+  const [tema, setTemaState] = useState<Tema>(lerTemaInicial);
   const [corPrimaria, setCorPrimariaState] = useState<string>(lerCorInicial);
 
   useEffect(() => { aplicarClasse(tema); }, [tema]);
   useEffect(() => { aplicarCorCss(corPrimaria); }, [corPrimaria]);
 
-  const setTema = useCallback((t: 'light' | 'dark') => {
+  const setTema = useCallback((t: Tema) => {
     setTemaState(t);
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        s.tema = t;
-        localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-      }
-    } catch {}
+    persistir({ tema: t });
   }, []);
 
   const setCorPrimaria = useCallback((cor: string) => {
     setCorPrimariaState(cor);
-    try {
-      const raw = localStorage.getItem(SESSION_KEY);
-      if (raw) {
-        const s = JSON.parse(raw);
-        s.corPrimaria = cor;
-        localStorage.setItem(SESSION_KEY, JSON.stringify(s));
-      }
-    } catch {}
+    persistir({ corPrimaria: cor });
   }, []);
 
   const value = useMemo(

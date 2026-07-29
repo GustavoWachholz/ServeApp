@@ -27,7 +27,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
         aria-label="Menu"
         title="Menu"
       >
-        <Menu size={34} strokeWidth={2.25} />
+        <Menu size={38} strokeWidth={2.25} />
       </button>
 
       {showAgenda && (
@@ -37,7 +37,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
           title="Agenda"
           className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
         >
-          <CalendarCheck size={34} strokeWidth={2.25} />
+          <CalendarCheck size={38} strokeWidth={2.25} />
         </NavLink>
       )}
 
@@ -48,7 +48,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
         title="Home"
         className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
       >
-        <House size={34} strokeWidth={2.25} />
+        <House size={38} strokeWidth={2.25} />
       </NavLink>
 
       {session && <NotificacoesPopover variant="bottomnav" />}
@@ -64,7 +64,7 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
             nome={session.nome}
             foto={foto}
             cor={corPrimaria}
-            size={32}
+            size={36}
             className="js-user-avatar bottom-nav-avatar"
           />
         )}

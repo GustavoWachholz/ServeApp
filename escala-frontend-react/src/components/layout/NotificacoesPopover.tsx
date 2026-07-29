@@ -132,10 +132,9 @@ export function NotificacoesPopover({ variant = 'sidebar' }: { variant?: 'sideba
             aria-label="Notificações"
           >
             <span className="notif-bn-icon">
-              <Bell size={30} strokeWidth={2.25} />
+              <Bell size={34} strokeWidth={2.25} />
               {naoLidas > 0 && <span className="notif-badge notif-badge--bn">{naoLidas > 99 ? '99+' : naoLidas}</span>}
             </span>
-            <span>Notificações</span>
           </button>
         ) : (
           <button

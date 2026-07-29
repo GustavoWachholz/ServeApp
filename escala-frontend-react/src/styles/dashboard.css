@@ -1261,23 +1261,18 @@ html.embedded .sidebar { display: none; }
     .bottom-nav-item {
         flex: 1;
         display: flex;
-        flex-direction: column;
         align-items: center;
         justify-content: center;
-        gap: 6px;
-        padding-top: 3px;
         background: none;
         border: none;
         color: var(--text-muted);
-        font-size: 0.58rem;
         text-decoration: none;
         cursor: pointer;
     }
-    .bottom-nav-item span { line-height: 1; }
-    .bottom-nav-item svg { width: 30px; height: 30px; }
+    .bottom-nav-item svg { width: 34px; height: 34px; }
     .bottom-nav-item.active { color: var(--primary-color); }
     .bottom-nav-avatar {
-        width: 30px; height: 30px;
+        width: 32px; height: 32px;
         border-radius: 50%;
         object-fit: cover;
         background: var(--bg-main);

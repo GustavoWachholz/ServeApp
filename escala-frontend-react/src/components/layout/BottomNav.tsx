@@ -25,34 +25,38 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
         className="bottom-nav-item"
         onClick={onMenuClick}
         aria-label="Menu"
+        title="Menu"
       >
-        <Menu size={30} strokeWidth={2.25} />
-        <span>Menu</span>
+        <Menu size={34} strokeWidth={2.25} />
       </button>
 
       {showAgenda && (
         <NavLink
           to="/agenda"
+          aria-label="Agenda"
+          title="Agenda"
           className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
         >
-          <CalendarCheck size={30} strokeWidth={2.25} />
-          <span>Agenda</span>
+          <CalendarCheck size={34} strokeWidth={2.25} />
         </NavLink>
       )}
 
       <NavLink
         to="/"
         end
+        aria-label="Home"
+        title="Home"
         className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
       >
-        <House size={30} strokeWidth={2.25} />
-        <span>Home</span>
+        <House size={34} strokeWidth={2.25} />
       </NavLink>
 
       {session && <NotificacoesPopover variant="bottomnav" />}
 
       <NavLink
         to="/perfil"
+        aria-label="Perfil"
+        title="Perfil"
         className={({ isActive }) => `bottom-nav-item${isActive ? ' active' : ''}`}
       >
         {session && (
@@ -60,11 +64,10 @@ export function BottomNav({ onMenuClick }: BottomNavProps) {
             nome={session.nome}
             foto={foto}
             cor={corPrimaria}
-            size={30}
+            size={32}
             className="js-user-avatar bottom-nav-avatar"
           />
         )}
-        <span>Perfil</span>
       </NavLink>
     </nav>
   );

@@ -1,5 +1,4 @@
-import { useCallback, useRef, useState } from 'react';
-import { createPortal } from 'react-dom';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import {
   House, CalendarCheck, CalendarOff, Users, Church, Tags, ChartPie,
@@ -84,6 +83,23 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
     setSettingsOpen((v) => !v);
   }, []);
 
+  // Fecha o popover de Configurações ao clicar fora, absorvendo o clique (fase
+  // de captura) para não disparar nada no resto da tela — funciona em qualquer
+  // contexto de empilhamento (inclusive sobre o backdrop da sidebar no mobile).
+  useEffect(() => {
+    if (!settingsOpen) return;
+    const onDocClick = (e: MouseEvent) => {
+      const target = e.target as Node;
+      if (settingsRef.current?.contains(target)) return;
+      if (document.getElementById('settings-btn')?.contains(target)) return;
+      e.preventDefault();
+      e.stopPropagation();
+      setSettingsOpen(false);
+    };
+    document.addEventListener('click', onDocClick, true);
+    return () => document.removeEventListener('click', onDocClick, true);
+  }, [settingsOpen]);
+
   const isVisible = useCallback(
     (item: NavItem) => {
       if (item.adminOnly) return isAdmin();
@@ -165,15 +181,6 @@ export function Sidebar({ collapsed, onToggle, onNavigate }: SidebarProps) {
           ))}
         </ul>
       </nav>
-
-      {settingsOpen && createPortal(
-        <div
-          className="settings-overlay"
-          onClick={() => setSettingsOpen(false)}
-          aria-hidden="true"
-        />,
-        document.body
-      )}
 
       <div className="sidebar-footer">
         <div ref={settingsRef} id="settings-menu" className={`settings-popover${settingsOpen ? ' show-menu' : ''}`}>

@@ -528,16 +528,6 @@ body {
     transform: translateY(0);
 }
 
-/* Overlay que fecha o popover de Configurações ao clicar fora, absorvendo o
-   clique (não aciona nada embaixo). Fica sob o popover (z-index 100) e, no
-   mobile, sob o backdrop da sidebar (z-index 999). */
-.settings-overlay {
-    position: fixed;
-    inset: 0;
-    z-index: 99;
-    background: transparent;
-}
-
 .popover-header {
     font-size: 0.75rem;
     font-weight: 700;
@@ -1226,7 +1216,7 @@ html.embedded .sidebar { display: none; }
 
     /* ── Layout geral / overflow ──────────────────────────────────────── */
     html, body { overflow-x: hidden; }
-    .main-content { padding: 1.25rem 1rem 2rem; }
+    .main-content { padding: 1.25rem 1rem calc(var(--bottomnav-h) + env(safe-area-inset-bottom) + 1.25rem); }
     .main-header { margin-bottom: 1.75rem; }
     .logo-title { font-size: 1.6rem; }
 
@@ -1284,10 +1274,10 @@ html.embedded .sidebar { display: none; }
         cursor: pointer;
     }
     .bottom-nav-item span { line-height: 1; }
-    .bottom-nav-item svg { width: 26px; height: 26px; }
+    .bottom-nav-item svg { width: 30px; height: 30px; }
     .bottom-nav-item.active { color: var(--primary-color); }
     .bottom-nav-avatar {
-        width: 28px; height: 28px;
+        width: 30px; height: 30px;
         border-radius: 50%;
         object-fit: cover;
         background: var(--bg-main);
